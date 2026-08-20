@@ -22,11 +22,9 @@ export function BudgetSimulator({
   const [missionsPercent, setMissionsPercent] = useState<number>(25); // % for missions
   const [templePercent, setTemplePercent] = useState<number>(15); // % for temple/construction
 
-  if (!isOpen) return null;
-
   const base = currentTotal || 50000000;
 
-  // Projections
+  // Projections (placed before any early return to comply with Rules of Hooks)
   const projections = useMemo(() => {
     const projectedAnnual = base * 12 * (1 + growthRate / 100);
     const projectedMissionsAnnual = projectedAnnual * (missionsPercent / 100);
@@ -47,6 +45,8 @@ export function BudgetSimulator({
       quarters: [q1, q2, q3, q4],
     };
   }, [base, growthRate, missionsPercent, templePercent]);
+
+  if (!isOpen) return null;
 
   const chartData = {
     labels: ['Trimestre I', 'Trimestre II', 'Trimestre III', 'Trimestre IV'],
