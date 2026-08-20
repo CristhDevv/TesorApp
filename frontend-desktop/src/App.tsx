@@ -21,6 +21,7 @@ import {
   ArrowDown,
   ArrowUpDown,
   TrendingUp,
+  Smartphone,
 } from 'lucide-react';
 import {
   Chart as ChartJS,
@@ -64,11 +65,14 @@ ChartJS.register(
 import { formatCOP } from './utils/formatters';
 import { ConfirmModal } from './components/common/ConfirmModal';
 import { PeriodCreateModal } from './components/common/PeriodCreateModal';
+import { useDeviceDetection } from './hooks/useDeviceDetection';
+import { MobileView } from './components/mobile/MobileView';
 
 const API_BASE = window.location.origin;
 axios.defaults.timeout = 15000;
 
 export default function App() {
+  const { isMobile, setOverride } = useDeviceDetection();
   const [token, setToken] = useState<string | null>(localStorage.getItem('token'));
   const [user, setUser] = useState<any>(null);
   const [activeTab, setActiveTab] = useState<'sheet' | 'iglesias' | 'campos' | 'permisos' | 'usuarios' | 'historial'>('sheet');
@@ -1072,13 +1076,26 @@ export default function App() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-lg transition text-xs shadow-sm disabled:opacity-50"
+              className="w-full py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-lg transition text-xs shadow-sm disabled:opacity-50 cursor-pointer"
             >
               {loading ? 'Accediendo...' : 'Iniciar Sesión'}
             </button>
           </form>
         </div>
       </div>
+    );
+  }
+
+  // ─── ADAPTIVE MOBILE VIEW FOR MOBILE DEVICES OR OVERRIDE ─────────────
+  if (token && isMobile) {
+    return (
+      <MobileView
+        token={token}
+        user={user}
+        onLogout={handleLogout}
+        onSwitchToDesktop={() => setOverride('desktop')}
+        API_BASE={API_BASE}
+      />
     );
   }
 
@@ -1156,13 +1173,21 @@ export default function App() {
         </div>
 
         <div className="flex items-center gap-2 text-xs">
+          <button
+            onClick={() => setOverride('mobile')}
+            title="Cambiar a vista móvil adaptada"
+            className="px-2 py-1 text-slate-300 hover:text-white hover:bg-slate-800 rounded text-[11px] font-semibold flex items-center gap-1.5 transition cursor-pointer border border-slate-700"
+          >
+            <Smartphone className="w-3.5 h-3.5 text-indigo-400" />
+            <span className="hidden sm:inline">Vista Móvil</span>
+          </button>
           <span className="text-slate-300 font-semibold text-[11px] truncate max-w-[180px]">
             {user?.nombre_completo}
           </span>
           <BadgeStatus variant={user?.rol} label={user?.rol} />
           <button
             onClick={handleLogout}
-            className="p-1 text-slate-400 hover:text-white hover:bg-slate-800 rounded transition ml-1"
+            className="p-1 text-slate-400 hover:text-white hover:bg-slate-800 rounded transition ml-1 cursor-pointer"
             title="Cerrar sesión"
           >
             <LogOut className="w-3.5 h-3.5" />
