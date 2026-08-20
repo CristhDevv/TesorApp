@@ -1,0 +1,409 @@
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import {
+  CheckCircle2,
+  Loader2,
+  Lock,
+  Send,
+  Building2,
+  Calendar,
+  Layers,
+} from 'lucide-react';
+import type { FilaGrid, ColumnaGrid, Periodo } from '../../types/contabilidad';
+
+interface ChurchReportFormProps {
+  row: FilaGrid;
+  columns: ColumnaGrid[];
+  periodo?: Periodo;
+  isPeriodOpen: boolean;
+  onSaveCell: (churchId: string, fieldId: string, value: string) => Promise<void> | void;
+  onBatchSave: (churchId: string, values: Record<string, number>) => Promise<void>;
+  onSendMonthlyReport?: (churchId: string, periodoId: string) => void;
+}
+
+type SaveStatus = 'saved' | 'saving' | 'dirty' | 'error';
+
+const formatCOP = (val: number | string | null | undefined): string => {
+  const num = Number(val ?? 0);
+  if (isNaN(num)) return '$0';
+  return '$' + Math.round(num).toLocaleString('es-CO');
+};
+
+export const ChurchReportForm = React.memo(function ChurchReportForm({
+  row,
+  columns,
+  periodo,
+  isPeriodOpen,
+  onBatchSave,
+  onSendMonthlyReport,
+}: ChurchReportFormProps) {
+  const getServerVal = useCallback(
+    (colId: string) => {
+      const cell = row.valores.find((v) => v.campo_id === colId);
+      if (!cell) return 0;
+      return (
+        Number(
+          cell.modo_calculo === 'calculado'
+            ? cell.valor_calculado
+            : cell.valor_manual
+        ) || 0
+      );
+    },
+    [row.valores]
+  );
+
+  const [localValues, setLocalValues] = useState<Record<string, number>>(() => {
+    const init: Record<string, number> = {};
+    for (const col of columns) {
+      if (col.modo_calculo === 'manual') {
+        init[col.id] = getServerVal(col.id);
+      }
+    }
+    return init;
+  });
+
+  const [saveStatus, setSaveStatus] = useState<SaveStatus>('saved');
+  const [reportSubmitted, setReportSubmitted] = useState(false);
+  const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const latestValuesRef = useRef<Record<string, number>>(localValues);
+  latestValuesRef.current = localValues;
+
+  // Sync with incoming server state when church, period or row values update
+  useEffect(() => {
+    const next: Record<string, number> = {};
+    for (const col of columns) {
+      if (col.modo_calculo === 'manual') {
+        next[col.id] = getServerVal(col.id);
+      }
+    }
+    setLocalValues(next);
+    setSaveStatus('saved');
+    setReportSubmitted(false);
+  }, [row.iglesia_id, periodo?.id, row.valores.length, getServerVal, columns]);
+
+  // Debounced auto-save function (800ms)
+  const triggerAutoSave = useCallback(
+    (newValues: Record<string, number>) => {
+      if (!isPeriodOpen) return;
+
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
+      }
+
+      setSaveStatus('dirty');
+
+      debounceTimerRef.current = setTimeout(async () => {
+        setSaveStatus('saving');
+        try {
+          await onBatchSave(row.iglesia_id, newValues);
+          setSaveStatus('saved');
+        } catch {
+          setSaveStatus('error');
+        }
+      }, 800);
+    },
+    [isPeriodOpen, onBatchSave, row.iglesia_id]
+  );
+
+  const handleInputChange = (colId: string, valStr: string) => {
+    const num = parseFloat(valStr) || 0;
+    const updated = { ...localValues, [colId]: num };
+    setLocalValues(updated);
+    triggerAutoSave(updated);
+  };
+
+  const handleSendReport = () => {
+    if (!periodo) return;
+    setReportSubmitted(true);
+    if (onSendMonthlyReport) {
+      onSendMonthlyReport(row.iglesia_id, periodo.id);
+    }
+  };
+
+  // Group columns into the 3 strict sections defined in the technical specification:
+  // 1. Ingresos (seccion_iglesia === 'Ingresos')
+  // 2. Egresos (seccion_iglesia === 'Egresos')
+  // 3. Cálculos (modo_calculo === 'calculado' o Informativo)
+  const ingresosCols = columns.filter(
+    (c) => (c.seccion_iglesia || c.seccion) === 'Ingresos' && c.modo_calculo === 'manual'
+  );
+  const egresosCols = columns.filter(
+    (c) => (c.seccion_iglesia || c.seccion) === 'Egresos' && c.modo_calculo === 'manual'
+  );
+  const calculosCols = columns.filter(
+    (c) =>
+      c.modo_calculo === 'calculado' ||
+      ((c.seccion_iglesia || c.seccion) !== 'Ingresos' &&
+        (c.seccion_iglesia || c.seccion) !== 'Egresos')
+  );
+
+  return (
+    <div className="flex-1 overflow-y-auto bg-slate-100 p-3 sm:p-6 flex flex-col items-center">
+      {/* 400-480px centered mobile-first container */}
+      <div className="w-full max-w-[480px] space-y-4 pb-12">
+        {/* HEADER SIMPLE (Light Theme) */}
+        <div className="bg-white border border-slate-200 rounded-lg p-4 shadow-sm space-y-2">
+          <div className="flex items-start justify-between">
+            <div>
+              <div className="flex items-center gap-1.5 text-slate-900 font-bold text-base">
+                <Building2 className="w-4 h-4 text-indigo-600 shrink-0" />
+                <h1 className="truncate">{row.iglesia_nombre}</h1>
+              </div>
+              {row.codigo && (
+                <p className="text-[11px] font-mono text-slate-500 mt-0.5">
+                  Código: {row.codigo}
+                </p>
+              )}
+            </div>
+
+            {/* Auto-save badge */}
+            <div className="shrink-0">
+              {saveStatus === 'saved' && (
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-300 text-[10px] font-bold shadow-xs">
+                  <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                  Guardado
+                </span>
+              )}
+              {saveStatus === 'saving' && (
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-300 text-[10px] font-bold shadow-xs">
+                  <Loader2 className="w-3 h-3 text-blue-600 animate-spin" />
+                  Guardando...
+                </span>
+              )}
+              {saveStatus === 'dirty' && (
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded bg-amber-50 text-amber-700 border border-amber-300 text-[10px] font-bold shadow-xs">
+                  ● Editando...
+                </span>
+              )}
+              {saveStatus === 'error' && (
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded bg-rose-50 text-rose-700 border border-rose-300 text-[10px] font-bold shadow-xs">
+                  Error al guardar
+                </span>
+              )}
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 pt-2 border-t border-slate-100 text-xs text-slate-600">
+            <Calendar className="w-3.5 h-3.5 text-slate-400" />
+            <span className="font-semibold text-slate-800">
+              {periodo?.nombre || 'Período Contable'}
+            </span>
+          </div>
+        </div>
+
+        {/* PERIOD CLOSED BANNER */}
+        {!isPeriodOpen && (
+          <div className="bg-amber-50 border border-amber-200 rounded-lg p-3.5 text-xs text-amber-900 flex items-start gap-2.5 shadow-xs">
+            <Lock className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+            <div>
+              <p className="font-bold">Período Cerrado por Tesorería</p>
+              <p className="text-amber-800 mt-0.5 text-[11px]">
+                Este período mensual se encuentra cerrado para edición. Los valores mostrados son definitivos y en modo solo lectura.
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* TARJETA 1: INGRESOS */}
+        <div className="bg-white border border-slate-200 rounded-lg p-4 shadow-sm space-y-3">
+          <div className="flex items-center justify-between border-b border-slate-100 pb-2">
+            <h2 className="text-xs font-bold uppercase tracking-wider text-emerald-700 flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-emerald-600" />
+              1. Ingresos
+            </h2>
+            <span className="font-mono text-emerald-700 text-xs font-bold">
+              {formatCOP(
+                ingresosCols.reduce(
+                  (acc, c) => acc + (localValues[c.id] ?? getServerVal(c.id)),
+                  0
+                )
+              )}
+            </span>
+          </div>
+
+          <div className="space-y-2.5">
+            {ingresosCols.length === 0 ? (
+              <p className="text-slate-500 text-xs py-2">No hay campos de ingreso configurados.</p>
+            ) : (
+              ingresosCols.map((col) => {
+                const cell = row.valores.find((v) => v.campo_id === col.id);
+                const isBlocked = cell?.editable === false || !isPeriodOpen;
+
+                return (
+                  <div key={col.id} className="space-y-1">
+                    <div className="flex items-center justify-between text-xs">
+                      <label
+                        htmlFor={`input-${col.id}`}
+                        className="font-semibold text-slate-700 flex items-center gap-1"
+                      >
+                        <span>{col.nombre}</span>
+                        {cell?.editable === false && (
+                          <span title="Campo bloqueado para la iglesia (solo tesorero)">
+                            <Lock className="w-3 h-3 text-slate-400 inline" />
+                          </span>
+                        )}
+                      </label>
+                      <span className="text-[10px] font-mono text-slate-400">COP</span>
+                    </div>
+
+                    <div className="relative">
+                      <span className="absolute left-3 top-2 font-mono text-xs text-slate-400 pointer-events-none">
+                        $
+                      </span>
+                      <input
+                        id={`input-${col.id}`}
+                        type="number"
+                        inputMode="numeric"
+                        disabled={isBlocked}
+                        value={localValues[col.id] === 0 ? '' : localValues[col.id] ?? ''}
+                        placeholder="0"
+                        onChange={(e) => handleInputChange(col.id, e.target.value)}
+                        className={`w-full pl-7 pr-3 py-2 bg-white border rounded text-right font-mono font-bold text-sm text-slate-900 transition-colors focus:outline-none ${
+                          isBlocked
+                            ? 'border-slate-200 bg-slate-50 text-slate-400 cursor-not-allowed'
+                            : 'border-slate-300 focus:border-indigo-600 focus:ring-1 focus:ring-indigo-600/30'
+                        }`}
+                      />
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
+        </div>
+
+        {/* TARJETA 2: EGRESOS */}
+        <div className="bg-white border border-slate-200 rounded-lg p-4 shadow-sm space-y-3">
+          <div className="flex items-center justify-between border-b border-slate-100 pb-2">
+            <h2 className="text-xs font-bold uppercase tracking-wider text-rose-700 flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-rose-600" />
+              2. Egresos
+            </h2>
+            <span className="font-mono text-rose-700 text-xs font-bold">
+              {formatCOP(
+                egresosCols.reduce(
+                  (acc, c) => acc + (localValues[c.id] ?? getServerVal(c.id)),
+                  0
+                )
+              )}
+            </span>
+          </div>
+
+          <div className="space-y-2.5">
+            {egresosCols.length === 0 ? (
+              <p className="text-slate-500 text-xs py-2">No hay campos de egreso configurados.</p>
+            ) : (
+              egresosCols.map((col) => {
+                const cell = row.valores.find((v) => v.campo_id === col.id);
+                const isBlocked = cell?.editable === false || !isPeriodOpen;
+
+                return (
+                  <div key={col.id} className="space-y-1">
+                    <div className="flex items-center justify-between text-xs">
+                      <label
+                        htmlFor={`input-${col.id}`}
+                        className="font-semibold text-slate-700 flex items-center gap-1"
+                      >
+                        <span>{col.nombre}</span>
+                        {cell?.editable === false && (
+                          <span title="Campo bloqueado para la iglesia">
+                            <Lock className="w-3 h-3 text-slate-400 inline" />
+                          </span>
+                        )}
+                      </label>
+                      <span className="text-[10px] font-mono text-slate-400">COP</span>
+                    </div>
+
+                    <div className="relative">
+                      <span className="absolute left-3 top-2 font-mono text-xs text-slate-400 pointer-events-none">
+                        $
+                      </span>
+                      <input
+                        id={`input-${col.id}`}
+                        type="number"
+                        inputMode="numeric"
+                        disabled={isBlocked}
+                        value={localValues[col.id] === 0 ? '' : localValues[col.id] ?? ''}
+                        placeholder="0"
+                        onChange={(e) => handleInputChange(col.id, e.target.value)}
+                        className={`w-full pl-7 pr-3 py-2 bg-white border rounded text-right font-mono font-bold text-sm text-slate-900 transition-colors focus:outline-none ${
+                          isBlocked
+                            ? 'border-slate-200 bg-slate-50 text-slate-400 cursor-not-allowed'
+                            : 'border-slate-300 focus:border-indigo-600 focus:ring-1 focus:ring-indigo-600/30'
+                        }`}
+                      />
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
+        </div>
+
+        {/* TARJETA 3: CÁLCULOS (SOLO LECTURA, TIPOGRAFÍA DIFERENCIADA) */}
+        <div className="bg-white border border-slate-200 rounded-lg p-4 shadow-sm space-y-3">
+          <div className="flex items-center justify-between border-b border-slate-100 pb-2">
+            <h2 className="text-xs font-bold uppercase tracking-wider text-blue-700 flex items-center gap-1.5">
+              <Layers className="w-3.5 h-3.5 text-blue-600" />
+              3. Cálculos y Saldo
+            </h2>
+            <span className="text-[10px] text-slate-500 font-medium">Automático</span>
+          </div>
+
+          <div className="space-y-2">
+            {calculosCols.map((col) => {
+              const cell = row.valores.find((v) => v.campo_id === col.id);
+              const isCalc = col.modo_calculo === 'calculado';
+              const val = isCalc ? cell?.valor_calculado : cell?.valor_manual;
+
+              return (
+                <div
+                  key={col.id}
+                  className="flex items-center justify-between p-2.5 rounded-lg bg-blue-50/60 border border-blue-100"
+                >
+                  <div className="min-w-0 pr-2">
+                    <span className="text-xs font-bold text-slate-800 block truncate">
+                      {col.nombre}
+                    </span>
+                  </div>
+                  <span className="font-mono tabular-nums text-sm font-extrabold text-blue-700 shrink-0">
+                    {formatCOP(val ?? 0)}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* BOTÓN ENVIAR REPORTE DEL MES */}
+        {isPeriodOpen && (
+          <div className="pt-2">
+            <button
+              type="button"
+              onClick={handleSendReport}
+              className={`w-full py-3 px-4 rounded-lg font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-md transition-all ${
+                reportSubmitted
+                  ? 'bg-emerald-600 text-white cursor-default'
+                  : 'bg-indigo-600 hover:bg-indigo-700 text-white active:scale-[0.99]'
+              }`}
+            >
+              {reportSubmitted ? (
+                <>
+                  <CheckCircle2 className="w-4 h-4 text-emerald-100" />
+                  Reporte del Mes Enviado
+                </>
+              ) : (
+                <>
+                  <Send className="w-4 h-4" />
+                  Enviar Reporte del Mes
+                </>
+              )}
+            </button>
+            <p className="text-[10px] text-slate-500 text-center mt-1.5">
+              Tus datos se autoguardan constantemente. Este botón confirma tu envío a tesorería.
+            </p>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+});

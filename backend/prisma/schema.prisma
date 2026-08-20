@@ -1,0 +1,250 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum Rol {
+  tesorero
+  iglesia
+}
+
+enum EstadoIglesia {
+  activa
+  inactiva
+}
+
+enum TipoCampo {
+  moneda
+  numero
+  porcentaje
+  texto
+  fecha
+}
+
+enum ModoCalculo {
+  manual
+  calculado
+}
+
+enum EstadoPeriodo {
+  abierto
+  cerrado
+}
+
+enum EntidadAuditoria {
+  valor
+  periodo
+  campo_plantilla
+  permiso_edicion
+  iglesia
+  tabla
+  usuario
+}
+
+enum AccionAuditoria {
+  creacion
+  actualizacion
+  cierre_periodo
+  reapertura_periodo
+  eliminacion
+}
+
+model Usuario {
+  id              String        @id @default(uuid()) @db.Uuid
+  nombre_completo String
+  correo          String        @unique
+  contrasena_hash String
+  rol             Rol
+  iglesia_id      String?       @db.Uuid
+  activo          Boolean       @default(true)
+  creado_en       DateTime      @default(now())
+  actualizado_en  DateTime      @updatedAt
+  
+  iglesia         Iglesia?      @relation(fields: [iglesia_id], references: [id])
+  periodos_cerrados Periodo[]   @relation("CerradoPor")
+  periodos_reabiertos Periodo[] @relation("ReabiertoPor")
+  auditorias      HistorialCambios[]
+
+  @@map("usuarios")
+}
+
+model Iglesia {
+  id                  String        @id @default(uuid()) @db.Uuid
+  nombre              String
+  identificador_interno String?     @unique
+  estado              EstadoIglesia @default(activa)
+  creado_en           DateTime      @default(now())
+  actualizado_en      DateTime      @updatedAt
+  tabla_id            String?       @db.Uuid
+
+  // Nuevos campos
+  nombre_pastor       String?
+  direccion           String?
+  codigo              String?
+  telefono            String?
+  correo              String?
+
+  usuarios            Usuario[]
+  campos_por_iglesia  CamposPorIglesia[]
+  permisos_edicion    PermisoEdicion[]
+  valores             Valor[]
+  tabla               Tabla?        @relation(fields: [tabla_id], references: [id], onDelete: SetNull)
+
+  @@map("iglesias")
+}
+
+enum TipoRedondeo {
+  ninguno
+  arriba
+  abajo
+  estandar
+}
+
+model CampoPlantilla {
+  id                           String             @id @default(uuid()) @db.Uuid
+  nombre                       String
+  slug                         String             @unique
+  tipo                         TipoCampo
+  modo_calculo                 ModoCalculo
+  formula                      String?
+  tipo_redondeo                TipoRedondeo       @default(ninguno)
+  multiplo_redondeo            Decimal?           @default(1) @db.Decimal(18, 2)
+  es_acumulable                Boolean            @default(false)
+  seccion                      String
+  seccion_iglesia              String?            @default("Ingresos")
+  seccion_tesorero             String?            @default("Ingresos")
+  orden                        Int
+  aplica_a_todas_las_iglesias  Boolean            @default(true)
+  visible_para_iglesia         Boolean            @default(true)
+  visible_para_tesorero        Boolean            @default(true)
+  es_temporal                  Boolean            @default(false)
+  periodo_id                   String?            @db.Uuid
+  activo                       Boolean            @default(true)
+  creado_en                    DateTime           @default(now())
+  actualizado_en               DateTime           @updatedAt
+
+  periodo                      Periodo?           @relation("CamposTemporales", fields: [periodo_id], references: [id], onDelete: SetNull)
+  campos_por_iglesia           CamposPorIglesia[]
+  permisos_edicion             PermisoEdicion[]
+  valores                      Valor[]
+  campos_por_tabla             CamposPorTabla[]
+
+  @@map("campos_plantilla")
+}
+
+model CamposPorIglesia {
+  id          String         @id @default(uuid()) @db.Uuid
+  campo_id    String         @db.Uuid
+  iglesia_id  String         @db.Uuid
+
+  campo       CampoPlantilla @relation(fields: [campo_id], references: [id], onDelete: Cascade)
+  iglesia     Iglesia        @relation(fields: [iglesia_id], references: [id], onDelete: Cascade)
+
+  @@unique([campo_id, iglesia_id])
+  @@map("campos_por_iglesia")
+}
+
+model PermisoEdicion {
+  id                   String         @id @default(uuid()) @db.Uuid
+  iglesia_id           String         @db.Uuid
+  campo_id             String         @db.Uuid
+  editable_por_iglesia Boolean        @default(false)
+
+  iglesia              Iglesia        @relation(fields: [iglesia_id], references: [id], onDelete: Cascade)
+  campo                CampoPlantilla @relation(fields: [campo_id], references: [id], onDelete: Cascade)
+
+  @@unique([iglesia_id, campo_id])
+  @@map("permisos_edicion")
+}
+
+model Periodo {
+  id             String        @id @default(uuid()) @db.Uuid
+  nombre         String
+  fecha_inicio   DateTime      @db.Date
+  fecha_fin      DateTime      @db.Date
+  estado         EstadoPeriodo @default(abierto)
+  cerrado_por_id String?       @db.Uuid
+  cerrado_en     DateTime?
+  reabierto_por_id String?     @db.Uuid
+  reabierto_en   DateTime?
+  creado_en      DateTime      @default(now())
+
+  cerrado_por    Usuario?      @relation("CerradoPor", fields: [cerrado_por_id], references: [id])
+  reabierto_por  Usuario?      @relation("ReabiertoPor", fields: [reabierto_por_id], references: [id])
+  valores        Valor[]
+  campos_temporales CampoPlantilla[] @relation("CamposTemporales")
+
+  @@index([fecha_inicio, fecha_fin])
+  @@map("periodos")
+}
+
+model Valor {
+  id             String         @id @default(uuid()) @db.Uuid
+  iglesia_id     String         @db.Uuid
+  campo_id       String         @db.Uuid
+  periodo_id     String         @db.Uuid
+  valor_manual   Decimal?       @db.Decimal(18, 2)
+  valor_calculado Decimal?      @db.Decimal(18, 2)
+  valor_acumulado Decimal?      @db.Decimal(18, 2)
+  actualizado_por String         @db.Uuid
+  actualizado_en  DateTime      @updatedAt
+
+  iglesia        Iglesia        @relation(fields: [iglesia_id], references: [id], onDelete: Cascade)
+  campo          CampoPlantilla @relation(fields: [campo_id], references: [id], onDelete: Cascade)
+  periodo        Periodo        @relation(fields: [periodo_id], references: [id], onDelete: Cascade)
+
+  auditorias     HistorialCambios[]
+
+  @@unique([iglesia_id, campo_id, periodo_id])
+  @@index([iglesia_id, periodo_id])
+  @@index([campo_id, periodo_id])
+  @@map("valores")
+}
+
+model HistorialCambios {
+  id             String           @id @default(uuid()) @db.Uuid
+  valor_id       String?          @db.Uuid
+  entidad        EntidadAuditoria
+  entidad_id     String           @db.Uuid
+  accion         AccionAuditoria
+  valor_anterior Json?
+  valor_nuevo    Json?
+  realizado_por  String           @db.Uuid
+  realizado_en   DateTime         @default(now())
+
+  valor          Valor?           @relation(fields: [valor_id], references: [id], onDelete: SetNull)
+  usuario        Usuario          @relation(fields: [realizado_por], references: [id])
+
+  @@index([entidad, entidad_id])
+  @@index([realizado_en])
+  @@index([realizado_por])
+  @@map("historial_cambios")
+}
+
+model Tabla {
+  id              String           @id @default(uuid()) @db.Uuid
+  nombre          String           @unique
+  creado_en       DateTime         @default(now())
+  actualizado_en  DateTime         @updatedAt
+
+  iglesias        Iglesia[]
+  campos          CamposPorTabla[]
+
+  @@map("tablas")
+}
+
+model CamposPorTabla {
+  tabla_id  String @db.Uuid
+  campo_id  String @db.Uuid
+  orden     Int    @default(0)
+
+  tabla     Tabla          @relation(fields: [tabla_id], references: [id], onDelete: Cascade)
+  campo     CampoPlantilla @relation(fields: [campo_id], references: [id], onDelete: Cascade)
+
+  @@id([tabla_id, campo_id])
+  @@map("campos_por_tabla")
+}
