@@ -14,7 +14,19 @@ import {
   Search
 } from 'lucide-react';
 import { Doughnut, Bar } from 'react-chartjs-2';
+import {
+  Chart as ChartJS,
+  ArcElement,
+  Tooltip,
+  Legend,
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  Title,
+} from 'chart.js';
 import { formatCOP } from '../../utils/formatters';
+
+ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement, Title);
 
 interface ExecutiveDashboardProps {
   gridData: any;

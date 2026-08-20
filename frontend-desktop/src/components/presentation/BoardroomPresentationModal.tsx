@@ -3,10 +3,13 @@ import {
   X, 
   ChevronLeft, 
   ChevronRight, 
-  Building2
+  Building2,
 } from 'lucide-react';
 import { Doughnut } from 'react-chartjs-2';
+import { Chart as ChartJS, ArcElement, Tooltip, Legend } from 'chart.js';
 import { formatCOP } from '../../utils/formatters';
+
+ChartJS.register(ArcElement, Tooltip, Legend);
 
 interface BoardroomPresentationModalProps {
   isOpen: boolean;
