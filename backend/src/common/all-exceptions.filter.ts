@@ -62,6 +62,7 @@ export class AllExceptionsFilter implements ExceptionFilter {
       this.logger.error(`Prisma init error on ${request.method} ${request.url}`, exception);
     } else if (exception instanceof Error) {
       this.logger.error(`Unhandled error on ${request.method} ${request.url}`, exception.stack);
+      message = exception.message || message;
       if (exception.message.includes('Timed out') || exception.message.includes('timeout')) {
         status = HttpStatus.GATEWAY_TIMEOUT;
         message = 'La operación tardó demasiado en responder. Los cambios pueden haberse guardado parcialmente; por favor actualice la vista.';
@@ -74,6 +75,7 @@ export class AllExceptionsFilter implements ExceptionFilter {
       path: request.url,
       method: request.method,
       message,
+      errorDetails: exception instanceof Error ? exception.message : String(exception),
     });
   }
 }
