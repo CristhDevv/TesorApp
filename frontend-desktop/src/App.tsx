@@ -24,6 +24,9 @@ import {
   Smartphone,
   Sparkles,
   MessageSquare,
+  Sliders,
+  Maximize2,
+  ChevronRight,
 } from 'lucide-react';
 import {
   Chart as ChartJS,
@@ -1160,165 +1163,319 @@ export default function App() {
     );
   }
 
-  // ─── MAIN APP SHELL (Light Theme / Clean White Background) ──────────────
+  // ─── MAIN APP SHELL (Left Sidebar + Minimalist Modern Workspace) ──────────────
   return (
-    <div className="h-screen w-screen flex flex-col overflow-hidden bg-white text-slate-900 select-none font-sans">
-      {/* TOP NAVBAR (Dark contrast navbar with crisp white text) */}
-      <header className="h-[40px] bg-slate-900 text-slate-200 px-3 flex items-center justify-between shrink-0 border-b border-slate-800 z-30 shadow-xs">
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-1.5 text-white font-extrabold text-xs tracking-wider">
-            <Building2 className="w-4 h-4 text-indigo-400" />
-            <span>TESORAPP</span>
+    <div className="h-screen w-screen flex overflow-hidden bg-slate-950 text-slate-100 select-none font-sans">
+      {/* ── LEFT SIDEBAR ── */}
+      <aside className="w-64 bg-slate-950 border-r border-slate-800/80 flex flex-col justify-between shrink-0 select-none z-30 shadow-2xl">
+        {/* Brand Header */}
+        <div className="p-4 border-b border-slate-800/80">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-indigo-600 via-indigo-500 to-purple-600 flex items-center justify-center text-white shadow-lg shadow-indigo-500/20 border border-indigo-400/30">
+              <Building2 className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="flex items-center gap-1.5">
+                <span className="font-extrabold text-sm tracking-tight text-white">TESORAPP</span>
+                <span className="text-[9px] bg-indigo-500/20 text-indigo-300 font-bold px-1.5 py-0.2 rounded border border-indigo-500/30">
+                  PRO
+                </span>
+              </div>
+              <p className="text-[11px] text-slate-400 font-medium truncate max-w-[150px]">
+                Gestión Financiera
+              </p>
+            </div>
           </div>
+        </div>
 
-          <nav className="flex items-center gap-0.5 ml-3 bg-slate-800 p-0.5 rounded border border-slate-700 text-[11px]">
+        {/* Navigation Sections */}
+        <div className="flex-1 overflow-y-auto p-3 space-y-6">
+          {/* Section: PRINCIPAL */}
+          <div className="space-y-1">
+            <span className="px-3 text-[10px] font-extrabold text-slate-400 uppercase tracking-widest block">
+              Principal
+            </span>
+
             {isTesorero && (
               <button
                 onClick={() => setActiveTab('dashboard')}
-                className={`px-2.5 py-1 rounded font-bold transition flex items-center gap-1 cursor-pointer ${
-                  activeTab === 'dashboard' ? 'bg-indigo-600 text-white shadow-xs' : 'text-slate-300 hover:text-white hover:bg-slate-700'
+                className={`w-full px-3 py-2 rounded-xl text-xs font-semibold flex items-center justify-between transition-all duration-150 cursor-pointer ${
+                  activeTab === 'dashboard'
+                    ? 'bg-indigo-600 text-white font-bold shadow-md shadow-indigo-600/30'
+                    : 'text-slate-400 hover:text-white hover:bg-slate-900/80'
                 }`}
               >
-                <TrendingUp className="w-3 h-3 text-amber-300" />
-                Tablero Ejecutivo
+                <div className="flex items-center gap-2.5">
+                  <TrendingUp className={`w-4 h-4 ${activeTab === 'dashboard' ? 'text-amber-300' : 'text-slate-400'}`} />
+                  <span>Tablero Ejecutivo</span>
+                </div>
+                {activeTab === 'dashboard' && <ChevronRight className="w-3.5 h-3.5 text-indigo-200" />}
               </button>
             )}
+
             <button
               onClick={() => setActiveTab('sheet')}
-              className={`px-2.5 py-1 rounded font-bold transition flex items-center gap-1 cursor-pointer ${
-                activeTab === 'sheet' ? 'bg-indigo-600 text-white shadow-xs' : 'text-slate-300 hover:text-white hover:bg-slate-700'
+              className={`w-full px-3 py-2 rounded-xl text-xs font-semibold flex items-center justify-between transition-all duration-150 cursor-pointer ${
+                activeTab === 'sheet'
+                  ? 'bg-indigo-600 text-white font-bold shadow-md shadow-indigo-600/30'
+                  : 'text-slate-400 hover:text-white hover:bg-slate-900/80'
               }`}
             >
-              <FileSpreadsheet className="w-3 h-3" />
-              {isTesorero ? 'Planillas' : 'Mi Reporte'}
+              <div className="flex items-center gap-2.5">
+                <FileSpreadsheet className={`w-4 h-4 ${activeTab === 'sheet' ? 'text-white' : 'text-slate-400'}`} />
+                <span>{isTesorero ? 'Planilla Contable' : 'Mi Reporte'}</span>
+              </div>
+              {activeTab === 'sheet' && <ChevronRight className="w-3.5 h-3.5 text-indigo-200" />}
             </button>
-            {isTesorero && (
-              <>
-                <button
-                  onClick={() => setActiveTab('iglesias')}
-                  className={`px-2.5 py-1 rounded font-bold transition flex items-center gap-1 cursor-pointer ${
-                    activeTab === 'iglesias' ? 'bg-indigo-600 text-white shadow-xs' : 'text-slate-300 hover:text-white hover:bg-slate-700'
-                  }`}
-                >
-                  <Building2 className="w-3 h-3" />
-                  Iglesias
-                </button>
-                <button
-                  onClick={() => setActiveTab('campos')}
-                  className={`px-2.5 py-1 rounded font-bold transition flex items-center gap-1 cursor-pointer ${
-                    activeTab === 'campos' ? 'bg-indigo-600 text-white shadow-xs' : 'text-slate-300 hover:text-white hover:bg-slate-700'
-                  }`}
-                >
-                  <Layers className="w-3 h-3" />
-                  Columnas
-                </button>
-                <button
-                  onClick={() => setActiveTab('permisos')}
-                  className={`px-2.5 py-1 rounded font-bold transition flex items-center gap-1 cursor-pointer ${
-                    activeTab === 'permisos' ? 'bg-indigo-600 text-white shadow-xs' : 'text-slate-300 hover:text-white hover:bg-slate-700'
-                  }`}
-                >
-                  <Key className="w-3 h-3" />
-                  Permisos
-                </button>
-                <button
-                  onClick={() => setActiveTab('usuarios')}
-                  className={`px-2.5 py-1 rounded font-bold transition flex items-center gap-1 cursor-pointer ${
-                    activeTab === 'usuarios' ? 'bg-indigo-600 text-white shadow-xs' : 'text-slate-300 hover:text-white hover:bg-slate-700'
-                  }`}
-                >
-                  <Users className="w-3 h-3" />
-                  Usuarios
-                </button>
-                <button
-                  onClick={() => setActiveTab('historial')}
-                  className={`px-2.5 py-1 rounded font-bold transition flex items-center gap-1 cursor-pointer ${
-                    activeTab === 'historial' ? 'bg-indigo-600 text-white shadow-xs' : 'text-slate-300 hover:text-white hover:bg-slate-700'
-                  }`}
-                >
-                  <History className="w-3 h-3" />
-                  Auditoría
-                </button>
-              </>
-            )}
-          </nav>
-        </div>
+          </div>
 
-        <div className="flex items-center gap-2 text-xs">
-          {/* Quick WOW Action Buttons */}
+          {/* Section: GESTIÓN & ADMINISTRACIÓN */}
           {isTesorero && (
-            <div className="flex items-center gap-1 mr-1 border-r border-slate-700 pr-2">
+            <div className="space-y-1">
+              <span className="px-3 text-[10px] font-extrabold text-slate-400 uppercase tracking-widest block">
+                Gestión
+              </span>
+
               <button
-                onClick={() => setShowAICopilot(true)}
-                title="Abrir Asistente IA Copilot"
-                className="px-2 py-0.8 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white rounded text-[11px] font-bold flex items-center gap-1 transition cursor-pointer shadow-2xs"
+                onClick={() => setActiveTab('iglesias')}
+                className={`w-full px-3 py-2 rounded-xl text-xs font-semibold flex items-center justify-between transition-all duration-150 cursor-pointer ${
+                  activeTab === 'iglesias'
+                    ? 'bg-indigo-600 text-white font-bold shadow-md shadow-indigo-600/30'
+                    : 'text-slate-400 hover:text-white hover:bg-slate-900/80'
+                }`}
               >
-                <Sparkles className="w-3 h-3 text-amber-300" />
-                <span className="hidden md:inline">IA Copilot</span>
+                <div className="flex items-center gap-2.5">
+                  <Building2 className={`w-4 h-4 ${activeTab === 'iglesias' ? 'text-white' : 'text-slate-400'}`} />
+                  <span>Congregaciones</span>
+                </div>
+                <span className="text-[10px] font-mono font-bold bg-slate-900 text-slate-400 px-1.5 py-0.5 rounded border border-slate-800">
+                  {iglesias.length}
+                </span>
               </button>
+
               <button
-                onClick={() => setShowNotificationCenter(true)}
-                title="Notificaciones y WhatsApp a Pastores"
-                className="p-1 text-slate-300 hover:text-emerald-400 hover:bg-slate-800 rounded transition cursor-pointer"
+                onClick={() => setActiveTab('campos')}
+                className={`w-full px-3 py-2 rounded-xl text-xs font-semibold flex items-center justify-between transition-all duration-150 cursor-pointer ${
+                  activeTab === 'campos'
+                    ? 'bg-indigo-600 text-white font-bold shadow-md shadow-indigo-600/30'
+                    : 'text-slate-400 hover:text-white hover:bg-slate-900/80'
+                }`}
               >
-                <MessageSquare className="w-3.5 h-3.5" />
+                <div className="flex items-center gap-2.5">
+                  <Layers className={`w-4 h-4 ${activeTab === 'campos' ? 'text-white' : 'text-slate-400'}`} />
+                  <span>Columnas & Fórmulas</span>
+                </div>
+                <span className="text-[10px] font-mono font-bold bg-slate-900 text-slate-400 px-1.5 py-0.5 rounded border border-slate-800">
+                  {campos.length}
+                </span>
               </button>
+
               <button
-                onClick={() => setShowExecutivePDF(true)}
-                title="Informe PDF Ejecutivo de Junta"
-                className="p-1 text-slate-300 hover:text-white hover:bg-slate-800 rounded transition cursor-pointer"
+                onClick={() => setActiveTab('permisos')}
+                className={`w-full px-3 py-2 rounded-xl text-xs font-semibold flex items-center justify-between transition-all duration-150 cursor-pointer ${
+                  activeTab === 'permisos'
+                    ? 'bg-indigo-600 text-white font-bold shadow-md shadow-indigo-600/30'
+                    : 'text-slate-400 hover:text-white hover:bg-slate-900/80'
+                }`}
               >
-                <FileText className="w-3.5 h-3.5" />
+                <div className="flex items-center gap-2.5">
+                  <Key className={`w-4 h-4 ${activeTab === 'permisos' ? 'text-white' : 'text-slate-400'}`} />
+                  <span>Permisos de Acceso</span>
+                </div>
+              </button>
+
+              <button
+                onClick={() => setActiveTab('usuarios')}
+                className={`w-full px-3 py-2 rounded-xl text-xs font-semibold flex items-center justify-between transition-all duration-150 cursor-pointer ${
+                  activeTab === 'usuarios'
+                    ? 'bg-indigo-600 text-white font-bold shadow-md shadow-indigo-600/30'
+                    : 'text-slate-400 hover:text-white hover:bg-slate-900/80'
+                }`}
+              >
+                <div className="flex items-center gap-2.5">
+                  <Users className={`w-4 h-4 ${activeTab === 'usuarios' ? 'text-white' : 'text-slate-400'}`} />
+                  <span>Usuarios y Roles</span>
+                </div>
+                <span className="text-[10px] font-mono font-bold bg-slate-900 text-slate-400 px-1.5 py-0.5 rounded border border-slate-800">
+                  {usuarios.length}
+                </span>
+              </button>
+
+              <button
+                onClick={() => setActiveTab('historial')}
+                className={`w-full px-3 py-2 rounded-xl text-xs font-semibold flex items-center justify-between transition-all duration-150 cursor-pointer ${
+                  activeTab === 'historial'
+                    ? 'bg-indigo-600 text-white font-bold shadow-md shadow-indigo-600/30'
+                    : 'text-slate-400 hover:text-white hover:bg-slate-900/80'
+                }`}
+              >
+                <div className="flex items-center gap-2.5">
+                  <History className={`w-4 h-4 ${activeTab === 'historial' ? 'text-white' : 'text-slate-400'}`} />
+                  <span>Registro Auditoría</span>
+                </div>
               </button>
             </div>
           )}
 
-          <button
-            onClick={() => setOverride('mobile')}
-            title="Cambiar a vista móvil adaptada"
-            className="px-2 py-1 text-slate-300 hover:text-white hover:bg-slate-800 rounded text-[11px] font-semibold flex items-center gap-1.5 transition cursor-pointer border border-slate-700"
-          >
-            <Smartphone className="w-3.5 h-3.5 text-indigo-400" />
-            <span className="hidden sm:inline">Vista Móvil</span>
-          </button>
-          <span className="text-slate-300 font-semibold text-[11px] truncate max-w-[180px]">
-            {user?.nombre_completo}
-          </span>
-          <BadgeStatus variant={user?.rol} label={user?.rol} />
-          <button
-            onClick={handleLogout}
-            className="p-1 text-slate-400 hover:text-white hover:bg-slate-800 rounded transition ml-1 cursor-pointer"
-            title="Cerrar sesión"
-          >
-            <LogOut className="w-3.5 h-3.5" />
-          </button>
+          {/* Section: HERRAMIENTAS EJECUTIVAS (WOW) */}
+          {isTesorero && (
+            <div className="space-y-1">
+              <span className="px-3 text-[10px] font-extrabold text-slate-400 uppercase tracking-widest block">
+                Herramientas Ejecutivas
+              </span>
+
+              <button
+                onClick={() => setShowAICopilot(true)}
+                className="w-full px-3 py-2 rounded-xl text-xs font-semibold flex items-center justify-between text-slate-300 hover:text-white hover:bg-slate-900/80 transition cursor-pointer group"
+              >
+                <div className="flex items-center gap-2.5">
+                  <Sparkles className="w-4 h-4 text-amber-300 group-hover:rotate-12 transition transform" />
+                  <span>Asistente IA Copilot</span>
+                </div>
+                <span className="text-[9px] bg-gradient-to-r from-purple-500 to-indigo-500 text-white font-extrabold px-1.5 py-0.2 rounded-full shadow-2xs">
+                  IA
+                </span>
+              </button>
+
+              <button
+                onClick={() => setShowExecutivePDF(true)}
+                className="w-full px-3 py-2 rounded-xl text-xs font-semibold flex items-center justify-between text-slate-300 hover:text-white hover:bg-slate-900/80 transition cursor-pointer group"
+              >
+                <div className="flex items-center gap-2.5">
+                  <FileText className="w-4 h-4 text-indigo-400 group-hover:scale-110 transition transform" />
+                  <span>Informe PDF de Junta</span>
+                </div>
+              </button>
+
+              <button
+                onClick={() => setShowSimulator(true)}
+                className="w-full px-3 py-2 rounded-xl text-xs font-semibold flex items-center justify-between text-slate-300 hover:text-white hover:bg-slate-900/80 transition cursor-pointer group"
+              >
+                <div className="flex items-center gap-2.5">
+                  <Sliders className="w-4 h-4 text-emerald-400 group-hover:scale-110 transition transform" />
+                  <span>Simulador Financiero</span>
+                </div>
+              </button>
+
+              <button
+                onClick={() => setShowPresentation(true)}
+                className="w-full px-3 py-2 rounded-xl text-xs font-semibold flex items-center justify-between text-slate-300 hover:text-white hover:bg-slate-900/80 transition cursor-pointer group"
+              >
+                <div className="flex items-center gap-2.5">
+                  <Maximize2 className="w-4 h-4 text-purple-400 group-hover:scale-110 transition transform" />
+                  <span>Modo Sala de Juntas</span>
+                </div>
+              </button>
+
+              <button
+                onClick={() => setShowNotificationCenter(true)}
+                className="w-full px-3 py-2 rounded-xl text-xs font-semibold flex items-center justify-between text-slate-300 hover:text-white hover:bg-slate-900/80 transition cursor-pointer group"
+              >
+                <div className="flex items-center gap-2.5">
+                  <MessageSquare className="w-4 h-4 text-teal-400 group-hover:scale-110 transition transform" />
+                  <span>Mensajes a Pastores</span>
+                </div>
+              </button>
+            </div>
+          )}
         </div>
-      </header>
 
-      {/* ── TAB 0: TABLERO EJECUTIVO & BUSINESS INTELLIGENCE (WOW) ── */}
-      {activeTab === 'dashboard' && (
-        <ExecutiveDashboard
-          gridData={gridData}
-          periodos={periodos}
-          selectedPeriodoId={selectedPeriodoId}
-          onSelectPeriodo={setSelectedPeriodoId}
-          tablas={tablas}
-          selectedTablaId={selectedTablaId}
-          onSelectTabla={setSelectedTablaId}
-          iglesias={iglesias}
-          onOpenCopilot={() => setShowAICopilot(true)}
-          onOpenPDF={() => setShowExecutivePDF(true)}
-          onOpenSimulator={() => setShowSimulator(true)}
-          onOpenPresentation={() => setShowPresentation(true)}
-          onOpenChurchDetail={(_iglesiaId) => {
-            setActiveTab('sheet');
-          }}
-        />
-      )}
+        {/* Bottom User Card */}
+        <div className="p-3 border-t border-slate-800/80 bg-slate-950/60">
+          <div className="flex items-center justify-between gap-2 p-2 rounded-xl bg-slate-900/90 border border-slate-800">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-indigo-600 to-purple-600 flex items-center justify-center text-white font-bold text-xs shrink-0 shadow-xs">
+                {user?.nombre_completo?.[0]?.toUpperCase() || 'T'}
+              </div>
+              <div className="min-w-0">
+                <h4 className="text-xs font-bold text-white truncate">{user?.nombre_completo}</h4>
+                <span className="text-[10px] text-indigo-300 font-semibold block capitalize truncate">
+                  {user?.rol || 'Usuario'}
+                </span>
+              </div>
+            </div>
 
-      {/* ── TAB 1: PLANILLA CONTABLE ── */}
-      {activeTab === 'sheet' && (
-        <div className="flex-1 flex flex-col min-h-0 overflow-hidden relative bg-white">
+            <div className="flex items-center gap-1 shrink-0">
+              <button
+                onClick={() => setOverride('mobile')}
+                title="Cambiar a vista móvil"
+                className="p-1.5 text-slate-400 hover:text-indigo-300 hover:bg-slate-800 rounded-lg transition cursor-pointer"
+              >
+                <Smartphone className="w-3.5 h-3.5" />
+              </button>
+              <button
+                onClick={handleLogout}
+                title="Cerrar sesión"
+                className="p-1.5 text-slate-400 hover:text-rose-400 hover:bg-slate-800 rounded-lg transition cursor-pointer"
+              >
+                <LogOut className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          </div>
+        </div>
+      </aside>
+
+      {/* ── RIGHT MAIN WORKSPACE (Light / Clean Minimalist Background) ── */}
+      <main className="flex-1 flex flex-col min-w-0 h-full overflow-hidden bg-slate-50">
+        {/* Dynamic Top Header Bar */}
+        <header className="h-12 bg-white border-b border-slate-200 px-5 flex items-center justify-between shrink-0 z-20 shadow-2xs">
+          <div className="flex items-center gap-3">
+            <span className="text-xs font-extrabold uppercase tracking-wider text-slate-700">
+              {activeTab === 'dashboard' && 'Tablero Ejecutivo & Métricas'}
+              {activeTab === 'sheet' && 'Planilla Contable General'}
+              {activeTab === 'iglesias' && 'Directorio de Congregaciones'}
+              {activeTab === 'campos' && 'Estructura de Columnas & Fórmulas'}
+              {activeTab === 'permisos' && 'Matriz de Permisos & Seguridad'}
+              {activeTab === 'usuarios' && 'Gestión de Usuarios & Accesos'}
+              {activeTab === 'historial' && 'Auditoría & Trazabilidad de Cambios'}
+            </span>
+          </div>
+
+          <div className="flex items-center gap-3 text-xs">
+            {selectedPeriodObj && (
+              <div className="flex items-center gap-1.5 bg-slate-100 text-slate-700 px-2.5 py-1 rounded-lg border border-slate-200 font-semibold text-[11px]">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                <span>Periodo: <strong className="text-slate-900">{selectedPeriodObj.nombre}</strong></span>
+              </div>
+            )}
+            <div className="flex items-center gap-1">
+              <button
+                onClick={() => setShowAICopilot(true)}
+                className="px-3 py-1 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white rounded-lg font-bold text-xs flex items-center gap-1.5 shadow-xs transition transform active:scale-95 cursor-pointer"
+              >
+                <Sparkles className="w-3.5 h-3.5 text-amber-300" />
+                <span>Copilot IA</span>
+              </button>
+            </div>
+          </div>
+        </header>
+
+        {/* View Tabs Rendering */}
+        <div className="flex-1 flex flex-col min-h-0 overflow-hidden relative">
+          {/* TAB 0: DASHBOARD */}
+          {activeTab === 'dashboard' && (
+            <ExecutiveDashboard
+              gridData={gridData}
+              periodos={periodos}
+              selectedPeriodoId={selectedPeriodoId}
+              onSelectPeriodo={setSelectedPeriodoId}
+              tablas={tablas}
+              selectedTablaId={selectedTablaId}
+              onSelectTabla={setSelectedTablaId}
+              iglesias={iglesias}
+              onOpenCopilot={() => setShowAICopilot(true)}
+              onOpenPDF={() => setShowExecutivePDF(true)}
+              onOpenSimulator={() => setShowSimulator(true)}
+              onOpenPresentation={() => setShowPresentation(true)}
+              onOpenChurchDetail={(_iglesiaId) => {
+                setActiveTab('sheet');
+              }}
+            />
+          )}
+
+          {/* TAB 1: SHEET */}
+          {activeTab === 'sheet' && (
+            <div className="flex-1 flex flex-col min-h-0 overflow-hidden relative bg-white">
           {/* Toolbar (Tesorero only) */}
           {isTesorero ? (
             <TableFilterToolbar
@@ -2173,6 +2330,8 @@ export default function App() {
           </div>
         </div>
       )}
+        </div>
+      </main>
 
       {/* ── TOAST NOTIFICATIONS ── */}
       {toast && (
