@@ -68,26 +68,11 @@ import { PeriodCreateModal } from './components/common/PeriodCreateModal';
 import { useDeviceDetection } from './hooks/useDeviceDetection';
 import { MobileView } from './components/mobile/MobileView';
 
-const getInitialApiBase = (): string => {
-  if (typeof window === 'undefined') return 'http://localhost:3000';
-  const envUrl = (import.meta as any).env?.VITE_API_URL as string | undefined;
-  if (envUrl && envUrl.trim() !== '') return envUrl.trim();
-  const stored = localStorage.getItem('tesorapp_api_url');
-  if (stored && stored.trim() !== '') return stored.trim();
-  if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-    return 'http://localhost:3000';
-  }
-  return window.location.origin;
-};
-
+const API_BASE = window.location.origin;
 axios.defaults.timeout = 15000;
 
 export default function App() {
   const { isMobile, setOverride } = useDeviceDetection();
-  const [apiBase, setApiBase] = useState<string>(getInitialApiBase);
-  const [serverUrlInput, setServerUrlInput] = useState<string>(getInitialApiBase);
-  const [showServerConfig, setShowServerConfig] = useState<boolean>(false);
-  const API_BASE = apiBase;
 
   const [token, setToken] = useState<string | null>(localStorage.getItem('token'));
   const [user, setUser] = useState<any>(null);
@@ -1096,52 +1081,6 @@ export default function App() {
             >
               {loading ? 'Accediendo...' : 'Iniciar Sesión'}
             </button>
-
-            {/* Backend Server Configuration Toggle */}
-            <div className="pt-2 border-t border-slate-100">
-              <button
-                type="button"
-                onClick={() => setShowServerConfig(!showServerConfig)}
-                className="text-[11px] text-slate-500 hover:text-indigo-600 font-semibold flex items-center justify-between w-full transition cursor-pointer"
-              >
-                <span>⚙️ Servidor Backend:</span>
-                <span className="font-mono text-[10px] text-slate-700 bg-slate-100 px-1.5 py-0.5 rounded truncate max-w-[150px]">
-                  {apiBase}
-                </span>
-              </button>
-
-              {showServerConfig && (
-                <div className="mt-2 p-2.5 bg-slate-50 border border-slate-200 rounded-lg space-y-2">
-                  <label className="block text-[10px] font-bold text-slate-600 uppercase">
-                    URL del Backend (API NestJS)
-                  </label>
-                  <input
-                    type="url"
-                    value={serverUrlInput}
-                    onChange={(e) => setServerUrlInput(e.target.value)}
-                    placeholder="https://tu-api.railway.app o http://localhost:3000"
-                    className="w-full px-2.5 py-1.5 bg-white border border-slate-300 rounded text-xs font-mono text-slate-800 focus:outline-none focus:border-indigo-600"
-                  />
-                  <div className="flex justify-end gap-1.5">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const val = serverUrlInput.trim().replace(/\/$/, '');
-                        if (val) {
-                          setApiBase(val);
-                          localStorage.setItem('tesorapp_api_url', val);
-                          setShowServerConfig(false);
-                          triggerToast('URL de servidor guardada');
-                        }
-                      }}
-                      className="px-3 py-1 bg-indigo-600 text-white font-bold rounded text-[10px] hover:bg-indigo-700 transition cursor-pointer"
-                    >
-                      Guardar URL
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
           </form>
         </div>
       </div>
