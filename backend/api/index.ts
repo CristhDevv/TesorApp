@@ -10,12 +10,19 @@ let cachedServer: Express;
 async function bootstrap(): Promise<Express> {
   if (!cachedServer) {
     const expressApp = express();
-    const app = await NestFactory.create(AppModule, new ExpressAdapter(expressApp));
+    expressApp.use(express.json());
+    expressApp.use(express.urlencoded({ extended: true }));
+    
+    const app = await NestFactory.create(AppModule, new ExpressAdapter(expressApp), {
+      bodyParser: false,
+    });
+    
     app.enableCors({
       origin: true,
       methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
       credentials: true,
     });
+    
     app.useGlobalPipes(
       new ValidationPipe({
         whitelist: true,
@@ -23,6 +30,7 @@ async function bootstrap(): Promise<Express> {
         forbidNonWhitelisted: false,
       }),
     );
+    
     app.useGlobalFilters(new AllExceptionsFilter());
     await app.init();
     cachedServer = expressApp;
