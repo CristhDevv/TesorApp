@@ -1,5 +1,5 @@
 import React from 'react';
-import { FileText, ArrowUp, ArrowDown, ArrowUpDown } from 'lucide-react';
+import { FileText, ArrowUp, ArrowDown, ArrowUpDown, Paperclip } from 'lucide-react';
 import type { FilaGrid, ColumnaGrid, EditingCell, SortState } from '../../types/contabilidad';
 import { EditableCell } from '../common/EditableCell';
 
@@ -21,6 +21,7 @@ interface SpreadsheetGridProps {
   onCancelEdit: () => void;
   onOpenPaperModal: (row: FilaGrid) => void;
   onOpenFormulaModal?: (col: ColumnaGrid) => void;
+  onOpenReceipts?: (churchId: string, churchName: string) => void;
   isTesorero: boolean;
   isPeriodOpen: boolean;
   gridSort: SortState | null;
@@ -40,6 +41,7 @@ interface GridRowProps {
   onSaveCell: (churchId: string, fieldId: string, value: string) => void;
   onCancelEdit: () => void;
   onOpenPaperModal: (row: FilaGrid) => void;
+  onOpenReceipts?: (churchId: string, churchName: string) => void;
   isTesorero: boolean;
   isPeriodOpen: boolean;
   activeCell: EditingCell | null;
@@ -57,6 +59,7 @@ const GridRow = React.memo(function GridRow({
   onSaveCell,
   onCancelEdit,
   onOpenPaperModal,
+  onOpenReceipts,
   isTesorero,
   isPeriodOpen,
   activeCell,
@@ -82,16 +85,28 @@ const GridRow = React.memo(function GridRow({
               {fila.codigo}
             </span>
           )}
-          {isTesorero && (
-            <button
-              type="button"
-              onClick={() => onOpenPaperModal(fila)}
-              className="shrink-0 p-0.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded transition opacity-0 group-hover:opacity-100"
-              title="Digitar informe en papel"
-            >
-              <FileText className="w-3.5 h-3.5" />
-            </button>
-          )}
+          <div className="flex items-center gap-1 shrink-0">
+            {onOpenReceipts && (
+              <button
+                type="button"
+                onClick={() => onOpenReceipts(fila.iglesia_id, fila.iglesia_nombre)}
+                className="shrink-0 p-0.5 text-indigo-500 hover:text-indigo-700 hover:bg-indigo-50 rounded transition opacity-0 group-hover:opacity-100 cursor-pointer"
+                title="Ver/Adjuntar Comprobantes Bancarios"
+              >
+                <Paperclip className="w-3.5 h-3.5" />
+              </button>
+            )}
+            {isTesorero && (
+              <button
+                type="button"
+                onClick={() => onOpenPaperModal(fila)}
+                className="shrink-0 p-0.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded transition opacity-0 group-hover:opacity-100 cursor-pointer"
+                title="Digitar informe en papel"
+              >
+                <FileText className="w-3.5 h-3.5" />
+              </button>
+            )}
+          </div>
         </div>
       </td>
 
@@ -168,6 +183,7 @@ export const SpreadsheetGrid = React.memo(function SpreadsheetGrid({
   onSaveCell,
   onCancelEdit,
   onOpenPaperModal,
+  onOpenReceipts,
   isTesorero,
   isPeriodOpen,
   gridSort,
@@ -249,6 +265,7 @@ export const SpreadsheetGrid = React.memo(function SpreadsheetGrid({
                 onSaveCell={onSaveCell}
                 onCancelEdit={onCancelEdit}
                 onOpenPaperModal={onOpenPaperModal}
+                onOpenReceipts={onOpenReceipts}
                 isTesorero={isTesorero}
                 isPeriodOpen={isPeriodOpen}
                 activeCell={activeCell}

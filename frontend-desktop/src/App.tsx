@@ -22,6 +22,8 @@ import {
   ArrowUpDown,
   TrendingUp,
   Smartphone,
+  Sparkles,
+  MessageSquare,
 } from 'lucide-react';
 import {
   Chart as ChartJS,
@@ -68,6 +70,15 @@ import { PeriodCreateModal } from './components/common/PeriodCreateModal';
 import { useDeviceDetection } from './hooks/useDeviceDetection';
 import { MobileView } from './components/mobile/MobileView';
 
+// WOW Features Components
+import { ExecutiveDashboard } from './components/analytics/ExecutiveDashboard';
+import { AICopilotDrawer } from './components/ai/AICopilotDrawer';
+import { ExecutivePDFModal } from './components/reports/ExecutivePDFModal';
+import { ReceiptViewerModal, ReceiptItem } from './components/attachments/ReceiptViewerModal';
+import { BudgetSimulator } from './components/forecasting/BudgetSimulator';
+import { BoardroomPresentationModal } from './components/presentation/BoardroomPresentationModal';
+import { NotificationCenter } from './components/notifications/NotificationCenter';
+
 const API_BASE = window.location.origin;
 axios.defaults.timeout = 15000;
 
@@ -76,9 +87,56 @@ export default function App() {
 
   const [token, setToken] = useState<string | null>(localStorage.getItem('token'));
   const [user, setUser] = useState<any>(null);
-  const [activeTab, setActiveTab] = useState<'sheet' | 'iglesias' | 'campos' | 'permisos' | 'usuarios' | 'historial'>('sheet');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'sheet' | 'iglesias' | 'campos' | 'permisos' | 'usuarios' | 'historial'>('dashboard');
   const [loading, setLoading] = useState(false);
   const [toast, setToast] = useState<{ msg: string; type: 'success' | 'error' } | null>(null);
+
+  // WOW Features State
+  const [showExecutivePDF, setShowExecutivePDF] = useState(false);
+  const [showAICopilot, setShowAICopilot] = useState(false);
+  const [showSimulator, setShowSimulator] = useState(false);
+  const [showPresentation, setShowPresentation] = useState(false);
+  const [showNotificationCenter, setShowNotificationCenter] = useState(false);
+  const [receiptVaultState, setReceiptVaultState] = useState<{ open: boolean; churchId: string; churchName: string }>({
+    open: false,
+    churchId: '',
+    churchName: '',
+  });
+
+  const [receiptsList, setReceiptsList] = useState<ReceiptItem[]>(() => {
+    try {
+      const stored = localStorage.getItem('tesorapp_receipts');
+      return stored ? JSON.parse(stored) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  const handleAddReceipt = (item: ReceiptItem) => {
+    setReceiptsList((prev) => {
+      const updated = [item, ...prev];
+      localStorage.setItem('tesorapp_receipts', JSON.stringify(updated));
+      return updated;
+    });
+    triggerToast('Comprobante adjuntado con éxito');
+  };
+
+  const handleDeleteReceipt = (id: string) => {
+    setReceiptsList((prev) => {
+      const updated = prev.filter((r) => r.id !== id);
+      localStorage.setItem('tesorapp_receipts', JSON.stringify(updated));
+      return updated;
+    });
+    triggerToast('Comprobante eliminado');
+  };
+
+  const handleToggleVerifyReceipt = (id: string) => {
+    setReceiptsList((prev) => {
+      const updated = prev.map((r) => (r.id === id ? { ...r, verified: !r.verified } : r));
+      localStorage.setItem('tesorapp_receipts', JSON.stringify(updated));
+      return updated;
+    });
+  };
 
   // Auth form
   const [loginEmail, setLoginEmail] = useState('');
@@ -1112,9 +1170,20 @@ export default function App() {
           </div>
 
           <nav className="flex items-center gap-0.5 ml-3 bg-slate-800 p-0.5 rounded border border-slate-700 text-[11px]">
+            {isTesorero && (
+              <button
+                onClick={() => setActiveTab('dashboard')}
+                className={`px-2.5 py-1 rounded font-bold transition flex items-center gap-1 cursor-pointer ${
+                  activeTab === 'dashboard' ? 'bg-indigo-600 text-white shadow-xs' : 'text-slate-300 hover:text-white hover:bg-slate-700'
+                }`}
+              >
+                <TrendingUp className="w-3 h-3 text-amber-300" />
+                Tablero Ejecutivo
+              </button>
+            )}
             <button
               onClick={() => setActiveTab('sheet')}
-              className={`px-2.5 py-1 rounded font-bold transition flex items-center gap-1 ${
+              className={`px-2.5 py-1 rounded font-bold transition flex items-center gap-1 cursor-pointer ${
                 activeTab === 'sheet' ? 'bg-indigo-600 text-white shadow-xs' : 'text-slate-300 hover:text-white hover:bg-slate-700'
               }`}
             >
@@ -1125,7 +1194,7 @@ export default function App() {
               <>
                 <button
                   onClick={() => setActiveTab('iglesias')}
-                  className={`px-2.5 py-1 rounded font-bold transition flex items-center gap-1 ${
+                  className={`px-2.5 py-1 rounded font-bold transition flex items-center gap-1 cursor-pointer ${
                     activeTab === 'iglesias' ? 'bg-indigo-600 text-white shadow-xs' : 'text-slate-300 hover:text-white hover:bg-slate-700'
                   }`}
                 >
@@ -1134,7 +1203,7 @@ export default function App() {
                 </button>
                 <button
                   onClick={() => setActiveTab('campos')}
-                  className={`px-2.5 py-1 rounded font-bold transition flex items-center gap-1 ${
+                  className={`px-2.5 py-1 rounded font-bold transition flex items-center gap-1 cursor-pointer ${
                     activeTab === 'campos' ? 'bg-indigo-600 text-white shadow-xs' : 'text-slate-300 hover:text-white hover:bg-slate-700'
                   }`}
                 >
@@ -1143,7 +1212,7 @@ export default function App() {
                 </button>
                 <button
                   onClick={() => setActiveTab('permisos')}
-                  className={`px-2.5 py-1 rounded font-bold transition flex items-center gap-1 ${
+                  className={`px-2.5 py-1 rounded font-bold transition flex items-center gap-1 cursor-pointer ${
                     activeTab === 'permisos' ? 'bg-indigo-600 text-white shadow-xs' : 'text-slate-300 hover:text-white hover:bg-slate-700'
                   }`}
                 >
@@ -1152,7 +1221,7 @@ export default function App() {
                 </button>
                 <button
                   onClick={() => setActiveTab('usuarios')}
-                  className={`px-2.5 py-1 rounded font-bold transition flex items-center gap-1 ${
+                  className={`px-2.5 py-1 rounded font-bold transition flex items-center gap-1 cursor-pointer ${
                     activeTab === 'usuarios' ? 'bg-indigo-600 text-white shadow-xs' : 'text-slate-300 hover:text-white hover:bg-slate-700'
                   }`}
                 >
@@ -1161,7 +1230,7 @@ export default function App() {
                 </button>
                 <button
                   onClick={() => setActiveTab('historial')}
-                  className={`px-2.5 py-1 rounded font-bold transition flex items-center gap-1 ${
+                  className={`px-2.5 py-1 rounded font-bold transition flex items-center gap-1 cursor-pointer ${
                     activeTab === 'historial' ? 'bg-indigo-600 text-white shadow-xs' : 'text-slate-300 hover:text-white hover:bg-slate-700'
                   }`}
                 >
@@ -1174,6 +1243,34 @@ export default function App() {
         </div>
 
         <div className="flex items-center gap-2 text-xs">
+          {/* Quick WOW Action Buttons */}
+          {isTesorero && (
+            <div className="flex items-center gap-1 mr-1 border-r border-slate-700 pr-2">
+              <button
+                onClick={() => setShowAICopilot(true)}
+                title="Abrir Asistente IA Copilot"
+                className="px-2 py-0.8 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white rounded text-[11px] font-bold flex items-center gap-1 transition cursor-pointer shadow-2xs"
+              >
+                <Sparkles className="w-3 h-3 text-amber-300" />
+                <span className="hidden md:inline">IA Copilot</span>
+              </button>
+              <button
+                onClick={() => setShowNotificationCenter(true)}
+                title="Notificaciones y WhatsApp a Pastores"
+                className="p-1 text-slate-300 hover:text-emerald-400 hover:bg-slate-800 rounded transition cursor-pointer"
+              >
+                <MessageSquare className="w-3.5 h-3.5" />
+              </button>
+              <button
+                onClick={() => setShowExecutivePDF(true)}
+                title="Informe PDF Ejecutivo de Junta"
+                className="p-1 text-slate-300 hover:text-white hover:bg-slate-800 rounded transition cursor-pointer"
+              >
+                <FileText className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          )}
+
           <button
             onClick={() => setOverride('mobile')}
             title="Cambiar a vista móvil adaptada"
@@ -1195,6 +1292,27 @@ export default function App() {
           </button>
         </div>
       </header>
+
+      {/* ── TAB 0: TABLERO EJECUTIVO & BUSINESS INTELLIGENCE (WOW) ── */}
+      {activeTab === 'dashboard' && (
+        <ExecutiveDashboard
+          gridData={gridData}
+          periodos={periodos}
+          selectedPeriodoId={selectedPeriodoId}
+          onSelectPeriodo={setSelectedPeriodoId}
+          tablas={tablas}
+          selectedTablaId={selectedTablaId}
+          onSelectTabla={setSelectedTablaId}
+          iglesias={iglesias}
+          onOpenCopilot={() => setShowAICopilot(true)}
+          onOpenPDF={() => setShowExecutivePDF(true)}
+          onOpenSimulator={() => setShowSimulator(true)}
+          onOpenPresentation={() => setShowPresentation(true)}
+          onOpenChurchDetail={(_iglesiaId) => {
+            setActiveTab('sheet');
+          }}
+        />
+      )}
 
       {/* ── TAB 1: PLANILLA CONTABLE ── */}
       {activeTab === 'sheet' && (
@@ -1272,6 +1390,9 @@ export default function App() {
                 onCancelEdit={() => setEditingCell(null)}
                 onOpenPaperModal={openPaperModal}
                 onOpenFormulaModal={(col) => setFormulaModalColumn(col)}
+                onOpenReceipts={(churchId, churchName) =>
+                  setReceiptVaultState({ open: true, churchId, churchName })
+                }
                 isTesorero={isTesorero}
                 isPeriodOpen={isPeriodOpen ?? false}
                 gridSort={gridSort}
@@ -2451,6 +2572,64 @@ export default function App() {
         isOpen={showPeriodCreateModal}
         onClose={() => setShowPeriodCreateModal(false)}
         onSubmit={submitCreatePeriod}
+      />
+
+      {/* ── MODAL WOW 1: ASISTENTE IA COPILOT ── */}
+      <AICopilotDrawer
+        isOpen={showAICopilot}
+        onClose={() => setShowAICopilot(false)}
+        gridData={gridData}
+        currentPeriod={periodos.find((p) => p.id === selectedPeriodoId)}
+        iglesias={iglesias}
+      />
+
+      {/* ── MODAL WOW 2: INFORME EJECUTIVO PDF DE JUNTA ── */}
+      <ExecutivePDFModal
+        isOpen={showExecutivePDF}
+        onClose={() => setShowExecutivePDF(false)}
+        gridData={gridData}
+        currentPeriod={periodos.find((p) => p.id === selectedPeriodoId)}
+        user={user}
+      />
+
+      {/* ── MODAL WOW 3: BÓVEDA DE COMPROBANTES BANCARIOS ── */}
+      <ReceiptViewerModal
+        isOpen={receiptVaultState.open}
+        onClose={() => setReceiptVaultState({ open: false, churchId: '', churchName: '' })}
+        churchName={receiptVaultState.churchName}
+        churchId={receiptVaultState.churchId}
+        periodName={periodos.find((p) => p.id === selectedPeriodoId)?.nombre || 'Periodo Actual'}
+        periodId={selectedPeriodoId}
+        receipts={receiptsList}
+        onAddReceipt={handleAddReceipt}
+        onDeleteReceipt={handleDeleteReceipt}
+        onToggleVerify={handleToggleVerifyReceipt}
+      />
+
+      {/* ── MODAL WOW 4: SIMULADOR DE PRESUPUESTO & FORECASTING ── */}
+      <BudgetSimulator
+        isOpen={showSimulator}
+        onClose={() => setShowSimulator(false)}
+        currentTotal={50000000}
+        periodName={periodos.find((p) => p.id === selectedPeriodoId)?.nombre || 'Actual'}
+      />
+
+      {/* ── MODAL WOW 5: MODO PRESENTACIÓN SALA DE JUNTAS ── */}
+      <BoardroomPresentationModal
+        isOpen={showPresentation}
+        onClose={() => setShowPresentation(false)}
+        gridData={gridData}
+        currentPeriod={periodos.find((p) => p.id === selectedPeriodoId)}
+        user={user}
+      />
+
+      {/* ── MODAL WOW 6: CENTRO DE NOTIFICACIONES & WHATSAPP ── */}
+      <NotificationCenter
+        isOpen={showNotificationCenter}
+        onClose={() => setShowNotificationCenter(false)}
+        iglesias={iglesias}
+        currentPeriod={periodos.find((p) => p.id === selectedPeriodoId)}
+        user={user}
       />
     </div>
   );
