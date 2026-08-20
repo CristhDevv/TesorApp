@@ -27,6 +27,8 @@ import {
   Sliders,
   Maximize2,
   ChevronRight,
+  PanelLeftClose,
+  PanelLeftOpen,
 } from 'lucide-react';
 import {
   Chart as ChartJS,
@@ -95,6 +97,20 @@ export default function App() {
   const [activeTab, setActiveTab] = useState<'dashboard' | 'sheet' | 'iglesias' | 'campos' | 'permisos' | 'usuarios' | 'historial'>('dashboard');
   const [loading, setLoading] = useState(false);
   const [toast, setToast] = useState<{ msg: string; type: 'success' | 'error' } | null>(null);
+
+  // Sidebar Collapse State
+  const [sidebarOpen, setSidebarOpen] = useState<boolean>(() => {
+    const saved = localStorage.getItem('tesorapp_sidebar_open');
+    return saved !== null ? saved === 'true' : true;
+  });
+
+  const toggleSidebar = () => {
+    setSidebarOpen((prev) => {
+      const next = !prev;
+      localStorage.setItem('tesorapp_sidebar_open', String(next));
+      return next;
+    });
+  };
 
   // WOW Features State
   const [showExecutivePDF, setShowExecutivePDF] = useState(false);
@@ -289,12 +305,15 @@ export default function App() {
     setTimeout(() => setToast(null), 3500);
   };
 
-  // ─── Global Keyboard Shortcuts (Ctrl+K) ──────────────────────────────
+  // ─── Global Keyboard Shortcuts (Ctrl+K: Search, Ctrl+B: Toggle Sidebar) ────
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
         e.preventDefault();
         setShowQuickSearch(true);
+      } else if ((e.ctrlKey || e.metaKey) && e.key === 'b') {
+        e.preventDefault();
+        toggleSidebar();
       }
     };
     window.addEventListener('keydown', handleKeyDown);
@@ -1166,26 +1185,37 @@ export default function App() {
   // ─── MAIN APP SHELL (Left Sidebar + Minimalist Modern Workspace) ──────────────
   return (
     <div className="h-screen w-screen flex overflow-hidden bg-slate-950 text-slate-100 select-none font-sans">
-      {/* ── LEFT SIDEBAR ── */}
-      <aside className="w-64 bg-slate-950 border-r border-slate-800/80 flex flex-col justify-between shrink-0 select-none z-30 shadow-2xl">
+      {/* ── LEFT SIDEBAR (Collapsible) ── */}
+      <aside
+        className={`bg-slate-950 border-r border-slate-800/80 flex flex-col justify-between shrink-0 select-none z-30 shadow-2xl transition-all duration-300 ease-in-out ${
+          sidebarOpen ? 'w-64' : 'w-0 overflow-hidden border-none opacity-0 pointer-events-none'
+        }`}
+      >
         {/* Brand Header */}
-        <div className="p-4 border-b border-slate-800/80">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-indigo-600 via-indigo-500 to-purple-600 flex items-center justify-center text-white shadow-lg shadow-indigo-500/20 border border-indigo-400/30">
+        <div className="p-4 border-b border-slate-800/80 flex items-center justify-between">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-indigo-600 via-indigo-500 to-purple-600 flex items-center justify-center text-white shadow-lg shadow-indigo-500/20 border border-indigo-400/30 shrink-0">
               <Building2 className="w-5 h-5" />
             </div>
-            <div>
+            <div className="min-w-0">
               <div className="flex items-center gap-1.5">
                 <span className="font-extrabold text-sm tracking-tight text-white">TESORAPP</span>
                 <span className="text-[9px] bg-indigo-500/20 text-indigo-300 font-bold px-1.5 py-0.2 rounded border border-indigo-500/30">
                   PRO
                 </span>
               </div>
-              <p className="text-[11px] text-slate-400 font-medium truncate max-w-[150px]">
+              <p className="text-[11px] text-slate-400 font-medium truncate">
                 Gestión Financiera
               </p>
             </div>
           </div>
+          <button
+            onClick={toggleSidebar}
+            title="Ocultar barra lateral (Ctrl+B)"
+            className="p-1.5 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition cursor-pointer shrink-0 ml-1"
+          >
+            <PanelLeftClose className="w-4 h-4" />
+          </button>
         </div>
 
         {/* Navigation Sections */}
@@ -1418,8 +1448,20 @@ export default function App() {
       {/* ── RIGHT MAIN WORKSPACE (Light / Clean Minimalist Background) ── */}
       <main className="flex-1 flex flex-col min-w-0 h-full overflow-hidden bg-slate-50">
         {/* Dynamic Top Header Bar */}
-        <header className="h-12 bg-white border-b border-slate-200 px-5 flex items-center justify-between shrink-0 z-20 shadow-2xs">
+        <header className="h-12 bg-white border-b border-slate-200 px-4 flex items-center justify-between shrink-0 z-20 shadow-2xs">
           <div className="flex items-center gap-3">
+            <button
+              onClick={toggleSidebar}
+              title={sidebarOpen ? "Ocultar menú lateral (Ctrl+B)" : "Mostrar menú lateral (Ctrl+B)"}
+              className={`p-1.5 rounded-lg transition cursor-pointer border ${
+                sidebarOpen 
+                  ? 'text-slate-500 hover:text-slate-900 hover:bg-slate-100 border-slate-200' 
+                  : 'text-indigo-600 bg-indigo-50 hover:bg-indigo-100 border-indigo-200 shadow-xs'
+              }`}
+            >
+              {sidebarOpen ? <PanelLeftClose className="w-4 h-4" /> : <PanelLeftOpen className="w-4 h-4" />}
+            </button>
+
             <span className="text-xs font-extrabold uppercase tracking-wider text-slate-700">
               {activeTab === 'dashboard' && 'Tablero Ejecutivo & Métricas'}
               {activeTab === 'sheet' && 'Planilla Contable General'}
