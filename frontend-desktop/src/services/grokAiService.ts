@@ -131,7 +131,7 @@ export async function askGrokAI(
   const systemPrompt = buildFinancialContextPrompt(ctx);
 
   try {
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`;
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.7-flash:generateContent?key=${GEMINI_API_KEY}`;
 
     const conversationParts = [
       { text: systemPrompt },
@@ -164,7 +164,7 @@ export async function askGrokAI(
       const data = await response.json();
       const geminiText = data?.candidates?.[0]?.content?.parts?.[0]?.text;
       if (geminiText) {
-        return { text: geminiText, modelUsed: '✨ Google Gemini Pro' };
+        return { text: geminiText, modelUsed: '✨ Google Gemini 3.7 Flash' };
       }
     }
   } catch {

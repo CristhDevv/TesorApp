@@ -94,7 +94,7 @@ ${emptyChurches.length > 0 ? `⚠️ Hay **${emptyChurches.length} congregación
             text: generateNarrative(),
             timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
             isSummary: true,
-            modelUsed: '✨ Google Gemini Pro',
+            modelUsed: '✨ Google Gemini 3.7 Flash',
           },
         ]);
         setIsTyping(false);
@@ -231,10 +231,10 @@ ${emptyChurches.length > 0 ? `⚠️ Hay **${emptyChurches.length} congregación
               <div className="flex items-center gap-1.5">
                 <h3 className="font-extrabold text-sm tracking-tight">TesorApp Copilot</h3>
                 <span className="text-[10px] bg-gradient-to-r from-blue-400 to-indigo-400 text-slate-950 font-extrabold px-2 py-0.2 rounded-full uppercase tracking-wider shadow-2xs">
-                  ✨ Gemini Pro
+                  ✨ Gemini 3.7 Flash
                 </span>
               </div>
-              <p className="text-[11px] text-purple-200">Tutor Contable y Asesor Financiero Inteligente</p>
+              <p className="text-[11px] text-purple-200">Tutor y Asesor Contable con Google Gemini 3.7 Flash</p>
             </div>
           </div>
           <button
