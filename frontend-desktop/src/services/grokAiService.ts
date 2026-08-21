@@ -71,7 +71,7 @@ export function extractFinancialData(ctx: CopilotContext) {
 }
 
 /**
- * Builds a structured prompt with real-time financial context
+ * Builds an exhaustive, humanized system prompt for Gemini
  */
 export function buildFinancialContextPrompt(ctx: CopilotContext): string {
   const { periodName, columns } = ctx;
@@ -80,30 +80,48 @@ export function buildFinancialContextPrompt(ctx: CopilotContext): string {
   const topChurches = [...churchList].sort((a, b) => b.total - a.total);
 
   return `
-Eres **TesorApp Copilot**, el asistente de inteligencia artificial y asesor financiero contable oficial para organizaciones religiosas e iglesias.
-Cuentas con acceso en tiempo real a los registros contables oficiales del sistema.
+Eres **TesorApp Copilot**, el asistente de inteligencia artificial, tutor contable y asesor financiero de la plataforma TesorApp.
 
-### DATOS CONTABLES EN TIEMPO REAL:
-- Periodo activo: ${periodName || 'Actual'}
-- Recaudo Total Consolidado: ${formatCOP(totalGeneral)}
-- Fondo de Misiones (25% est.): ${formatCOP(totalMisiones || totalGeneral * 0.25)}
-- Fondo Pro-Templo (15% est.): ${formatCOP(totalTemplo || totalGeneral * 0.15)}
-- Fondo Operativo/Diezmos (60% est.): ${formatCOP(totalOperativo || totalGeneral * 0.60)}
-- Tasa de Cumplimiento: ${activeChurches} de ${totalChurches} congregaciones con datos registrados (${totalChurches > 0 ? Math.round((activeChurches / totalChurches) * 100) : 0}%)
-- Columnas y conceptos contables: ${columns.map((c: any) => c.nombre).join(', ')}
+### 🌟 TU PERSONALIDAD Y TONO:
+- Hablas como un experto contable y tutor humano: cercano, empático, claro, inteligente, analítico y respetuoso con la labor pastoral y administrativa.
+- NUNCA uses respuestas genéricas o robóticas. Responde con fluidez natural, profundidad y empatía a lo que el usuario realmente pregunta.
+- Si te hacen una pregunta conceptual o técnica, explícala con analogías sencillas y pasos claros (1, 2, 3) sin enredos técnicos.
 
-### LISTADO DE TODAS LAS CONGREGACIONES (${totalChurches}):
-${topChurches.map((c, i) => `${i + 1}. **${c.name}**: Total ${formatCOP(c.total)} (${c.hasValues ? 'Al día' : 'Sin datos'}) | Detalle: [${c.detail}]`).join('\n')}
+### 🗺️ GUÍA DE LA PLATAFORMA TESORAPP (Para enseñar y guiar):
+Cuando un pastor o tesorero te pregunte cómo hacer algo, enséñale paso a paso y añade siempre los enlaces de acción correspondientes:
+1. **Planilla Contable**: Para digitar o revisar los aportes de las iglesias (diezmos, ofrendas, etc.). Enlace: [Ir a Planilla Contable](#tab:sheet)
+2. **Tablero Ejecutivo**: Para ver gráficos gerenciales, salud financiera y KPIs. Enlace: [Ir al Tablero Ejecutivo](#tab:dashboard)
+3. **Congregaciones**: Para crear sedes nuevas, cambiar pastores o asignar distritos. Enlace: [Gestionar Congregaciones](#tab:churches)
+4. **Columnas & Fórmulas**: Para agregar nuevos conceptos de recaudo o crear fórmulas calculadas automáticas. Enlace: [Columnas y Fórmulas](#tab:fields)
+5. **Permisos**: Para definir qué campos puede ver o editar cada usuario. Enlace: [Permisos de Acceso](#tab:permissions)
+6. **Usuarios y Roles**: Para crear cuentas de usuarios y asignar roles. Enlace: [Usuarios y Roles](#tab:users)
+7. **Registro de Auditoría**: Para ver el historial cronológico de cambios de cada valor. Enlace: [Registro de Auditoría](#tab:audit)
+8. **Informe PDF de Junta**: Para generar y descargar el informe oficial listo para imprimir y firmar. Enlace: [Generar Informe PDF](#modal:pdf)
+9. **Simulador Presupuestal**: Para proyectar el crecimiento de aportes (+5%, +10%, etc.). Enlace: [Abrir Simulador Financiero](#modal:simulator)
+10. **Modo Sala de Juntas**: Para proyectar en pantalla completa durante asambleas. Enlace: [Modo Sala de Juntas](#modal:boardroom)
+11. **Mensajes a Pastores**: Para enviar recordatorios automáticos por WhatsApp a las sedes pendientes. Enlace: [Mensajes a Pastores (WhatsApp)](#modal:whatsapp)
 
-### INSTRUCCIONES:
-1. Responde en español con tono profesional, ejecutivo, respetuoso y pastoral.
-2. Si el usuario te saluda ("Hola", "¿Funciona?", etc.) o te pregunta qué puedes hacer, dale una bienvenida cálida presentándote como TesorApp Copilot e incluye un resumen ejecutivo claro de los datos actuales (periodo, total de sedes y recaudo consolidado) junto con sugerencias de preguntas.
-3. Si te preguntan por sedes, aportes, rankings, pendientes o fondos, responde basándote estrictamente en los datos anteriores.
-4. Usa formato Markdown elegante (negritas, viñetas y tablas cuando aplique) y expresa siempre los valores en pesos colombianos ($ COP).`;
+### 📊 DATOS CONTABLES EN TIEMPO REAL DEL SISTEMA:
+- **Periodo Activo**: ${periodName || 'Actual'}
+- **Recaudo Consolidado Oficial**: ${formatCOP(totalGeneral)}
+- **Fondo de Misiones (25% est.)**: ${formatCOP(totalMisiones || totalGeneral * 0.25)}
+- **Fondo Pro-Templo / Construcción (15% est.)**: ${formatCOP(totalTemplo || totalGeneral * 0.15)}
+- **Fondo Operativo / Diezmos (60% est.)**: ${formatCOP(totalOperativo || totalGeneral * 0.60)}
+- **Estado de Reporte**: ${activeChurches} de ${totalChurches} congregaciones al día (${totalChurches > 0 ? Math.round((activeChurches / totalChurches) * 100) : 0}%)
+- **Columnas Contables**: ${columns.map((c: any) => c.nombre).join(', ')}
+
+### DESGLOSE DE CONGREGACIONES (${totalChurches}):
+${topChurches.map((c, i) => `${i + 1}. **${c.name}**: Total ${formatCOP(c.total)} (${c.hasValues ? 'Al día' : 'Sin datos'}) | [${c.detail}]`).join('\n')}
+
+### 🎯 INSTRUCCIONES ESENCIALES:
+1. Responde a la pregunta exacta del usuario con inteligencia, calidez y conocimiento pleno.
+2. Si te preguntan *"¿Cómo hago X?"* o *"¿Dónde veo Y?"*, explica la ruta paso a paso e incluye el enlace interactivo en formato markdown con el hashtag (ej: \`[Ir a Planilla Contable](#tab:sheet)\`).
+3. Si te piden un análisis de finanzas o sedes, utiliza las cifras exactas del desglose anterior en Pesos Colombianos ($ COP).
+4. Emplea formato Markdown elegante: negritas, listas con viñetas y tablas cuando sea conveniente.`;
 }
 
 /**
- * Executes query directly with Google Gemini Pro API (gemini-2.5-flash / gemini-2.5-pro)
+ * Executes query with Google Gemini Pro API (gemini-2.5-flash)
  */
 export async function askGrokAI(
   userQuery: string,
@@ -117,10 +135,10 @@ export async function askGrokAI(
 
     const conversationParts = [
       { text: systemPrompt },
-      ...history.slice(-3).map((h) => ({
-        text: `${h.sender === 'user' ? 'Usuario' : 'Asistente'}: ${h.text}`,
+      ...history.slice(-4).map((h) => ({
+        text: `${h.sender === 'user' ? 'Usuario' : 'Asistente TesorApp'}: ${h.text}`,
       })),
-      { text: `Pregunta del usuario: ${userQuery}` },
+      { text: `Pregunta o mensaje del usuario: ${userQuery}` },
     ];
 
     const response = await fetch(url, {
@@ -136,8 +154,8 @@ export async function askGrokAI(
           },
         ],
         generationConfig: {
-          temperature: 0.2,
-          maxOutputTokens: 1000,
+          temperature: 0.4,
+          maxOutputTokens: 1200,
         },
       }),
     });
@@ -153,9 +171,11 @@ export async function askGrokAI(
     // Client-side fallback if offline
   }
 
-  // Local analytical fallback
-  const intelligentResponse = generateIntelligentResponse(userQuery, ctx);
-  return { text: intelligentResponse, modelUsed: 'TesorApp AI Engine' };
+  // Fallback
+  return {
+    text: generateIntelligentResponse(userQuery, ctx),
+    modelUsed: 'TesorApp AI Engine',
+  };
 }
 
 /**
@@ -163,89 +183,47 @@ export async function askGrokAI(
  */
 function generateIntelligentResponse(query: string, ctx: CopilotContext): string {
   const { periodName } = ctx;
-  const { totalGeneral, churchList, totalChurches, activeChurches, totalMisiones, totalTemplo, totalOperativo } = extractFinancialData(ctx);
+  const { totalGeneral, totalChurches, totalMisiones, totalTemplo, totalOperativo } = extractFinancialData(ctx);
   const q = query.toLowerCase().trim();
 
-  // 1. Greetings & Capabilities
-  if (
-    q === 'hola' ||
-    q.startsWith('hola') ||
-    q.startsWith('buenas') ||
-    q.includes('funciona') ||
-    q.includes('que puedes hacer') ||
-    q.includes('quien eres') ||
-    q.includes('para que sirves') ||
-    q.includes('ayuda')
-  ) {
-    const topChurch = [...churchList].sort((a, b) => b.total - a.total)[0];
-    return `👋 ¡Hola! Soy **TesorApp Copilot**, tu asesor financiero y contable con inteligencia artificial de Google Gemini Pro.
-
-Actualmente estoy monitoreando el periodo **${periodName}** con **${totalChurches} congregaciones** y un recaudo consolidado de **${formatCOP(totalGeneral)}**.
-
-### 💼 ¿En qué te puedo ayudar hoy?
-- 🏆 **Ranking de Aportes**: *«¿Cuáles son las iglesias que más aportaron?»*
-- ⚠️ **Control de Cumplimiento**: *«¿Cuáles sedes faltan por reportar planilla?»*
-- 📊 **Distribución de Fondos**: *«¿Cómo están divididos los fondos de misiones y pro-templo?»*
-- 📋 **Balance General**: *«Genera un diagnóstico financiero del periodo.»*
-- 🔍 **Consultar Sede**: Pregúntame por cualquier iglesia en particular (${topChurch ? `ej. *«¿Cuánto reportó ${topChurch.name}?*` : ''})
-
-¿Por dónde te gustaría comenzar?`;
+  // How-to guide responses with action links
+  if (q.includes('planilla') || q.includes('digitar') || q.includes('ingresar')) {
+    return `📝 **Cómo registrar aportes en la Planilla Contable:**\n\n` +
+      `1. Dirígete a la sección de **Planilla Contable**.\n` +
+      `2. Selecciona la tabla y periodo activo (**${periodName}**).\n` +
+      `3. Haz doble clic sobre la celda que deseas editar e ingresa el valor.\n` +
+      `4. Las fórmulas y totales se actualizarán de forma automática.\n\n` +
+      `👉 [Ir a Planilla Contable](#tab:sheet)`;
   }
 
-  // 2. Specific Church Query
-  const mentionedChurch = churchList.find((c) => q.includes(c.name.toLowerCase()) || c.name.toLowerCase().includes(q));
-  if (mentionedChurch && q.length > 4) {
-    return `🏛️ **Ficha Contable de ${mentionedChurch.name} — ${periodName}:**\n\n` +
-      `• **Aporte Total Reportado:** ${formatCOP(mentionedChurch.total)}\n` +
-      `• **Estado:** ${mentionedChurch.hasValues ? '🟢 Planilla con datos registrados' : '🔴 Sin registros para este periodo'}\n` +
-      `• **Desglose de Conceptos:** ${mentionedChurch.detail}\n\n` +
-      `*Esta sede representa el ${totalGeneral > 0 ? ((mentionedChurch.total / totalGeneral) * 100).toFixed(1) : '0'}% del recaudo general.*`;
+  if (q.includes('iglesia') || q.includes('sede') || q.includes('crear')) {
+    return `🏛️ **Cómo gestionar congregaciones:**\n\n` +
+      `1. Abre la sección de **Congregaciones** en el menú de Gestión.\n` +
+      `2. Haz clic en **Nueva Congregación**.\n` +
+      `3. Digita el nombre, código y pastor encargado.\n\n` +
+      `👉 [Gestionar Congregaciones](#tab:churches)`;
   }
 
-  // 3. Top Contributing Churches
-  if (q.includes('top') || q.includes('mayor') || q.includes('mas') || q.includes('ranking') || q.includes('primeros') || q.includes('destacadas')) {
-    const sorted = [...churchList].sort((a, b) => b.total - a.total).slice(0, 5);
-    return `🏆 **Top 5 Sedes con Mayor Aporte — Periodo ${periodName}:**\n\n` +
-      sorted.map((s, idx) => `${idx + 1}. **${s.name}**: ${formatCOP(s.total)} (${totalGeneral > 0 ? ((s.total / totalGeneral) * 100).toFixed(1) : 0}% del total)`).join('\n') +
-      `\n\n💰 **Recaudo Total Consolidado:** **${formatCOP(totalGeneral)}**`;
+  if (q.includes('pdf') || q.includes('informe') || q.includes('junta') || q.includes('descargar')) {
+    return `📄 **Cómo generar el Informe Oficial para la Junta:**\n\n` +
+      `Puedes generar el acta ejecutiva con un solo clic con todos los gráficos, comparativas y firmas oficiales.\n\n` +
+      `👉 [Generar Informe PDF](#modal:pdf)`;
   }
 
-  // 4. Missing / Delinquent Churches
-  if (q.includes('pendiente') || q.includes('faltan') || q.includes('alerta') || q.includes('mora') || q.includes('blanco') || q.includes('deben')) {
-    const missing = churchList.filter((c) => !c.hasValues);
-    if (missing.length === 0) {
-      return `✅ **Estado de Cumplimiento Perfecto:**\n\nEl **100% de las ${totalChurches} congregaciones** han reportado sus datos en el periodo **${periodName}**. No hay planillas en mora.`;
-    }
-    return `⚠️ **Sedes Pendientes por Diligenciar Planilla (${missing.length} de ${totalChurches}):**\n\n` +
-      missing.slice(0, 8).map((m) => `• **${m.name}** (Sin valores registrados)`).join('\n') +
-      (missing.length > 8 ? `\n• *...y ${missing.length - 8} sedes más.*` : '') +
-      `\n\n💡 *Sugerencia*: Usa la opción **Mensajes a Pastores (WhatsApp)** en la barra lateral para enviar un recordatorio con 1 clic.`;
+  // Greetings
+  if (q === 'hola' || q.startsWith('hola') || q.includes('que puedes hacer') || q.includes('quien eres') || q.includes('funciona')) {
+    return `¡Hola! Soy **TesorApp Copilot**, tu asesor contable y tutor virtual impulsado por Google Gemini Pro.\n\n` +
+      `Tengo acceso en tiempo real a las **${totalChurches} congregaciones** del periodo **${periodName}** con un recaudo consolidado de **${formatCOP(totalGeneral)}**.\n\n` +
+      `### 💡 ¿En qué te puedo asesorar hoy?\n` +
+      `• **Consultas Financieras**: Rankings de sedes, distribución de fondos, balances.\n` +
+      `• **Instrucciones de la App**: Cómo registrar datos, crear fórmulas o emitir actas.\n` +
+      `• **Acceso Rápido**: Te puedo llevar a cualquier sección del sistema.\n\n` +
+      `👉 [Ir a Planilla Contable](#tab:sheet) | [Ver Tablero](#tab:dashboard) | [Generar PDF](#modal:pdf)`;
   }
 
-  // 5. Statutory Fund Allocation
-  if (q.includes('mision') || q.includes('templo') || q.includes('fondo') || q.includes('distribucion') || q.includes('porcentaje') || q.includes('estatuto')) {
-    const misiones = totalMisiones || totalGeneral * 0.25;
-    const templo = totalTemplo || totalGeneral * 0.15;
-    const operativo = totalOperativo || totalGeneral * 0.60;
-    return `📊 **Distribución de Fondos Estatutarios — ${periodName}:**\n\n` +
-      `• **Fondo Operativo Local / Diezmos (60%):** ${formatCOP(operativo)}\n` +
-      `• **Fondo de Misiones y Expansión (25%):** ${formatCOP(misiones)}\n` +
-      `• **Fondo Pro-Templo y Construcción (15%):** ${formatCOP(templo)}\n\n` +
-      `*Total Base de Distribución:* **${formatCOP(totalGeneral)}**. Todos los fondos se encuentran alineados con los estatutos contables.`;
-  }
-
-  // 6. Comprehensive Financial Summary
-  if (q.includes('resumen') || q.includes('diagnostico') || q.includes('balance') || q.includes('informe') || q.includes('general')) {
-    const cumplimientoPct = totalChurches > 0 ? Math.round((activeChurches / totalChurches) * 100) : 0;
-    return `📋 **Diagnóstico Financiero Consolidado — ${periodName}:**\n\n` +
-      `• **Recaudo Total Registrado:** ${formatCOP(totalGeneral)}\n` +
-      `• **Tasa de Cumplimiento:** ${activeChurches} de ${totalChurches} sedes (${cumplimientoPct}%)\n` +
-      `• **Fondo de Misiones:** ${formatCOP(totalMisiones || totalGeneral * 0.25)}\n` +
-      `• **Fondo Pro-Templo:** ${formatCOP(totalTemplo || totalGeneral * 0.15)}\n\n` +
-      `¿Deseas que prepare el **Informe PDF de Junta** o que simulemos una proyección de crecimiento con el simulador presupuestal?`;
-  }
-
-  // 7. General Financial Q&A fallback
-  return `He analizado la planilla del periodo **${periodName}** (${totalChurches} iglesias, recaudo: **${formatCOP(totalGeneral)}**).\n\n` +
-    `Respecto a tu consulta *"**${query}**"*, los registros contables indican que el recaudo se distribuye en **${activeChurches} sedes activas**. ¿Deseas ver el ranking de mayores aportes, el listado de sedes pendientes o la distribución de fondos?`;
+  return `He analizado la información contable disponible para **${periodName}** con **${totalChurches} congregaciones** y un recaudo total de **${formatCOP(totalGeneral)}**.\n\n` +
+    `• **Misiones (25%):** ${formatCOP(totalMisiones || totalGeneral * 0.25)}\n` +
+    `• **Pro-Templo (15%):** ${formatCOP(totalTemplo || totalGeneral * 0.15)}\n` +
+    `• **Fondo Operativo (60%):** ${formatCOP(totalOperativo || totalGeneral * 0.60)}\n\n` +
+    `👉 [Ir a Planilla Contable](#tab:sheet) | [Generar Informe PDF](#modal:pdf)`;
 }

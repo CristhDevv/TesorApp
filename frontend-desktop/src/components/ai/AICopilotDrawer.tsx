@@ -1,11 +1,12 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Sparkles, 
   X, 
   Send, 
   Copy, 
   Check, 
-  Cpu
+  Cpu,
+  ArrowRight
 } from 'lucide-react';
 import { formatCOP } from '../../utils/formatters';
 import { askGrokAI, extractFinancialData } from '../../services/grokAiService';
@@ -16,6 +17,8 @@ interface AICopilotDrawerProps {
   gridData: any;
   currentPeriod: any;
   iglesias?: any[];
+  onNavigate?: (tab: string) => void;
+  onOpenModal?: (modalName: string) => void;
 }
 
 interface Message {
@@ -33,6 +36,8 @@ export function AICopilotDrawer({
   gridData,
   currentPeriod,
   iglesias,
+  onNavigate,
+  onOpenModal,
 }: AICopilotDrawerProps) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputQuery, setInputQuery] = useState('');
@@ -72,7 +77,9 @@ ${top3.map((c, i) => `${i + 1}. **${c.name}**: ${formatCOP(c.total)} (${totalGen
 
 **3. Diagnóstico y Alertas de Auditoría:**
 ${emptyChurches.length > 0 ? `⚠️ Hay **${emptyChurches.length} congregación(es)** sin registros reportados (${emptyChurches.slice(0, 3).map((e) => e.name).join(', ')}${emptyChurches.length > 3 ? '...' : ''}).` : '✅ Todas las congregaciones presentan registros contables al día.'}
-• **Recomendación**: Validar los soportes de consignación antes del cierre oficial del periodo.`;
+• **Recomendación**: Validar los soportes de consignación antes del cierre oficial del periodo.
+
+👉 [Ir a Planilla Contable](#tab:sheet) | [Generar Informe PDF](#modal:pdf)`;
   };
 
   // Initialize initial AI summary
@@ -87,15 +94,15 @@ ${emptyChurches.length > 0 ? `⚠️ Hay **${emptyChurches.length} congregación
             text: generateNarrative(),
             timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
             isSummary: true,
-            modelUsed: 'xAI Grok / TesorApp Copilot',
+            modelUsed: '✨ Google Gemini Pro',
           },
         ]);
         setIsTyping(false);
-      }, 500);
+      }, 400);
     }
   }, [isOpen]);
 
-  // Handle user question in natural language via xAI Grok
+  // Handle user question in natural language via Google Gemini
   const handleSend = async (queryText?: string) => {
     const q = (queryText || inputQuery).trim();
     if (!q) return;
@@ -139,7 +146,7 @@ ${emptyChurches.length > 0 ? `⚠️ Hay **${emptyChurches.length} congregación
         {
           id: Date.now().toString(),
           sender: 'ai',
-          text: 'No fue posible completar la consulta en este momento. Por favor intente de nuevo.',
+          text: 'No fue posible conectar con el servicio en este momento. Por favor intenta nuevamente.',
           timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         },
       ]);
@@ -152,6 +159,61 @@ ${emptyChurches.length > 0 ? `⚠️ Hay **${emptyChurches.length} congregación
     navigator.clipboard.writeText(text);
     setCopiedId(id);
     setTimeout(() => setCopiedId(null), 2000);
+  };
+
+  const handleActionClick = (target: string) => {
+    if (target.startsWith('#tab:')) {
+      const tabName = target.replace('#tab:', '');
+      if (onNavigate) onNavigate(tabName);
+      else onClose();
+    } else if (target.startsWith('#modal:')) {
+      const modalName = target.replace('#modal:', '');
+      if (onOpenModal) onOpenModal(modalName);
+      else onClose();
+    }
+  };
+
+  /**
+   * Helper to parse markdown text and render interactive action buttons
+   */
+  const renderMessageContent = (rawText: string) => {
+    // Regex to match [Label](#tab:xxx) or [Label](#modal:yyy)
+    const linkRegex = /\[(.*?)\]\((#(?:tab|modal):[a-zA-Z0-9_-]+)\)/g;
+    const parts: (string | { label: string; target: string })[] = [];
+    let lastIndex = 0;
+    let match;
+
+    while ((match = linkRegex.exec(rawText)) !== null) {
+      if (match.index > lastIndex) {
+        parts.push(rawText.substring(lastIndex, match.index));
+      }
+      parts.push({ label: match[1], target: match[2] });
+      lastIndex = match.index + match[0].length;
+    }
+
+    if (lastIndex < rawText.length) {
+      parts.push(rawText.substring(lastIndex));
+    }
+
+    return (
+      <div className="whitespace-pre-line leading-relaxed">
+        {parts.map((part, index) => {
+          if (typeof part === 'string') {
+            return <React.Fragment key={index}>{part}</React.Fragment>;
+          }
+          return (
+            <button
+              key={index}
+              onClick={() => handleActionClick(part.target)}
+              className="inline-flex items-center gap-1.5 px-2.5 py-1 my-1 mx-1 bg-indigo-50 hover:bg-indigo-600 text-indigo-700 hover:text-white border border-indigo-200 hover:border-indigo-600 rounded-lg text-xs font-bold transition shadow-2xs cursor-pointer group"
+            >
+              <span>{part.label}</span>
+              <ArrowRight className="w-3 h-3 text-indigo-500 group-hover:text-white transition-transform group-hover:translate-x-0.5" />
+            </button>
+          );
+        })}
+      </div>
+    );
   };
 
   if (!isOpen) return null;
@@ -172,7 +234,7 @@ ${emptyChurches.length > 0 ? `⚠️ Hay **${emptyChurches.length} congregación
                   ✨ Gemini Pro
                 </span>
               </div>
-              <p className="text-[11px] text-purple-200">Inteligencia y Diagnóstico Financiero con Google Gemini</p>
+              <p className="text-[11px] text-purple-200">Tutor Contable y Asesor Financiero Inteligente</p>
             </div>
           </div>
           <button
@@ -199,7 +261,7 @@ ${emptyChurches.length > 0 ? `⚠️ Hay **${emptyChurches.length} congregación
                       : 'bg-indigo-600 text-white shadow-md rounded-tr-xs'
                   }`}
                 >
-                  <div className="whitespace-pre-line">{msg.text}</div>
+                  {isAi ? renderMessageContent(msg.text) : <div className="whitespace-pre-line">{msg.text}</div>}
                 </div>
 
                 <div className="flex items-center gap-2 mt-1 px-1">
@@ -236,7 +298,7 @@ ${emptyChurches.length > 0 ? `⚠️ Hay **${emptyChurches.length} congregación
           {isTyping && (
             <div className="flex items-center gap-2 p-3 bg-white border border-slate-200 rounded-2xl w-fit text-xs text-slate-500 shadow-xs">
               <Sparkles className="w-4 h-4 text-purple-600 animate-spin" />
-              <span>Gemini está analizando los registros contables...</span>
+              <span>Gemini está analizando y respondiendo tu consulta...</span>
             </div>
           )}
         </div>
@@ -249,9 +311,10 @@ ${emptyChurches.length > 0 ? `⚠️ Hay **${emptyChurches.length} congregación
           <div className="flex flex-wrap gap-1.5">
             {[
               '🏆 Top 3 iglesias que más aportaron',
-              '⚠️ ¿Cuáles iglesias faltan por reportar?',
-              '📊 Distribución de fondos estatutarios',
-              '📋 Resumen ejecutivo del balance general',
+              '📝 ¿Cómo registro un valor en la planilla?',
+              '🏛️ ¿Cómo creo una nueva sede?',
+              '📄 Generar informe oficial para junta',
+              '📊 Distribución de fondos de este periodo',
             ].map((prompt, idx) => (
               <button
                 key={idx}
@@ -276,7 +339,7 @@ ${emptyChurches.length > 0 ? `⚠️ Hay **${emptyChurches.length} congregación
             <input
               type="text"
               className="flex-1 px-3.5 py-2 bg-slate-50 border border-slate-300 rounded-xl text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-indigo-600 focus:bg-white text-xs font-medium"
-              placeholder="Hazle una consulta contable a Gemini..."
+              placeholder="Hazle una consulta a Gemini sobre la planilla, sedes o cómo usar la app..."
               value={inputQuery}
               onChange={(e) => setInputQuery(e.target.value)}
               disabled={isTyping}

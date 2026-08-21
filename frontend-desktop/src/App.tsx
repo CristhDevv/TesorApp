@@ -2784,6 +2784,17 @@ export default function App() {
         gridData={gridData}
         currentPeriod={periodos.find((p) => p.id === selectedPeriodoId)}
         iglesias={iglesias}
+        onNavigate={(tab) => {
+          setActiveTab(tab as any);
+          setShowAICopilot(false);
+        }}
+        onOpenModal={(modal) => {
+          if (modal === 'pdf') setShowExecutivePDF(true);
+          else if (modal === 'simulator') setShowSimulator(true);
+          else if (modal === 'boardroom') setShowPresentation(true);
+          else if (modal === 'whatsapp') setShowNotificationCenter(true);
+          setShowAICopilot(false);
+        }}
       />
 
       {/* ── MODAL WOW 2: INFORME EJECUTIVO PDF DE JUNTA ── */}
