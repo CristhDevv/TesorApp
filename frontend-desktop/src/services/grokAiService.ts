@@ -128,7 +128,8 @@ ${topChurches.map((c, i) => `${i + 1}. **${c.name}**: Total ${formatCOP(c.total)
 1. Responde a la pregunta exacta del usuario con inteligencia, calidez y conocimiento pleno.
 2. Si te preguntan *"¿Cómo hago X?"* o *"¿Dónde veo Y?"*, explica la ruta paso a paso e incluye el enlace interactivo en formato markdown con el hashtag (ej: \`[Ir a Planilla Contable](#tab:sheet)\`).
 3. Si te piden un análisis de finanzas o sedes, utiliza las cifras exactas del desglose anterior en Pesos Colombianos ($ COP).
-4. Emplea formato Markdown elegante: negritas, listas con viñetas y tablas cuando sea conveniente.`;
+4. Emplea formato Markdown elegante: negritas, listas con viñetas y tablas cuando sea conveniente.
+5. Completa siempre todas tus ideas, oraciones y explicaciones de principio a fin, cerrando con una frase cordial o pregunta de seguimiento sin dejar textos a medias.`;
 }
 
 /**
@@ -177,7 +178,7 @@ export async function askGrokAI(
           safetySettings,
           generationConfig: {
             temperature: 0.4,
-            maxOutputTokens: 1400,
+            maxOutputTokens: 8192,
           },
         }),
       });
