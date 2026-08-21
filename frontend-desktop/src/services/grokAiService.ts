@@ -1,7 +1,44 @@
 import { formatCOP } from '../utils/formatters';
 
-const KEY_CHUNKS = ['AIzaSyBkOvt', 'atW26iznV_Xk', 'G6skRV4xp3R0rF6A'];
-const GEMINI_API_KEY = KEY_CHUNKS.join('');
+const DEFAULT_KEY_CHUNKS = ['AIzaSyBkOvt', 'atW26iznV_Xk', 'G6skRV4xp3R0rF6A'];
+const DEFAULT_KEY = DEFAULT_KEY_CHUNKS.join('');
+
+export function getActiveGeminiKey(): string {
+  if (typeof window !== 'undefined') {
+    const customKey = window.localStorage.getItem('gemini_api_key');
+    if (customKey && customKey.trim().length > 10) return customKey.trim();
+  }
+  return DEFAULT_KEY;
+}
+
+export function setActiveGeminiKey(key: string): void {
+  if (typeof window !== 'undefined') {
+    window.localStorage.setItem('gemini_api_key', key.trim());
+  }
+}
+
+export async function testGeminiApiKey(key: string): Promise<{ success: boolean; message: string }> {
+  try {
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${key.trim()}`;
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [{ role: 'user', parts: [{ text: 'Hola, prueba de conexion.' }] }],
+      }),
+    });
+    const data = await res.json();
+    if (res.ok && data?.candidates?.[0]?.content?.parts?.[0]?.text) {
+      return { success: true, message: '¡Conexión exitosa con Google Gemini AI!' };
+    }
+    if (data?.error?.message?.includes('leaked')) {
+      return { success: false, message: 'Google detectó que esta clave fue compartida públicamente. Por favor genera una nueva en Google AI Studio.' };
+    }
+    return { success: false, message: data?.error?.message || 'Error al conectar con Gemini.' };
+  } catch (err: any) {
+    return { success: false, message: err?.message || 'Error de red al verificar clave.' };
+  }
+}
 
 export interface CopilotContext {
   periodName: string;
@@ -121,17 +158,19 @@ ${topChurches.map((c, i) => `${i + 1}. **${c.name}**: Total ${formatCOP(c.total)
 }
 
 /**
- * Executes query with Google Gemini Pro API (gemini-2.5-flash)
+ * Executes query with Google Gemini API
  */
 export async function askGrokAI(
   userQuery: string,
   history: { sender: 'ai' | 'user'; text: string }[],
   ctx: CopilotContext
-): Promise<{ text: string; modelUsed: string }> {
+): Promise<{ text: string; modelUsed: string; keyLeaked?: boolean }> {
+  const activeKey = getActiveGeminiKey();
   const systemPrompt = buildFinancialContextPrompt(ctx);
 
   try {
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.7-flash:generateContent?key=${GEMINI_API_KEY}`;
+    // Try Gemini 2.5 Flash first for best reliability and speed
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${activeKey}`;
 
     const conversationParts = [
       { text: systemPrompt },
@@ -154,18 +193,29 @@ export async function askGrokAI(
           },
         ],
         generationConfig: {
-          temperature: 0.4,
-          maxOutputTokens: 1200,
+          temperature: 0.5,
+          maxOutputTokens: 1400,
         },
       }),
     });
 
+    const data = await response.json();
+
     if (response.ok) {
-      const data = await response.json();
       const geminiText = data?.candidates?.[0]?.content?.parts?.[0]?.text;
       if (geminiText) {
-        return { text: geminiText, modelUsed: '✨ Google Gemini 3.7 Flash' };
+        return { text: geminiText, modelUsed: '✨ Google Gemini AI' };
       }
+    }
+
+    if (data?.error?.message?.includes('leaked') || response.status === 403) {
+      // Key was revoked by Google due to public posting
+      const fallbackResponse = generateIntelligentResponse(userQuery, ctx);
+      return {
+        text: `${fallbackResponse}\n\n> ⚠️ **Aviso de Conexión IA**: Google reportó que la clave compartida en el chat fue bloqueada por seguridad. Para activar las respuestas de Gemini en vivo sin restricciones, haz clic en el botón de **⚙️ Ajustes** en la esquina superior del asistente e ingresa una clave fresca de [Google AI Studio](https://aistudio.google.com/app/apikey).`,
+        modelUsed: 'TesorApp AI Engine',
+        keyLeaked: true,
+      };
     }
   } catch {
     // Client-side fallback if offline
@@ -179,51 +229,101 @@ export async function askGrokAI(
 }
 
 /**
- * Fallback Natural Language reasoning engine
+ * Highly Conversational & Humanized Fallback Engine
  */
 function generateIntelligentResponse(query: string, ctx: CopilotContext): string {
   const { periodName } = ctx;
-  const { totalGeneral, totalChurches, totalMisiones, totalTemplo, totalOperativo } = extractFinancialData(ctx);
+  const { totalGeneral, churchList, totalChurches, activeChurches, totalMisiones, totalTemplo, totalOperativo } = extractFinancialData(ctx);
   const q = query.toLowerCase().trim();
 
-  // How-to guide responses with action links
-  if (q.includes('planilla') || q.includes('digitar') || q.includes('ingresar')) {
-    return `📝 **Cómo registrar aportes en la Planilla Contable:**\n\n` +
-      `1. Dirígete a la sección de **Planilla Contable**.\n` +
-      `2. Selecciona la tabla y periodo activo (**${periodName}**).\n` +
-      `3. Haz doble clic sobre la celda que deseas editar e ingresa el valor.\n` +
-      `4. Las fórmulas y totales se actualizarán de forma automática.\n\n` +
+  // 1. Teaching / "Enséñame algo" / Training
+  if (q.includes('enseña') || q.includes('aprender') || q.includes('tutor') || q.includes('capacit') || q.includes('como funciona')) {
+    return `🎓 **¡Con mucho gusto! Aquí tienes una lección clave para la administración de tu iglesia:**
+
+La gestión de una tesorería eclesiástica se fundamenta en **3 pilares clave**:
+
+1. **La Planilla Contable Mensual:**
+   Es el corazón operativo. Cada mes, cada sede debe asentar sus entradas (Diezmos, Ofrendas y Pro-Templo).
+   👉 [Ir a Planilla Contable](#tab:sheet)
+
+2. **La Distribución Estatutaria de Fondos:**
+   TesorApp calcula automáticamente la separación de fondos:
+   • **Fondo Misionero (25%):** ${formatCOP(totalMisiones || totalGeneral * 0.25)} para plantación y viajes.
+   • **Fondo Pro-Templo (15%):** ${formatCOP(totalTemplo || totalGeneral * 0.15)} para compra o remodelación de sedes.
+   • **Fondo Operativo Local (60%):** ${formatCOP(totalOperativo || totalGeneral * 0.60)} para nómina pastoral y servicios.
+
+3. **La Rendición de Cuentas Transparente:**
+   Al final del periodo, puedes generar el **Acta Oficial en PDF con firmas de la junta directiva** con un solo clic.
+   👉 [Generar Informe PDF](#modal:pdf)
+
+¿Te gustaría que profundicemos en cómo crear fórmulas personalizadas o en cómo registrar los comprobantes bancarios?`;
+  }
+
+  // 2. How-to: Digitar planilla
+  if (q.includes('planilla') || q.includes('digitar') || q.includes('ingresar') || q.includes('llenar') || q.includes('registro')) {
+    return `📝 **Guía Rápida: Cómo registrar valores en la Planilla Contable:**\n\n` +
+      `1. Haz clic en el botón de abajo para ir a la **Planilla Contable**.\n` +
+      `2. Selecciona la tabla y el periodo (**${periodName}**).\n` +
+      `3. Ubica la fila de la congregación y haz **doble clic en la celda** del concepto (Diezmos, Ofrendas, etc.).\n` +
+      `4. Digita el monto y presiona **Enter**; la celda se guardará y recalculará los totales al instante.\n\n` +
       `👉 [Ir a Planilla Contable](#tab:sheet)`;
   }
 
-  if (q.includes('iglesia') || q.includes('sede') || q.includes('crear')) {
-    return `🏛️ **Cómo gestionar congregaciones:**\n\n` +
-      `1. Abre la sección de **Congregaciones** en el menú de Gestión.\n` +
-      `2. Haz clic en **Nueva Congregación**.\n` +
-      `3. Digita el nombre, código y pastor encargado.\n\n` +
+  // 3. How-to: Crear iglesia
+  if (q.includes('iglesia') || q.includes('sede') || q.includes('crear') || q.includes('nueva')) {
+    return `🏛️ **Cómo registrar una nueva congregación en el sistema:**\n\n` +
+      `1. Abre el módulo de **Congregaciones** en el menú lateral.\n` +
+      `2. Haz clic en el botón morado **«Nueva Congregación»**.\n` +
+      `3. Ingresa el nombre de la sede, código asignado y el nombre del pastor encargado.\n` +
+      `4. Haz clic en **Guardar** y la iglesia aparecerá automáticamente en la planilla de este periodo.\n\n` +
       `👉 [Gestionar Congregaciones](#tab:churches)`;
   }
 
-  if (q.includes('pdf') || q.includes('informe') || q.includes('junta') || q.includes('descargar')) {
-    return `📄 **Cómo generar el Informe Oficial para la Junta:**\n\n` +
-      `Puedes generar el acta ejecutiva con un solo clic con todos los gráficos, comparativas y firmas oficiales.\n\n` +
+  // 4. How-to: Informe PDF
+  if (q.includes('pdf') || q.includes('informe') || q.includes('junta') || q.includes('descargar') || q.includes('imprimir') || q.includes('acta')) {
+    return `📄 **Cómo emitir el Informe Ejecutivo de Junta:**\n\n` +
+      `El sistema genera un informe gerencial formateado para la asamblea pastoral y revisoría fiscal con gráficos de distribución, comparativas de recaudos y casillas de firma.\n\n` +
       `👉 [Generar Informe PDF](#modal:pdf)`;
   }
 
-  // Greetings
-  if (q === 'hola' || q.startsWith('hola') || q.includes('que puedes hacer') || q.includes('quien eres') || q.includes('funciona')) {
-    return `¡Hola! Soy **TesorApp Copilot**, tu asesor contable y tutor virtual impulsado por Google Gemini Pro.\n\n` +
-      `Tengo acceso en tiempo real a las **${totalChurches} congregaciones** del periodo **${periodName}** con un recaudo consolidado de **${formatCOP(totalGeneral)}**.\n\n` +
-      `### 💡 ¿En qué te puedo asesorar hoy?\n` +
-      `• **Consultas Financieras**: Rankings de sedes, distribución de fondos, balances.\n` +
-      `• **Instrucciones de la App**: Cómo registrar datos, crear fórmulas o emitir actas.\n` +
-      `• **Acceso Rápido**: Te puedo llevar a cualquier sección del sistema.\n\n` +
-      `👉 [Ir a Planilla Contable](#tab:sheet) | [Ver Tablero](#tab:dashboard) | [Generar PDF](#modal:pdf)`;
+  // 5. Ranking
+  if (q.includes('top') || q.includes('mayor') || q.includes('mas') || q.includes('ranking') || q.includes('primeros')) {
+    const top5 = [...churchList].sort((a, b) => b.total - a.total).slice(0, 5);
+    return `🏆 **Ranking de Congregaciones — Periodo ${periodName}:**\n\n` +
+      top5.map((s, idx) => `${idx + 1}. **${s.name}**: ${formatCOP(s.total)} (${totalGeneral > 0 ? ((s.total / totalGeneral) * 100).toFixed(1) : 0}% del total)`).join('\n') +
+      `\n\n💰 **Recaudo Total Consolidado:** **${formatCOP(totalGeneral)}**\n\n` +
+      `👉 [Ver Tablero Ejecutivo](#tab:dashboard) | [Ir a Planilla](#tab:sheet)`;
   }
 
-  return `He analizado la información contable disponible para **${periodName}** con **${totalChurches} congregaciones** y un recaudo total de **${formatCOP(totalGeneral)}**.\n\n` +
-    `• **Misiones (25%):** ${formatCOP(totalMisiones || totalGeneral * 0.25)}\n` +
-    `• **Pro-Templo (15%):** ${formatCOP(totalTemplo || totalGeneral * 0.15)}\n` +
-    `• **Fondo Operativo (60%):** ${formatCOP(totalOperativo || totalGeneral * 0.60)}\n\n` +
-    `👉 [Ir a Planilla Contable](#tab:sheet) | [Generar Informe PDF](#modal:pdf)`;
+  // 6. Delinquent / Pending Churches
+  if (q.includes('pendiente') || q.includes('faltan') || q.includes('alerta') || q.includes('mora') || q.includes('blanco') || q.includes('deben')) {
+    const missing = churchList.filter((c) => !c.hasValues);
+    if (missing.length === 0) {
+      return `✅ **¡Excelente! Todas las ${totalChurches} congregaciones están al día con sus aportes en ${periodName}.** No hay registros pendientes.`;
+    }
+    return `⚠️ **Sedes Pendientes por Reportar (${missing.length} de ${totalChurches}):**\n\n` +
+      missing.slice(0, 6).map((m) => `• **${m.name}** (Sin movimientos registrados)`).join('\n') +
+      (missing.length > 6 ? `\n• *...y ${missing.length - 6} congregaciones más.*` : '') +
+      `\n\n💡 Puedes enviarles un recordatorio directo a su WhatsApp:\n` +
+      `👉 [Mensajes a Pastores (WhatsApp)](#modal:whatsapp)`;
+  }
+
+  // 7. General Friendly Conversational Greeting
+  if (q === 'hola' || q.startsWith('hola') || q.includes('funciona') || q.includes('quien eres') || q.includes('que puedes hacer')) {
+    return `👋 ¡Hola! Soy **TesorApp Copilot**, tu asesor financiero y tutor contable inteligente.
+
+Actualmente estoy monitoreando el periodo **${periodName}** con **${totalChurches} congregaciones** (${activeChurches} al día) y un recaudo consolidado de **${formatCOP(totalGeneral)}**.
+
+### 💼 ¿En qué te puedo orientar hoy?
+- 📚 **Enseñanza y Guía**: Pídeme que te enseñe a usar la planilla, crear fórmulas o administrar usuarios.
+- 📊 **Análisis de Recaudo**: Consulta qué sedes han aportado más o qué fondos tenemos en caja.
+- 🚀 **Acciones Rápidas**: Te llevo directamente a cualquier parte de la aplicación.
+
+👉 [Ir a Planilla Contable](#tab:sheet) | [Ver Tablero](#tab:dashboard) | [Generar Informe PDF](#modal:pdf)`;
+  }
+
+  // 8. General fallback
+  return `He procesado tu consulta sobre **${periodName}** (${totalChurches} congregaciones, recaudo: **${formatCOP(totalGeneral)}**).\n\n` +
+    `Respecto a tu inquietud, los registros contables muestran **${activeChurches} sedes activas** con aportes distribuidos en Misiones (${formatCOP(totalMisiones || totalGeneral * 0.25)}) y Pro-Templo (${formatCOP(totalTemplo || totalGeneral * 0.15)}).\n\n` +
+    `¿Deseas que te guíe a la planilla contable o que abramos el informe PDF?`;
 }
