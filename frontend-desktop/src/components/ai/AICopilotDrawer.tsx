@@ -168,11 +168,11 @@ ${emptyChurches.length > 0 ? `⚠️ Hay **${emptyChurches.length} congregación
             <div>
               <div className="flex items-center gap-1.5">
                 <h3 className="font-extrabold text-sm tracking-tight">TesorApp Copilot</h3>
-                <span className="text-[10px] bg-gradient-to-r from-amber-400 to-orange-400 text-slate-950 font-extrabold px-2 py-0.2 rounded-full uppercase tracking-wider shadow-2xs">
-                  ⚡ xAI Grok
+                <span className="text-[10px] bg-gradient-to-r from-blue-400 to-indigo-400 text-slate-950 font-extrabold px-2 py-0.2 rounded-full uppercase tracking-wider shadow-2xs">
+                  ✨ Gemini Pro
                 </span>
               </div>
-              <p className="text-[11px] text-purple-200">Inteligencia y Diagnóstico Financiero con Grok</p>
+              <p className="text-[11px] text-purple-200">Inteligencia y Diagnóstico Financiero con Google Gemini</p>
             </div>
           </div>
           <button
@@ -236,7 +236,7 @@ ${emptyChurches.length > 0 ? `⚠️ Hay **${emptyChurches.length} congregación
           {isTyping && (
             <div className="flex items-center gap-2 p-3 bg-white border border-slate-200 rounded-2xl w-fit text-xs text-slate-500 shadow-xs">
               <Sparkles className="w-4 h-4 text-purple-600 animate-spin" />
-              <span>Grok está analizando los registros contables...</span>
+              <span>Gemini está analizando los registros contables...</span>
             </div>
           )}
         </div>
@@ -276,7 +276,7 @@ ${emptyChurches.length > 0 ? `⚠️ Hay **${emptyChurches.length} congregación
             <input
               type="text"
               className="flex-1 px-3.5 py-2 bg-slate-50 border border-slate-300 rounded-xl text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-indigo-600 focus:bg-white text-xs font-medium"
-              placeholder="Hazle una pregunta a Grok sobre la tesorería..."
+              placeholder="Hazle una consulta contable a Gemini..."
               value={inputQuery}
               onChange={(e) => setInputQuery(e.target.value)}
               disabled={isTyping}
