@@ -5,11 +5,10 @@ import {
   Send, 
   Copy, 
   Check, 
-  TrendingUp, 
-  AlertCircle, 
-  Lightbulb
+  Cpu
 } from 'lucide-react';
 import { formatCOP } from '../../utils/formatters';
+import { askGrokAI } from '../../services/grokAiService';
 
 interface AICopilotDrawerProps {
   isOpen: boolean;
@@ -25,6 +24,7 @@ interface Message {
   text: string;
   timestamp: string;
   isSummary?: boolean;
+  modelUsed?: string;
 }
 
 export function AICopilotDrawer({
@@ -32,6 +32,7 @@ export function AICopilotDrawer({
   onClose,
   gridData,
   currentPeriod,
+  iglesias,
 }: AICopilotDrawerProps) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputQuery, setInputQuery] = useState('');
@@ -41,7 +42,7 @@ export function AICopilotDrawer({
   const rows = gridData?.filas || [];
   const columns = gridData?.columnas || [];
 
-  // Generate automated financial analysis narrative
+  // Generate initial financial analysis narrative
   const generateNarrative = () => {
     if (!rows.length) {
       return 'No hay datos suficientes en la planilla actual para generar un análisis financiero.';
@@ -104,15 +105,16 @@ ${emptyChurches.length > 0 ? `⚠️ Hay **${emptyChurches.length} congregación
             text: generateNarrative(),
             timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
             isSummary: true,
+            modelUsed: 'xAI Grok / TesorApp Copilot',
           },
         ]);
         setIsTyping(false);
-      }, 600);
+      }, 500);
     }
   }, [isOpen]);
 
-  // Handle user question in natural language
-  const handleSend = (queryText?: string) => {
+  // Handle user question in natural language via xAI Grok
+  const handleSend = async (queryText?: string) => {
     const q = (queryText || inputQuery).trim();
     if (!q) return;
 
@@ -127,70 +129,41 @@ ${emptyChurches.length > 0 ? `⚠️ Hay **${emptyChurches.length} congregación
     setInputQuery('');
     setIsTyping(true);
 
-    setTimeout(() => {
-      let aiResponse = '';
-      const qLower = q.toLowerCase();
-
-      if (qLower.includes('top') || qLower.includes('mayor') || qLower.includes('mas')) {
-        const sorted = [...rows]
-          .map((r) => {
-            let maxTotal = 0;
-            columns.forEach((c: any) => {
-              const v = r.valores?.find((x: any) => x.campo_id === c.id);
-              const amount = v?.modo_calculo === 'calculado' ? (v?.valor_calculado || 0) : (v?.valor_manual || 0);
-              if ((c.nombre || '').toLowerCase().includes('total')) maxTotal = Math.max(maxTotal, amount);
-            });
-            return { name: r.iglesia_nombre, total: maxTotal };
-          })
-          .sort((a, b) => b.total - a.total)
-          .slice(0, 5);
-
-        aiResponse = `🏆 **Top 5 Sedes con Mayor Recaudo en ${currentPeriod?.nombre}:**\n\n` +
-          sorted.map((s, idx) => `${idx + 1}. **${s.name}** — ${formatCOP(s.total)}`).join('\n');
-      } else if (qLower.includes('pendiente') || qLower.includes('faltan') || qLower.includes('alerta')) {
-        const missing = rows.filter((r: any) => {
-          const hasVal = r.valores?.some((v: any) => (v.valor_manual || v.valor_calculado || 0) > 0);
-          return !hasVal;
-        });
-
-        if (missing.length === 0) {
-          aiResponse = `✅ ¡Excelente noticia! Todas las **${rows.length} iglesias** han ingresado datos en este periodo. No hay planillas en blanco.`;
-        } else {
-          aiResponse = `⚠️ **Sedes Pendientes por Reportar (${missing.length}):**\n\n` +
-            missing.map((m: any) => `• **${m.iglesia_nombre}**`).join('\n') +
-            `\n\n*Sugerencia: Envíe un recordatorio por WhatsApp a los pastores correspondientes.*`;
+    try {
+      const { text, modelUsed } = await askGrokAI(
+        q,
+        messages,
+        {
+          periodName: currentPeriod?.nombre || 'Periodo Actual',
+          rows,
+          columns,
+          iglesias,
         }
-      } else if (qLower.includes('mision') || qLower.includes('templo') || qLower.includes('fondo') || qLower.includes('distribucion')) {
-        let total = 0;
-        rows.forEach((r: any) => {
-          columns.forEach((c: any) => {
-            if ((c.nombre || '').toLowerCase().includes('total')) {
-              const v = r.valores?.find((x: any) => x.campo_id === c.id);
-              const amount = v?.modo_calculo === 'calculado' ? (v?.valor_calculado || 0) : (v?.valor_manual || 0);
-              total = Math.max(total, amount);
-            }
-          });
-        });
-        aiResponse = `📊 **Distribución Estratégica de Fondos:**\n\n` +
-          `• **Diezmos / Fondo Operativo Local (60%):** ${formatCOP(total * 0.6)}\n` +
-          `• **Fondo de Misiones y Expansión (25%):** ${formatCOP(total * 0.25)}\n` +
-          `• **Fondo Pro-Templo y Bienes Raíces (15%):** ${formatCOP(total * 0.15)}\n\n` +
-          `*Esta distribución cumple con los estatutos contables vigentes.*`;
-      } else {
-        aiResponse = `He analizado la información contable disponible. Para el periodo **${currentPeriod?.nombre}**, se cuentan con **${rows.length} congregaciones** auditadas y **${columns.length} columnas contables**. ¿Deseas que genere un informe en PDF o simule escenarios de presupuesto?`;
-      }
+      );
 
       setMessages((prev) => [
         ...prev,
         {
           id: Date.now().toString(),
           sender: 'ai',
-          text: aiResponse,
+          text,
+          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          modelUsed,
+        },
+      ]);
+    } catch {
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: Date.now().toString(),
+          sender: 'ai',
+          text: 'No fue posible completar la consulta en este momento. Por favor intente de nuevo.',
           timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         },
       ]);
+    } finally {
       setIsTyping(false);
-    }, 700);
+    }
   };
 
   const copyToClipboard = (id: string, text: string) => {
@@ -213,11 +186,11 @@ ${emptyChurches.length > 0 ? `⚠️ Hay **${emptyChurches.length} congregación
             <div>
               <div className="flex items-center gap-1.5">
                 <h3 className="font-extrabold text-sm tracking-tight">TesorApp Copilot</h3>
-                <span className="text-[10px] bg-amber-400 text-slate-950 font-bold px-1.5 py-0.2 rounded-full uppercase">
-                  IA
+                <span className="text-[10px] bg-gradient-to-r from-amber-400 to-orange-400 text-slate-950 font-extrabold px-2 py-0.2 rounded-full uppercase tracking-wider shadow-2xs">
+                  ⚡ xAI Grok
                 </span>
               </div>
-              <p className="text-[11px] text-purple-200">Inteligencia y Diagnóstico Financiero Contable</p>
+              <p className="text-[11px] text-purple-200">Inteligencia y Diagnóstico Financiero con Grok</p>
             </div>
           </div>
           <button
@@ -249,6 +222,12 @@ ${emptyChurches.length > 0 ? `⚠️ Hay **${emptyChurches.length} congregación
 
                 <div className="flex items-center gap-2 mt-1 px-1">
                   <span className="text-[10px] text-slate-400">{msg.timestamp}</span>
+                  {msg.modelUsed && (
+                    <span className="text-[9px] text-indigo-500 font-bold bg-indigo-50 px-1.5 py-0.2 rounded border border-indigo-100 flex items-center gap-1">
+                      <Cpu className="w-2.5 h-2.5" />
+                      {msg.modelUsed}
+                    </span>
+                  )}
                   {isAi && (
                     <button
                       onClick={() => copyToClipboard(msg.id, msg.text)}
@@ -273,54 +252,61 @@ ${emptyChurches.length > 0 ? `⚠️ Hay **${emptyChurches.length} congregación
           })}
 
           {isTyping && (
-            <div className="flex items-center gap-1.5 text-slate-400 text-xs bg-white border border-slate-200 p-3 rounded-2xl rounded-tl-xs w-fit shadow-2xs">
-              <Sparkles className="w-3.5 h-3.5 text-purple-600 animate-spin" />
-              <span>Analizando registros contables...</span>
+            <div className="flex items-center gap-2 p-3 bg-white border border-slate-200 rounded-2xl w-fit text-xs text-slate-500 shadow-xs">
+              <Sparkles className="w-4 h-4 text-purple-600 animate-spin" />
+              <span>Grok está analizando los registros contables...</span>
             </div>
           )}
         </div>
 
-        {/* Quick Suggestion Chips */}
-        <div className="p-2.5 bg-white border-t border-slate-100 flex flex-wrap gap-1.5">
-          <button
-            onClick={() => handleSend('¿Cuáles son las 3 iglesias que más aportaron?')}
-            className="px-2.5 py-1 bg-slate-100 hover:bg-indigo-50 hover:text-indigo-600 text-slate-600 rounded-lg text-[11px] font-semibold transition flex items-center gap-1 cursor-pointer border border-slate-200"
-          >
-            <TrendingUp className="w-3 h-3 text-indigo-500" /> Top Aportes
-          </button>
-          <button
-            onClick={() => handleSend('¿Hay iglesias con valores pendientes por reportar?')}
-            className="px-2.5 py-1 bg-slate-100 hover:bg-amber-50 hover:text-amber-700 text-slate-600 rounded-lg text-[11px] font-semibold transition flex items-center gap-1 cursor-pointer border border-slate-200"
-          >
-            <AlertCircle className="w-3 h-3 text-amber-500" /> Planillas Pendientes
-          </button>
-          <button
-            onClick={() => handleSend('¿Cómo se distribuyen los fondos de misiones y templo?')}
-            className="px-2.5 py-1 bg-slate-100 hover:bg-purple-50 hover:text-purple-700 text-slate-600 rounded-lg text-[11px] font-semibold transition flex items-center gap-1 cursor-pointer border border-slate-200"
-          >
-            <Lightbulb className="w-3 h-3 text-purple-500" /> Distribución de Fondos
-          </button>
+        {/* Quick Question Prompts */}
+        <div className="p-3 bg-white border-t border-slate-200 shrink-0">
+          <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest block mb-2">
+            Preguntas Rápidas sugeridas:
+          </span>
+          <div className="flex flex-wrap gap-1.5">
+            {[
+              '🏆 Top 3 iglesias que más aportaron',
+              '⚠️ ¿Cuáles iglesias faltan por reportar?',
+              '📊 Distribución de fondos estatutarios',
+              '📋 Resumen ejecutivo del balance general',
+            ].map((prompt, idx) => (
+              <button
+                key={idx}
+                onClick={() => handleSend(prompt)}
+                className="px-2.5 py-1 bg-slate-100 hover:bg-indigo-50 hover:text-indigo-600 hover:border-indigo-200 border border-slate-200 rounded-lg text-[11px] text-slate-700 font-medium transition cursor-pointer"
+              >
+                {prompt}
+              </button>
+            ))}
+          </div>
         </div>
 
         {/* Input Bar */}
-        <div className="p-3 bg-white border-t border-slate-200 flex items-center gap-2">
-          <input
-            type="text"
-            placeholder="Pregunte a la IA sobre métricas, finanzas o auditoría..."
-            value={inputQuery}
-            onChange={(e) => setInputQuery(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') handleSend();
+        <div className="p-3 bg-white border-t border-slate-200 shrink-0">
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              handleSend();
             }}
-            className="flex-1 px-3.5 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:border-indigo-600 focus:bg-white"
-          />
-          <button
-            onClick={() => handleSend()}
-            disabled={!inputQuery.trim() || isTyping}
-            className="p-2.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white rounded-xl transition cursor-pointer shadow-xs"
+            className="flex items-center gap-2"
           >
-            <Send className="w-4 h-4" />
-          </button>
+            <input
+              type="text"
+              className="flex-1 px-3.5 py-2 bg-slate-50 border border-slate-300 rounded-xl text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-indigo-600 focus:bg-white text-xs font-medium"
+              placeholder="Hazle una pregunta a Grok sobre la tesorería..."
+              value={inputQuery}
+              onChange={(e) => setInputQuery(e.target.value)}
+              disabled={isTyping}
+            />
+            <button
+              type="submit"
+              disabled={!inputQuery.trim() || isTyping}
+              className="p-2 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white rounded-xl transition cursor-pointer shadow-xs"
+            >
+              <Send className="w-4 h-4" />
+            </button>
+          </form>
         </div>
       </div>
     </div>
