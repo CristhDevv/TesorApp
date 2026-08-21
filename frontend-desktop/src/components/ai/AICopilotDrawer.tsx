@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   Sparkles, 
   X, 
@@ -44,8 +44,16 @@ export function AICopilotDrawer({
   const [isTyping, setIsTyping] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
+  const chatEndRef = useRef<HTMLDivElement>(null);
   const rows = gridData?.filas || [];
   const columns = gridData?.columnas || [];
+
+  // Auto-scroll to bottom whenever messages change or AI is typing
+  useEffect(() => {
+    if (isOpen) {
+      chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [messages, isTyping, isOpen]);
 
   // Generate initial financial analysis narrative
   const generateNarrative = () => {
@@ -98,7 +106,7 @@ ${emptyChurches.length > 0 ? `⚠️ Hay **${emptyChurches.length} congregación
           },
         ]);
         setIsTyping(false);
-      }, 300);
+      }, 200);
     }
   }, [isOpen]);
 
@@ -174,42 +182,118 @@ ${emptyChurches.length > 0 ? `⚠️ Hay **${emptyChurches.length} congregación
   };
 
   /**
-   * Helper to parse markdown text and render interactive action buttons
+   * Parses inline formatting: **bold**, *italic*, [Action](#tab:xxx)
+   */
+  const renderInlineFormattedText = (lineText: string) => {
+    // Tokenizer regex for bold (**text**), links ([text](#action)), and italic (*text*)
+    const tokenRegex = /(\*\*.*?\*\*|\[.*?\]\(#(?:tab|modal):[a-zA-Z0-9_-]+\)|\*.*?\*)/g;
+    const parts = lineText.split(tokenRegex);
+
+    return parts.map((part, index) => {
+      if (!part) return null;
+
+      // Bold: **text**
+      if (part.startsWith('**') && part.endsWith('**') && part.length >= 4) {
+        const cleanText = part.slice(2, -2);
+        return (
+          <strong key={index} className="font-extrabold text-slate-900">
+            {cleanText}
+          </strong>
+        );
+      }
+
+      // Action Links: [Label](#tab:sheet)
+      const linkMatch = part.match(/^\[(.*?)\]\((#(?:tab|modal):[a-zA-Z0-9_-]+)\)$/);
+      if (linkMatch) {
+        return (
+          <button
+            key={index}
+            onClick={() => handleActionClick(linkMatch[2])}
+            className="inline-flex items-center gap-1.5 px-3 py-1 my-1 mx-1 bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-700 hover:to-indigo-800 text-white border border-indigo-600 rounded-lg text-xs font-bold transition shadow-xs cursor-pointer group"
+          >
+            <span>{linkMatch[1]}</span>
+            <ArrowRight className="w-3 h-3 text-indigo-200 group-hover:text-white transition-transform group-hover:translate-x-0.5" />
+          </button>
+        );
+      }
+
+      // Italic: *text*
+      if (part.startsWith('*') && part.endsWith('*') && part.length >= 2) {
+        const cleanText = part.slice(1, -1);
+        return (
+          <em key={index} className="italic text-slate-700">
+            {cleanText}
+          </em>
+        );
+      }
+
+      return <React.Fragment key={index}>{part}</React.Fragment>;
+    });
+  };
+
+  /**
+   * Parses full message block structures (Headers, Lists, Quotes)
    */
   const renderMessageContent = (rawText: string) => {
-    const linkRegex = /\[(.*?)\]\((#(?:tab|modal):[a-zA-Z0-9_-]+)\)/g;
-    const parts: (string | { label: string; target: string })[] = [];
-    let lastIndex = 0;
-    let match;
-
-    while ((match = linkRegex.exec(rawText)) !== null) {
-      if (match.index > lastIndex) {
-        parts.push(rawText.substring(lastIndex, match.index));
-      }
-      parts.push({ label: match[1], target: match[2] });
-      lastIndex = match.index + match[0].length;
-    }
-
-    if (lastIndex < rawText.length) {
-      parts.push(rawText.substring(lastIndex));
-    }
+    const lines = rawText.split('\n');
 
     return (
-      <div className="whitespace-pre-line leading-relaxed">
-        {parts.map((part, index) => {
-          if (typeof part === 'string') {
-            return <React.Fragment key={index}>{part}</React.Fragment>;
+      <div className="space-y-1.5 text-xs leading-relaxed text-slate-800">
+        {lines.map((line, lineIdx) => {
+          const trimmed = line.trim();
+
+          // Empty line
+          if (!trimmed) {
+            return <div key={lineIdx} className="h-1.5" />;
           }
-          return (
-            <button
-              key={index}
-              onClick={() => handleActionClick(part.target)}
-              className="inline-flex items-center gap-1.5 px-2.5 py-1 my-1 mx-1 bg-indigo-50 hover:bg-indigo-600 text-indigo-700 hover:text-white border border-indigo-200 hover:border-indigo-600 rounded-lg text-xs font-bold transition shadow-2xs cursor-pointer group"
-            >
-              <span>{part.label}</span>
-              <ArrowRight className="w-3 h-3 text-indigo-500 group-hover:text-white transition-transform group-hover:translate-x-0.5" />
-            </button>
-          );
+
+          // Headers: ### Title or ## Title
+          if (trimmed.startsWith('###') || trimmed.startsWith('##')) {
+            const cleanTitle = trimmed.replace(/^#+\s*/, '');
+            return (
+              <h4 key={lineIdx} className="font-bold text-sm text-slate-900 pt-1.5 pb-0.5">
+                {renderInlineFormattedText(cleanTitle)}
+              </h4>
+            );
+          }
+
+          // Blockquote: > Quote
+          if (trimmed.startsWith('>')) {
+            const cleanQuote = trimmed.replace(/^>\s*/, '');
+            return (
+              <div
+                key={lineIdx}
+                className="p-2 my-1 border-l-2 border-indigo-400 bg-indigo-50/70 rounded-r-lg text-slate-700 italic"
+              >
+                {renderInlineFormattedText(cleanQuote)}
+              </div>
+            );
+          }
+
+          // Numbered list: 1. Item
+          const numMatch = trimmed.match(/^(\d+)\.\s+(.*)$/);
+          if (numMatch) {
+            return (
+              <div key={lineIdx} className="flex items-start gap-1.5 pl-1 my-0.5">
+                <span className="font-bold text-indigo-600 shrink-0">{numMatch[1]}.</span>
+                <div className="flex-1">{renderInlineFormattedText(numMatch[2])}</div>
+              </div>
+            );
+          }
+
+          // Bullet list: • Item or - Item
+          if (trimmed.startsWith('•') || trimmed.startsWith('-')) {
+            const cleanBullet = trimmed.replace(/^[•-]\s*/, '');
+            return (
+              <div key={lineIdx} className="flex items-start gap-1.5 pl-1 my-0.5">
+                <span className="text-indigo-500 font-bold shrink-0">•</span>
+                <div className="flex-1">{renderInlineFormattedText(cleanBullet)}</div>
+              </div>
+            );
+          }
+
+          // Regular paragraph line
+          return <div key={lineIdx}>{renderInlineFormattedText(line)}</div>;
         })}
       </div>
     );
@@ -244,8 +328,8 @@ ${emptyChurches.length > 0 ? `⚠️ Hay **${emptyChurches.length} congregación
           </button>
         </div>
 
-        {/* Chat History */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-slate-50">
+        {/* Chat History with Auto-scroll */}
+        <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-slate-50 scroll-smooth">
           {messages.map((msg) => {
             const isAi = msg.sender === 'ai';
             return (
@@ -260,7 +344,11 @@ ${emptyChurches.length > 0 ? `⚠️ Hay **${emptyChurches.length} congregación
                       : 'bg-indigo-600 text-white shadow-md rounded-tr-xs'
                   }`}
                 >
-                  {isAi ? renderMessageContent(msg.text) : <div className="whitespace-pre-line">{msg.text}</div>}
+                  {isAi ? (
+                    renderMessageContent(msg.text)
+                  ) : (
+                    <div className="whitespace-pre-line font-medium text-white">{msg.text}</div>
+                  )}
                 </div>
 
                 <div className="flex items-center gap-2 mt-1 px-1">
@@ -295,35 +383,14 @@ ${emptyChurches.length > 0 ? `⚠️ Hay **${emptyChurches.length} congregación
           })}
 
           {isTyping && (
-            <div className="flex items-center gap-2 p-3 bg-white border border-slate-200 rounded-2xl w-fit text-xs text-slate-500 shadow-xs">
+            <div className="flex items-center gap-2 p-3 bg-white border border-slate-200 rounded-2xl w-fit text-xs text-slate-500 shadow-xs animate-pulse">
               <Sparkles className="w-4 h-4 text-purple-600 animate-spin" />
               <span>Gemini está analizando y respondiendo tu consulta...</span>
             </div>
           )}
-        </div>
 
-        {/* Quick Question Prompts */}
-        <div className="p-3 bg-white border-t border-slate-200 shrink-0">
-          <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest block mb-2">
-            Preguntas Rápidas sugeridas:
-          </span>
-          <div className="flex flex-wrap gap-1.5">
-            {[
-              '🎓 Enséñame algo sobre finanzas e iglesias',
-              '🏆 Top 3 iglesias que más aportaron',
-              '📝 ¿Cómo registro un valor en la planilla?',
-              '🏛️ ¿Cómo creo una nueva sede?',
-              '📄 Generar informe oficial para junta',
-            ].map((prompt, idx) => (
-              <button
-                key={idx}
-                onClick={() => handleSend(prompt)}
-                className="px-2.5 py-1 bg-slate-100 hover:bg-indigo-50 hover:text-indigo-600 hover:border-indigo-200 border border-slate-200 rounded-lg text-[11px] text-slate-700 font-medium transition cursor-pointer"
-              >
-                {prompt}
-              </button>
-            ))}
-          </div>
+          {/* Dummy element for auto-scroll target */}
+          <div ref={chatEndRef} />
         </div>
 
         {/* Input Bar */}
@@ -337,7 +404,7 @@ ${emptyChurches.length > 0 ? `⚠️ Hay **${emptyChurches.length} congregación
           >
             <input
               type="text"
-              className="flex-1 px-3.5 py-2 bg-slate-50 border border-slate-300 rounded-xl text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-indigo-600 focus:bg-white text-xs font-medium"
+              className="flex-1 px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-indigo-600 focus:bg-white text-xs font-medium shadow-2xs"
               placeholder="Hazle una consulta a Gemini sobre la planilla, sedes o cómo usar la app..."
               value={inputQuery}
               onChange={(e) => setInputQuery(e.target.value)}
@@ -346,7 +413,7 @@ ${emptyChurches.length > 0 ? `⚠️ Hay **${emptyChurches.length} congregación
             <button
               type="submit"
               disabled={!inputQuery.trim() || isTyping}
-              className="p-2 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white rounded-xl transition cursor-pointer shadow-xs"
+              className="p-2.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white rounded-xl transition cursor-pointer shadow-xs"
             >
               <Send className="w-4 h-4" />
             </button>
