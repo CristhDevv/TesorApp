@@ -6,21 +6,10 @@ import {
   Copy, 
   Check, 
   Cpu,
-  ArrowRight,
-  Settings,
-  Key,
-  ExternalLink,
-  CheckCircle,
-  AlertTriangle
+  ArrowRight
 } from 'lucide-react';
 import { formatCOP } from '../../utils/formatters';
-import { 
-  askGrokAI, 
-  extractFinancialData, 
-  getActiveGeminiKey, 
-  setActiveGeminiKey, 
-  testGeminiApiKey 
-} from '../../services/grokAiService';
+import { askGrokAI, extractFinancialData } from '../../services/grokAiService';
 
 interface AICopilotDrawerProps {
   isOpen: boolean;
@@ -39,7 +28,6 @@ interface Message {
   timestamp: string;
   isSummary?: boolean;
   modelUsed?: string;
-  keyLeaked?: boolean;
 }
 
 export function AICopilotDrawer({
@@ -56,21 +44,8 @@ export function AICopilotDrawer({
   const [isTyping, setIsTyping] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
-  // Settings Modal state
-  const [showSettings, setShowSettings] = useState(false);
-  const [apiKeyInput, setApiKeyInput] = useState('');
-  const [isTestingKey, setIsTestingKey] = useState(false);
-  const [keyStatus, setKeyStatus] = useState<{ success?: boolean; message?: string } | null>(null);
-
   const rows = gridData?.filas || [];
   const columns = gridData?.columnas || [];
-
-  // Load stored key on mount
-  useEffect(() => {
-    if (isOpen) {
-      setApiKeyInput(getActiveGeminiKey());
-    }
-  }, [isOpen]);
 
   // Generate initial financial analysis narrative
   const generateNarrative = () => {
@@ -144,7 +119,7 @@ ${emptyChurches.length > 0 ? `⚠️ Hay **${emptyChurches.length} congregación
     setIsTyping(true);
 
     try {
-      const { text, modelUsed, keyLeaked } = await askGrokAI(
+      const { text, modelUsed } = await askGrokAI(
         q,
         messages,
         {
@@ -163,7 +138,6 @@ ${emptyChurches.length > 0 ? `⚠️ Hay **${emptyChurches.length} congregación
           text,
           timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
           modelUsed,
-          keyLeaked,
         },
       ]);
     } catch {
@@ -178,19 +152,6 @@ ${emptyChurches.length > 0 ? `⚠️ Hay **${emptyChurches.length} congregación
       ]);
     } finally {
       setIsTyping(false);
-    }
-  };
-
-  const handleSaveApiKey = async () => {
-    if (!apiKeyInput.trim()) return;
-    setIsTestingKey(true);
-    setKeyStatus(null);
-    const res = await testGeminiApiKey(apiKeyInput);
-    setIsTestingKey(false);
-    setKeyStatus(res);
-    if (res.success) {
-      setActiveGeminiKey(apiKeyInput);
-      setTimeout(() => setShowSettings(false), 1500);
     }
   };
 
@@ -275,81 +236,13 @@ ${emptyChurches.length > 0 ? `⚠️ Hay **${emptyChurches.length} congregación
               <p className="text-[11px] text-purple-200">Tutor y Asesor Contable con Google Gemini 3.7 Flash</p>
             </div>
           </div>
-          <div className="flex items-center gap-1">
-            <button
-              onClick={() => setShowSettings(!showSettings)}
-              title="Configurar Clave de API de Gemini"
-              className={`p-1.5 rounded-lg transition cursor-pointer ${
-                showSettings ? 'bg-white/20 text-white' : 'text-white/70 hover:text-white hover:bg-white/10'
-              }`}
-            >
-              <Settings className="w-4 h-4" />
-            </button>
-            <button
-              onClick={onClose}
-              className="p-1.5 text-white/70 hover:text-white hover:bg-white/10 rounded-lg transition cursor-pointer"
-            >
-              <X className="w-5 h-5" />
-            </button>
-          </div>
+          <button
+            onClick={onClose}
+            className="p-1.5 text-white/70 hover:text-white hover:bg-white/10 rounded-lg transition cursor-pointer"
+          >
+            <X className="w-5 h-5" />
+          </button>
         </div>
-
-        {/* Settings Drawer Popover */}
-        {showSettings && (
-          <div className="p-4 bg-slate-900 text-white border-b border-slate-700 animate-fade-in shadow-inner text-xs">
-            <div className="flex items-center justify-between mb-2">
-              <div className="flex items-center gap-1.5 font-bold text-slate-200">
-                <Key className="w-4 h-4 text-amber-400" />
-                <span>Configuración de Clave API (Google AI Studio)</span>
-              </div>
-              <a
-                href="https://aistudio.google.com/app/apikey"
-                target="_blank"
-                rel="noreferrer"
-                className="text-[11px] text-blue-400 hover:text-blue-300 flex items-center gap-1 underline"
-              >
-                <span>Obtener clave gratis</span>
-                <ExternalLink className="w-3 h-3" />
-              </a>
-            </div>
-
-            <p className="text-[11px] text-slate-400 mb-2 leading-relaxed">
-              Pega aquí tu clave privada de Google Gemini. Se guarda localmente y de forma segura en tu navegador.
-            </p>
-
-            <div className="flex gap-2">
-              <input
-                type="password"
-                value={apiKeyInput}
-                onChange={(e) => setApiKeyInput(e.target.value)}
-                placeholder="AIzaSy..."
-                className="flex-1 px-3 py-1.5 bg-slate-800 border border-slate-700 rounded-lg text-white font-mono text-xs focus:outline-none focus:border-indigo-500"
-              />
-              <button
-                onClick={handleSaveApiKey}
-                disabled={isTestingKey || !apiKeyInput.trim()}
-                className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white font-bold rounded-lg transition cursor-pointer"
-              >
-                {isTestingKey ? 'Verificando...' : 'Verificar y Guardar'}
-              </button>
-            </div>
-
-            {keyStatus && (
-              <div
-                className={`mt-2 p-2 rounded-lg flex items-center gap-1.5 text-[11px] ${
-                  keyStatus.success ? 'bg-emerald-950/60 border border-emerald-700 text-emerald-300' : 'bg-rose-950/60 border border-rose-700 text-rose-300'
-                }`}
-              >
-                {keyStatus.success ? (
-                  <CheckCircle className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                ) : (
-                  <AlertTriangle className="w-3.5 h-3.5 text-rose-400 shrink-0" />
-                )}
-                <span>{keyStatus.message}</span>
-              </div>
-            )}
-          </div>
-        )}
 
         {/* Chat History */}
         <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-slate-50">
@@ -377,15 +270,6 @@ ${emptyChurches.length > 0 ? `⚠️ Hay **${emptyChurches.length} congregación
                       <Cpu className="w-2.5 h-2.5" />
                       {msg.modelUsed}
                     </span>
-                  )}
-                  {msg.keyLeaked && (
-                    <button
-                      onClick={() => setShowSettings(true)}
-                      className="text-[9px] text-amber-600 font-bold bg-amber-50 hover:bg-amber-100 px-1.5 py-0.2 rounded border border-amber-200 flex items-center gap-1 cursor-pointer"
-                    >
-                      <Key className="w-2.5 h-2.5 text-amber-500" />
-                      <span>Ingresar nueva clave</span>
-                    </button>
                   )}
                   {isAi && (
                     <button
