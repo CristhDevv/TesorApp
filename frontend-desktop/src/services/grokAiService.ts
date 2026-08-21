@@ -1,9 +1,5 @@
 import { formatCOP } from '../utils/formatters';
 
-const ENV_KEY = (import.meta as any)?.env?.VITE_XAI_API_KEY || '';
-const FALLBACK_KEY = ['xa', 'i-xe', 'xctD8m9FiS7fG7XxHRq54KnyB4bVBodH8vtbU3fSzTwrzyDabkYHJtJ6P71fUWs1unA4Koljl5p3g8'].join('');
-const XAI_API_KEY = ENV_KEY || (typeof window !== 'undefined' ? window.localStorage.getItem('xai_api_key') : null) || FALLBACK_KEY;
-
 export interface CopilotContext {
   periodName: string;
   rows: any[];
@@ -96,61 +92,43 @@ ${topChurches.map((c, i) => `${i + 1}. **${c.name}**: Total ${formatCOP(c.total)
 }
 
 /**
- * Executes query with xAI Grok API (grok-3 / grok-3-mini) or ultra-accurate Local Financial Engine
+ * Executes query through secure backend AI proxy or seamless intelligent engine
  */
 export async function askGrokAI(
   userQuery: string,
   history: { sender: 'ai' | 'user'; text: string }[],
   ctx: CopilotContext
 ): Promise<{ text: string; modelUsed: string }> {
-  const financialContext = buildFinancialContextPrompt(ctx);
+  const token = typeof window !== 'undefined' ? window.localStorage.getItem('token') : null;
 
-  const systemMessage = {
-    role: 'system',
-    content: `Eres **TesorApp Copilot**, el asistente de inteligencia artificial y asesor financiero oficial de TesorApp.
-Cuentas con acceso en tiempo real a las planillas y datos contables de las iglesias.
+  if (token) {
+    try {
+      const response = await fetch('/ai/copilot', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          userQuery,
+          history: history.slice(-4),
+          context: {
+            periodName: ctx.periodName,
+            rows: ctx.rows,
+            columns: ctx.columns,
+          },
+        }),
+      });
 
-${financialContext}
-
-Reglas:
-1. Responde en español con precisión matemática basada exclusivamente en los datos contables provistos.
-2. Si el usuario saluda o pregunta qué puedes hacer, preséntate cálidamente como TesorApp Copilot y dale un resumen rápido de lo que puedes hacer (análisis de recaudo, ranking de sedes, sedes pendientes, balance de fondos, proyecciones presupuestales).
-3. Usa Markdown con negritas, listas y formato de moneda en Pesos Colombianos ($ COP).`,
-  };
-
-  const messagesPayload = [
-    systemMessage,
-    ...history.slice(-4).map((m) => ({
-      role: m.sender === 'user' ? 'user' : 'assistant',
-      content: m.text,
-    })),
-    { role: 'user', content: userQuery },
-  ];
-
-  // Attempt live call to xAI Grok-3
-  try {
-    const response = await fetch('https://api.x.ai/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${XAI_API_KEY}`,
-      },
-      body: JSON.stringify({
-        model: 'grok-3',
-        messages: messagesPayload,
-        temperature: 0.3,
-      }),
-    });
-
-    if (response.ok) {
-      const data = await response.json();
-      const content = data.choices?.[0]?.message?.content;
-      if (content) {
-        return { text: content, modelUsed: '⚡ xAI Grok-3' };
+      if (response.ok) {
+        const data = await response.json();
+        if (data && data.text) {
+          return { text: data.text, modelUsed: data.modelUsed || 'TesorApp AI Engine' };
+        }
       }
+    } catch {
+      // Proceed to client fallback
     }
-  } catch {
-    // If xAI Grok has network or token quota issues, proceed to our intelligent engine
   }
 
   // Ultra-Intelligent Local Analytical & Conversational AI Engine

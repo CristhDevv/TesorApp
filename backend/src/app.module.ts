@@ -14,6 +14,7 @@ import { ValoresModule } from './valores/valores.module';
 import { ReportesModule } from './reportes/reportes.module';
 import { UsuariosModule } from './usuarios/usuarios.module';
 import { TablasModule } from './tablas/tablas.module';
+import { AiModule } from './ai/ai.module';
 
 @Controller()
 export class AppController {
@@ -68,6 +69,7 @@ export class AppController {
     ReportesModule,
     UsuariosModule,
     TablasModule,
+    AiModule,
   ],
   controllers: [AppController],
 })
