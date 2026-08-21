@@ -255,7 +255,7 @@ export default function App() {
   const isTesorero = user?.rol === 'tesorero';
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col font-sans pb-16">
+    <div className="min-h-screen w-full bg-slate-50 flex flex-col font-sans overflow-y-auto pb-28 touch-pan-y overscroll-y-contain">
       {/* Offline Status Banner */}
       <OfflineBanner />
 
