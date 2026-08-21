@@ -8,7 +8,7 @@ import {
   Cpu
 } from 'lucide-react';
 import { formatCOP } from '../../utils/formatters';
-import { askGrokAI } from '../../services/grokAiService';
+import { askGrokAI, extractFinancialData } from '../../services/grokAiService';
 
 interface AICopilotDrawerProps {
   isOpen: boolean;
@@ -48,48 +48,30 @@ export function AICopilotDrawer({
       return 'No hay datos suficientes en la planilla actual para generar un análisis financiero.';
     }
 
-    let totalRecaudo = 0;
-    const churchTotals: { name: string; total: number }[] = [];
-    const emptyChurches: string[] = [];
-
-    rows.forEach((r: any) => {
-      let churchSum = 0;
-      let hasValue = false;
-
-      columns.forEach((col: any) => {
-        const val = r.valores?.find((v: any) => v.campo_id === col.id);
-        const amount = val?.modo_calculo === 'calculado' ? (val?.valor_calculado || 0) : (val?.valor_manual || 0);
-        if (amount > 0) hasValue = true;
-        const colName = (col.nombre || '').toLowerCase();
-        if (colName.includes('total')) {
-          churchSum = Math.max(churchSum, amount);
-        }
-      });
-
-      if (!hasValue) {
-        emptyChurches.push(r.iglesia_nombre);
-      }
-
-      totalRecaudo += churchSum;
-      churchTotals.push({ name: r.iglesia_nombre, total: churchSum });
+    const { totalGeneral, churchList, totalMisiones, totalTemplo } = extractFinancialData({
+      periodName: currentPeriod?.nombre || 'Actual',
+      rows,
+      columns,
+      iglesias,
     });
 
-    churchTotals.sort((a, b) => b.total - a.total);
-    const top3 = churchTotals.slice(0, 3);
-    const misionesEst = totalRecaudo * 0.25;
-    const temploEst = totalRecaudo * 0.15;
+    const sorted = [...churchList].sort((a, b) => b.total - a.total);
+    const top3 = sorted.slice(0, 3);
+    const emptyChurches = sorted.filter((c) => !c.hasValues);
+    const misionesEst = totalMisiones || totalGeneral * 0.25;
+    const temploEst = totalTemplo || totalGeneral * 0.15;
 
     return `📊 **Resumen Ejecutivo de Inteligencia Financiera — Periodo ${currentPeriod?.nombre || 'Actual'}**
 
 **1. Desempeño Consolidado:**
-• El recaudo total registrado asciende a **${formatCOP(totalRecaudo)}**, distribuido en **${rows.length} congregaciones**.
+• El recaudo total registrado asciende a **${formatCOP(totalGeneral)}**, distribuido en **${rows.length} congregaciones**.
 • Estimación Fondos Especiales: **${formatCOP(misionesEst)}** destinados a Misiones y **${formatCOP(temploEst)}** para Fondo Pro-Templo / Edificación.
 
 **2. Sedes Destacadas (Top 3 Aportes):**
-${top3.map((c, i) => `${i + 1}. **${c.name}**: ${formatCOP(c.total)} (${totalRecaudo > 0 ? Math.round((c.total / totalRecaudo) * 100) : 0}% del total)`).join('\n')}
+${top3.map((c, i) => `${i + 1}. **${c.name}**: ${formatCOP(c.total)} (${totalGeneral > 0 ? ((c.total / totalGeneral) * 100).toFixed(1) : 0}% del total)`).join('\n')}
 
 **3. Diagnóstico y Alertas de Auditoría:**
-${emptyChurches.length > 0 ? `⚠️ Hay **${emptyChurches.length} congregación(es)** sin registros reportados (${emptyChurches.slice(0, 3).join(', ')}${emptyChurches.length > 3 ? '...' : ''}).` : '✅ Todas las congregaciones presentan registros contables al día.'}
+${emptyChurches.length > 0 ? `⚠️ Hay **${emptyChurches.length} congregación(es)** sin registros reportados (${emptyChurches.slice(0, 3).map((e) => e.name).join(', ')}${emptyChurches.length > 3 ? '...' : ''}).` : '✅ Todas las congregaciones presentan registros contables al día.'}
 • **Recomendación**: Validar los soportes de consignación antes del cierre oficial del periodo.`;
   };
 
