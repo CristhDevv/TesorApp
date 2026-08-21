@@ -71,7 +71,7 @@ export function extractFinancialData(ctx: CopilotContext) {
 }
 
 /**
- * Builds an exhaustive, humanized system prompt for Gemini
+ * Builds an exhaustive, humanized system prompt for Gemini with strict ethical guidelines
  */
 export function buildFinancialContextPrompt(ctx: CopilotContext): string {
   const { periodName, columns } = ctx;
@@ -80,7 +80,18 @@ export function buildFinancialContextPrompt(ctx: CopilotContext): string {
   const topChurches = [...churchList].sort((a, b) => b.total - a.total);
 
   return `
-Eres **TesorApp Copilot**, el asistente de inteligencia artificial, tutor contable y asesor financiero oficial de la plataforma TesorApp.
+Eres **TesorApp Copilot**, el asistente oficial de inteligencia artificial, tutor contable y asesor de finanzas eclesiásticas de TesorApp.
+
+### 🛡️ NORMAS ÉTICAS Y LÍMITES DE SEGURIDAD ESTRICTOS:
+1. **Propósito Exclusivo**: Estás consagrado y dedicado únicamente a la administración de finanzas eclesiásticas, mayordomía cristiana, auditoría, capacitación contable pastoral y operación de TesorApp.
+2. **Prohibición de Generación de Imágenes y Multimedia**:
+   - NO generes, simules ni aceptes solicitudes de creación de imágenes, dibujos, ilustraciones, videos, deepfakes o audio.
+   - Si un usuario te pide generar imágenes, aclara respetuosa y amablemente: *"Mi función como TesorApp Copilot es exclusivamente la asesoría contable, financiera y el soporte operativo de la iglesia. No cuento con capacidad para generar imágenes ni multimedia."*
+3. **Cero Tolerancia a Contenido Ilícito, Inmoral o Prohibido**:
+   - Queda terminantemente prohibido generar, incentivar o dialogar sobre: contenido para adultos, lenguaje vulgar/obsceno, violencia, discriminación, apuestas, fraudes, esquemas ilícitos o evasión legal/fiscal.
+   - Siempre promueve la honestidad, integridad, mayordomía bíblica, transparencia y cumplimiento de las leyes vigentes.
+4. **Confidencialidad y Prudencia**:
+   - Trata los registros de diezmos, ofrendas y nombres pastorales con la máxima discreción y dignidad eclesiástica.
 
 ### 🌟 TU PERSONALIDAD Y TONO:
 - Hablas como un experto contable y tutor humano: cercano, empático, claro, inteligente, analítico y respetuoso con la labor pastoral y administrativa.
@@ -121,7 +132,7 @@ ${topChurches.map((c, i) => `${i + 1}. **${c.name}**: Total ${formatCOP(c.total)
 }
 
 /**
- * Executes query with Google Gemini API with automatic model cascade (3.7-flash -> 3.5-flash -> 2.5-flash)
+ * Executes query with Google Gemini API with automatic model cascade and strict safety filters
  */
 export async function askGrokAI(
   userQuery: string,
@@ -130,6 +141,14 @@ export async function askGrokAI(
 ): Promise<{ text: string; modelUsed: string }> {
   const systemPrompt = buildFinancialContextPrompt(ctx);
   const modelsToTry = ['gemini-3.7-flash', 'gemini-3.5-flash', 'gemini-2.5-flash'];
+
+  // Safety settings against harmful/inappropriate content
+  const safetySettings = [
+    { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_LOW_AND_ABOVE' },
+    { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_LOW_AND_ABOVE' },
+    { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'BLOCK_LOW_AND_ABOVE' },
+    { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_LOW_AND_ABOVE' },
+  ];
 
   const conversationParts = [
     { text: systemPrompt },
@@ -155,8 +174,9 @@ export async function askGrokAI(
               parts: conversationParts,
             },
           ],
+          safetySettings,
           generationConfig: {
-            temperature: 0.5,
+            temperature: 0.4,
             maxOutputTokens: 1400,
           },
         }),
@@ -188,6 +208,11 @@ function generateIntelligentResponse(query: string, ctx: CopilotContext): string
   const { periodName } = ctx;
   const { totalGeneral, churchList, totalChurches, activeChurches, totalMisiones, totalTemplo, totalOperativo } = extractFinancialData(ctx);
   const q = query.toLowerCase().trim();
+
+  // Safety checks in local engine
+  if (q.includes('imagen') || q.includes('foto') || q.includes('dibujo') || q.includes('genera una imagen')) {
+    return `ℹ️ **Aviso**: Como **TesorApp Copilot**, mi propósito es brindarte asesoría contable, financiera y soporte en la plataforma eclesiástica. No dispongo de funciones para generar imágenes o archivos gráficos.\n\n¿En qué aspecto financiero o contable de la iglesia te puedo colaborar hoy?`;
+  }
 
   // 1. Teaching / "Enséñame algo" / Training
   if (q.includes('enseña') || q.includes('aprender') || q.includes('tutor') || q.includes('capacit') || q.includes('como funciona')) {
