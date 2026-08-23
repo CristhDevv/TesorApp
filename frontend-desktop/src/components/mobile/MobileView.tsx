@@ -25,13 +25,14 @@ import {
   Upload,
   Share2,
   Sun,
-  Moon
+  Moon,
+  HelpCircle,
 } from 'lucide-react';
 import { OfflineBanner } from './OfflineBanner';
 import { ChurchSearchModal } from './ChurchSearchModal';
 import { formatCOP } from '../../utils/formatters';
 import { generateVoucherPDFBlob } from '../../utils/voucherPdfGenerator';
-import { HelpTooltip } from '../common/HelpTooltip';
+import { HelpModal } from '../common/HelpModal';
 
 interface MobileViewProps {
   token: string | null;
@@ -70,6 +71,7 @@ export function MobileView({
   const [toast, setToast] = useState<{ msg: string; type: 'success' | 'error' } | null>(null);
   
   // Modals state
+  const [showHelpModal, setShowHelpModal] = useState(false);
   const [showChurchSearch, setShowChurchSearch] = useState(false);
   const [showSendConfirmModal, setShowSendConfirmModal] = useState(false);
   const [showReviewModal, setShowReviewModal] = useState(false);
@@ -418,6 +420,13 @@ export function MobileView({
           </div>
 
           <div className="flex items-center gap-1.5">
+            <button
+              onClick={() => setShowHelpModal(true)}
+              title="Guía y Ayuda"
+              className="p-1.5 text-slate-500 hover:text-indigo-600 dark:text-slate-300 dark:hover:text-indigo-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition cursor-pointer"
+            >
+              <HelpCircle className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+            </button>
             {onToggleTheme && (
               <button
                 onClick={onToggleTheme}
@@ -529,15 +538,9 @@ export function MobileView({
                   <FileSpreadsheet className="w-4 h-4 text-slate-600" />
                 )}
                 <div>
-                  <div className="flex items-center gap-1">
-                    <span className="text-[10px] font-extrabold uppercase tracking-wider block">
-                      Estado del Informe
-                    </span>
-                    <HelpTooltip
-                      title="Estado del Informe Mensual"
-                      text="• Borrador: Puedes editar libremente tus números.\n• Enviado: Entregado a tesorería para revisión.\n• En Revisión: El tesorero devolvió el informe con notas para ajustar.\n• Aprobado: Informe validado oficialmente."
-                    />
-                  </div>
+                  <span className="text-[10px] font-extrabold uppercase tracking-wider block">
+                    Estado del Informe
+                  </span>
                   <span className="font-extrabold text-xs capitalize">
                     {estadoInforme === 'en_revision' ? 'En Revisión (Ajustes)' : estadoInforme}
                   </span>
@@ -618,13 +621,7 @@ export function MobileView({
               </span>
             </div>
             <div className="text-center">
-              <div className="flex items-center justify-center gap-1">
-                <span className="text-[9px] font-bold text-slate-500 uppercase block">Saldo Neto</span>
-                <HelpTooltip
-                  title="Saldo Neto en Tiempo Real"
-                  text="Total de Ingresos menos Total de Egresos calculados al instante con los datos digitados."
-                />
-              </div>
+              <span className="text-[9px] font-bold text-slate-500 uppercase block">Saldo Neto</span>
               <span className={`font-mono font-extrabold text-xs block mt-0.5 ${
                 financialTotals.saldoNeto >= 0 ? 'text-indigo-700 dark:text-indigo-400' : 'text-rose-600'
               }`}>
@@ -1448,6 +1445,12 @@ export function MobileView({
         iglesias={iglesias}
         selectedIglesiaId={selectedIglesia}
         onSelect={(id) => setSelectedIglesia(id)}
+      />
+
+      {/* Help Modal */}
+      <HelpModal
+        isOpen={showHelpModal}
+        onClose={() => setShowHelpModal(false)}
       />
     </div>
   );

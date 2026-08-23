@@ -6,13 +6,12 @@ import {
   Plus,
   Download,
   Sliders,
-  TrendingUp,
   ChevronDown,
   Filter,
+  TrendingUp,
 } from 'lucide-react';
 import type { Tabla, Periodo } from '../../types/contabilidad';
 import { PeriodBadge } from '../common/PeriodBadge';
-import { HelpTooltip } from '../common/HelpTooltip';
 
 interface TableFilterToolbarProps {
   // Tesorero mode
@@ -116,10 +115,6 @@ export function TableFilterToolbar({
               <span className="text-slate-500 font-bold text-[10px] uppercase tracking-wider shrink-0">
                 Tabla
               </span>
-              <HelpTooltip
-                title="Selección de Tabla"
-                text="Permite trabajar sobre un grupo específico de iglesias o ver el Consolidado General de todas las congregaciones."
-              />
               <div className="relative">
                 <select
                   className="bg-slate-50 border border-slate-300 rounded px-2.5 pr-7 py-1 font-bold text-slate-800 text-[11px] focus:outline-none focus:border-indigo-600 appearance-none cursor-pointer hover:bg-slate-100"
@@ -175,10 +170,6 @@ export function TableFilterToolbar({
           <span className="text-slate-500 font-bold text-[10px] uppercase tracking-wider shrink-0">
             Periodo
           </span>
-          <HelpTooltip
-            title="Período Contable Mensual"
-            text="Controla el mes activo. Si está Abierto, las iglesias pueden digitar y enviar su informe. Al Cerrar el período, los valores quedan protegidos e inmutables."
-          />
           <div className="relative">
             <select
               className="bg-slate-50 border border-slate-300 rounded px-2.5 pr-7 py-1 font-bold text-slate-800 text-[11px] focus:outline-none focus:border-indigo-600 appearance-none cursor-pointer hover:bg-slate-100"

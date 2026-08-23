@@ -6,7 +6,6 @@ import {
   User, 
   ArrowUpRight, 
   ArrowDownRight,
-  PieChart as PieChartIcon,
   BarChart3,
   Search,
   Layers,
@@ -17,7 +16,8 @@ import {
   Send,
   ShieldCheck,
   AlertTriangle,
-  Scale
+  Scale,
+  BookOpen
 } from 'lucide-react';
 import { Doughnut, Bar } from 'react-chartjs-2';
 import {
@@ -31,7 +31,6 @@ import {
   Title,
 } from 'chart.js';
 import { formatCOP } from '../../utils/formatters';
-import { HelpTooltip } from '../common/HelpTooltip';
 
 ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement, Title);
 
@@ -46,6 +45,7 @@ interface ExecutiveDashboardProps {
   iglesias: any[];
   onOpenCopilot: () => void;
   onOpenChurchDetail: (iglesiaId: string) => void;
+  onOpenHelp?: () => void;
 }
 
 export function ExecutiveDashboard({
@@ -59,6 +59,7 @@ export function ExecutiveDashboard({
   iglesias,
   onOpenCopilot,
   onOpenChurchDetail,
+  onOpenHelp,
 }: ExecutiveDashboardProps) {
   const [healthFilter, setHealthFilter] = useState<'all' | 'green' | 'yellow' | 'red'>('all');
   const [workflowFilter, setWorkflowFilter] = useState<'all' | 'borrador' | 'enviado' | 'en_revision' | 'aprobado' | 'consolidado'>('all');
@@ -331,8 +332,19 @@ export function ExecutiveDashboard({
             </div>
           </div>
 
-          {/* Action Button: Asistente IA */}
+          {/* Action Buttons: Guía de Ayuda & Asistente IA */}
           <div className="flex items-center gap-2">
+            {onOpenHelp && (
+              <button
+                type="button"
+                onClick={onOpenHelp}
+                className="px-3.5 py-2 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-2xs transition cursor-pointer"
+                title="Abrir Guía y Centro de Ayuda"
+              >
+                <BookOpen className="w-3.5 h-3.5 text-indigo-600" />
+                <span>Guía del Sistema</span>
+              </button>
+            )}
             <button
               onClick={onOpenCopilot}
               className="px-4 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white rounded-xl text-xs font-bold flex items-center gap-2 shadow-xs transition transform active:scale-95 cursor-pointer"
@@ -351,11 +363,6 @@ export function ExecutiveDashboard({
               <span className="text-slate-500 font-bold text-[10px] uppercase tracking-wider flex items-center gap-1">
                 <Layers className="w-3.5 h-3.5 text-indigo-600" /> Alcance de Tabla:
               </span>
-              <HelpTooltip
-                title="Alcance de Tablas"
-                text="Permite ver las estadísticas de una tabla en particular o el consolidado global de todas las 32 congregaciones juntas."
-                tip="Usa 'Consolidado General' para ver la foto completa del distrito."
-              />
               <div className="relative">
                 <select
                   className="bg-white border border-slate-300 rounded-xl px-3 pr-8 py-1.5 font-bold text-slate-800 text-xs focus:outline-none focus:border-indigo-600 appearance-none cursor-pointer hover:border-slate-400 shadow-2xs"
@@ -378,10 +385,6 @@ export function ExecutiveDashboard({
               <span className="text-slate-500 font-bold text-[10px] uppercase tracking-wider flex items-center gap-1">
                 <Calendar className="w-3.5 h-3.5 text-indigo-600" /> Período:
               </span>
-              <HelpTooltip
-                title="Período Contable"
-                text="Selecciona el mes contable que deseas consultar. Los períodos con candado o cerrados están en modo lectura histórica."
-              />
               <div className="relative">
                 <select
                   className="bg-white border border-slate-300 rounded-xl px-3 pr-8 py-1.5 font-bold text-slate-800 text-xs focus:outline-none focus:border-indigo-600 appearance-none cursor-pointer hover:border-slate-400 shadow-2xs"
@@ -405,18 +408,12 @@ export function ExecutiveDashboard({
         </div>
       </div>
 
-      {/* ── TOP KPI CARDS ── */}
+      {/* ── TOP KPI CARDS (Clean, Elegant & Minimalist) ── */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* KPI 1: Total Ingresos */}
         <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs relative overflow-hidden flex flex-col justify-between">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-1.5">
-              <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Total Ingresos</span>
-              <HelpTooltip
-                title="Total Ingresos Recaudados"
-                text="Suma total de los ingresos locales (diezmos, ofrendas y recaudos) de todas las congregaciones en este período."
-              />
-            </div>
+            <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Total Ingresos</span>
             <span className="p-1.5 bg-emerald-50 text-emerald-600 rounded-lg text-xs font-bold flex items-center gap-0.5">
               <ArrowUpRight className="w-3.5 h-3.5" /> Recaudo
             </span>
@@ -437,13 +434,7 @@ export function ExecutiveDashboard({
         {/* KPI 2: Total Egresos / Aportes */}
         <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs flex flex-col justify-between">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-1.5">
-              <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Total Egresos & Aportes</span>
-              <HelpTooltip
-                title="Total Egresos & Aportes"
-                text="Monto total de salidas registradas: aportes zonales, deducciones por porcentaje y gastos operacionales."
-              />
-            </div>
+            <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Total Egresos & Aportes</span>
             <span className="p-1.5 bg-rose-50 text-rose-600 rounded-lg text-xs font-bold flex items-center gap-0.5">
               <ArrowDownRight className="w-3.5 h-3.5" /> Salidas
             </span>
@@ -462,16 +453,9 @@ export function ExecutiveDashboard({
         {/* KPI 3: Balance Neto en Caja */}
         <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs flex flex-col justify-between">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-1.5">
-              <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
-                {metrics.totalTransito > 0 ? "Saldo Propio Zona 52" : "Balance Neto en Caja"}
-              </span>
-              <HelpTooltip
-                title="Saldo Propio en Caja Zonal"
-                text="Saldo real disponible que queda para la tesorería de la Zona 52 (Ingresos menos Egresos menos Fondos en Tránsito hacia Entes Superiores)."
-                tip="Los fondos en tránsito no inflan este saldo."
-              />
-            </div>
+            <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+              {metrics.totalTransito > 0 ? "Saldo Propio Zona 52" : "Balance Neto en Caja"}
+            </span>
             <span className="p-1.5 bg-indigo-50 text-indigo-600 rounded-lg text-xs font-bold flex items-center gap-0.5">
               <Scale className="w-3.5 h-3.5" /> Neto
             </span>
@@ -494,13 +478,7 @@ export function ExecutiveDashboard({
         {/* KPI 4: Cumplimiento de Sedes */}
         <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs flex flex-col justify-between">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-1.5">
-              <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Cumplimiento de Reportes</span>
-              <HelpTooltip
-                title="Porcentaje de Cumplimiento"
-                text="Mide qué porcentaje de las sedes ya enviaron su informe o completaron el 80% o más de su planilla."
-              />
-            </div>
+            <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Cumplimiento de Reportes</span>
             <span className="text-xs font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-full">
               {metrics.complianceRate}%
             </span>
@@ -521,16 +499,9 @@ export function ExecutiveDashboard({
       <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs">
         <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
           <div>
-            <div className="flex items-center gap-1.5">
-              <h3 className="text-xs font-black uppercase tracking-wider text-slate-800 flex items-center gap-1.5">
-                <ShieldCheck className="w-4 h-4 text-indigo-600" /> Estado de Informes y Aprobación
-              </h3>
-              <HelpTooltip
-                title="Estados del Flujo Contable"
-                text="Muestra en qué etapa se encuentra el informe mensual de cada congregación: Borrador (en preparación), Enviado (en espera de revisión), En Revisión (con observaciones del tesorero), o Aprobado (oficial)."
-                tip="Haz clic en cualquier estado para filtrar la lista de sedes abajo."
-              />
-            </div>
+            <h3 className="text-xs font-black uppercase tracking-wider text-slate-800 flex items-center gap-1.5">
+              <ShieldCheck className="w-4 h-4 text-indigo-600" /> Estado de Informes y Aprobación
+            </h3>
             <p className="text-[11px] text-slate-500">
               Resumen del flujo de digitación, recepción y aprobación de las congregaciones
             </p>
@@ -644,14 +615,9 @@ export function ExecutiveDashboard({
         <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs flex flex-col">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
-              <PieChartIcon className="w-4 h-4 text-indigo-600" />
-              <h3 className="text-xs font-extrabold text-slate-900 uppercase tracking-wider">
+               <h3 className="text-xs font-extrabold text-slate-900 uppercase tracking-wider">
                 Distribución por Conceptos
               </h3>
-              <HelpTooltip
-                title="Distribución de Dinero"
-                text="Compara el porcentaje total que representan los Ingresos frente a los Egresos y Deducciones registradas en este período."
-              />
             </div>
             <span className="text-[10px] text-slate-400 font-semibold">{currentPeriod?.nombre}</span>
           </div>
@@ -677,10 +643,6 @@ export function ExecutiveDashboard({
               <h3 className="text-xs font-extrabold text-slate-900 uppercase tracking-wider">
                 Top 5 Congregaciones con Mayor Recaudo
               </h3>
-              <HelpTooltip
-                title="Sedes con Mayor Ingreso"
-                text="Muestra las 5 congregaciones que más aportaron o recaudaron en este período."
-              />
             </div>
             <span className="text-[10px] text-slate-400 font-semibold">
               {isAllTablesSelected ? 'Consolidado General' : currentTableObj?.nombre}
@@ -700,7 +662,7 @@ export function ExecutiveDashboard({
                   },
                   x: { grid: { display: false } }
                 }
-              }}
+              }} 
             />
           </div>
         </div>
@@ -715,10 +677,6 @@ export function ExecutiveDashboard({
                 <span>Semáforo de Salud Financiera de Sedes</span>
                 <span className="text-xs font-normal text-slate-400">({filteredChurches.length} congregaciones)</span>
               </h3>
-              <HelpTooltip
-                title="Semáforo de Salud Contable"
-                text="🟢 Verde (Al día): Planilla completa, enviada o aprobada.\n🟡 Amarillo (En proceso): Planilla iniciada pero incompleta (<80%) o devuelta para corrección.\n🔴 Rojo (Retraso): Sede que aún no ha digitado ningún valor este mes."
-              />
             </div>
             <p className="text-xs text-slate-500">Monitoreo en tiempo real del estado de reporte y consistencia contable.</p>
           </div>

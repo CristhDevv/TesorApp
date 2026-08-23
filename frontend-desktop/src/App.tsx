@@ -28,6 +28,7 @@ import {
   PanelLeftOpen,
   Sun,
   Moon,
+  HelpCircle,
 } from 'lucide-react';
 import {
   Chart as ChartJS,
@@ -55,7 +56,7 @@ import { AuditDrawer } from './components/tesorero/AuditDrawer';
 import { FormulaModal } from './components/tesorero/FormulaModal';
 import { WorkflowModal } from './components/tesorero/WorkflowModal';
 import { BadgeStatus } from './components/common/BadgeStatus';
-import { HelpTooltip } from './components/common/HelpTooltip';
+import { HelpModal } from './components/common/HelpModal';
 import { useGridKeyboardNav } from './hooks/useGridKeyboardNav';
 import type { SortState, EditingCell, GridData, ColumnaGrid, FilaGrid, EstadoInforme } from './types/contabilidad';
 
@@ -119,7 +120,8 @@ export default function App() {
     });
   };
 
-  // Assistant & Vault State
+  // Assistant, Help & Vault State
+  const [showHelpModal, setShowHelpModal] = useState(false);
   const [showAICopilot, setShowAICopilot] = useState(false);
   const [showNotificationCenter, setShowNotificationCenter] = useState(false);
   const [receiptVaultState, setReceiptVaultState] = useState<{ open: boolean; churchId: string; churchName: string }>({
@@ -358,7 +360,7 @@ export default function App() {
     setTimeout(() => setToast(null), 3500);
   };
 
-  // ─── Global Keyboard Shortcuts (Ctrl+K: Search, Ctrl+B: Toggle Sidebar) ────
+  // ─── Global Keyboard Shortcuts (Ctrl+K: Search, Ctrl+B: Toggle Sidebar, Ctrl+H / F1: Help) ────
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
@@ -367,6 +369,9 @@ export default function App() {
       } else if ((e.ctrlKey || e.metaKey) && e.key === 'b') {
         e.preventDefault();
         toggleSidebar();
+      } else if (((e.ctrlKey || e.metaKey) && e.key === 'h') || e.key === 'F1') {
+        e.preventDefault();
+        setShowHelpModal(true);
       }
     };
     window.addEventListener('keydown', handleKeyDown);
@@ -1450,14 +1455,10 @@ export default function App() {
         <div className="flex-1 overflow-y-auto p-3 space-y-5">
           {/* Section: PRINCIPAL */}
           <div className="space-y-1">
-            <div className="px-3 flex items-center justify-between">
+            <div className="px-3">
               <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest block">
                 Principal
               </span>
-              <HelpTooltip
-                title="Menú Principal"
-                text="Accesos al resumen gerencial, la planilla de cálculo de las sedes y los reportes oficiales."
-              />
             </div>
 
             {isTesorero && (
@@ -1511,14 +1512,10 @@ export default function App() {
           {/* Section: GESTIÓN & ADMINISTRACIÓN */}
           {isTesorero && (
             <div className="space-y-1">
-              <div className="px-3 flex items-center justify-between">
+              <div className="px-3">
                 <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest block">
                   Gestión
                 </span>
-                <HelpTooltip
-                  title="Módulo de Gestión"
-                  text="Herramientas administrativas para configurar congregaciones, columnas contables, fórmulas, usuarios, auditoría y gastos."
-                />
               </div>
 
               <button
@@ -1533,9 +1530,7 @@ export default function App() {
                   <Building2 className={`w-4 h-4 ${activeTab === 'iglesias' ? 'text-indigo-600 dark:text-white' : 'text-slate-400'}`} />
                   <span>Congregaciones</span>
                 </div>
-                <span className="text-[10px] font-mono font-bold bg-slate-100 text-slate-600 dark:bg-slate-900 dark:text-slate-400 px-1.5 py-0.5 rounded border border-slate-200 dark:border-slate-800">
-                  {iglesias.length}
-                </span>
+                {activeTab === 'iglesias' && <ChevronRight className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-200" />}
               </button>
 
               <button
@@ -1550,9 +1545,7 @@ export default function App() {
                   <Layers className={`w-4 h-4 ${activeTab === 'campos' ? 'text-indigo-600 dark:text-white' : 'text-slate-400'}`} />
                   <span>Columnas & Fórmulas</span>
                 </div>
-                <span className="text-[10px] font-mono font-bold bg-slate-100 text-slate-600 dark:bg-slate-900 dark:text-slate-400 px-1.5 py-0.5 rounded border border-slate-200 dark:border-slate-800">
-                  {campos.length}
-                </span>
+                {activeTab === 'campos' && <ChevronRight className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-200" />}
               </button>
 
               <button
@@ -1567,9 +1560,7 @@ export default function App() {
                   <Users className={`w-4 h-4 ${activeTab === 'usuarios' ? 'text-indigo-600 dark:text-white' : 'text-slate-400'}`} />
                   <span>Usuarios y Roles</span>
                 </div>
-                <span className="text-[10px] font-mono font-bold bg-slate-100 text-slate-600 dark:bg-slate-900 dark:text-slate-400 px-1.5 py-0.5 rounded border border-slate-200 dark:border-slate-800">
-                  {usuarios.length}
-                </span>
+                {activeTab === 'usuarios' && <ChevronRight className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-200" />}
               </button>
 
               <button
@@ -1678,37 +1669,25 @@ export default function App() {
                 {activeTab === 'gastos' && 'Gastos & Control de Fondos'}
                 {activeTab === 'reportes' && 'Centro de Reportes & Consolidados'}
               </span>
-              <HelpTooltip
-                title={
-                  activeTab === 'dashboard' ? 'Tablero Ejecutivo' :
-                  activeTab === 'sheet' ? 'Planilla Contable' :
-                  activeTab === 'iglesias' ? 'Congregaciones' :
-                  activeTab === 'campos' ? 'Columnas y Fórmulas' :
-                  activeTab === 'usuarios' ? 'Usuarios y Roles' :
-                  activeTab === 'historial' ? 'Auditoría' :
-                  activeTab === 'gastos' ? 'Gastos y Fondos' : 'Reportes'
-                }
-                text={
-                  activeTab === 'dashboard' ? 'Resume en tiempo real los ingresos, egresos, cumplimiento de cada sede y la salud financiera de toda la zona.' :
-                  activeTab === 'sheet' ? 'Hoja de cálculo interactiva para registrar, auditar y calcular fórmulas contables de cada congregación.' :
-                  activeTab === 'iglesias' ? 'Administra el listado de iglesias de la Zona 52, sus pastores responsables y estado.' :
-                  activeTab === 'campos' ? 'Configura los conceptos de ingresos, egresos, fondos de tesorería y reglas de cálculo automático.' :
-                  activeTab === 'usuarios' ? 'Crea cuentas de acceso para tesoreros y congregaciones con sus respectivos permisos.' :
-                  activeTab === 'historial' ? 'Historial de auditoría inmutable que registra quién modificó cada celda y en qué momento.' :
-                  activeTab === 'gastos' ? 'Registra egresos de la tesorería zonal, clasifica fondos propios vs en tránsito y genera vouchers oficiales.' :
-                  'Genera reportes financieros oficiales, balances consolidados y resúmenes contables.'
-                }
-              />
             </div>
           </div>
 
-          <div className="flex items-center gap-2.5 text-xs">
+          <div className="flex items-center gap-2 text-xs">
             {selectedPeriodObj && (
               <div className="flex items-center gap-1.5 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 px-2.5 py-1 rounded-lg border border-slate-200 dark:border-slate-700 font-semibold text-[11px]">
                 <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
                 <span>Periodo: <strong className="text-slate-900 dark:text-white">{selectedPeriodObj.nombre}</strong></span>
               </div>
             )}
+
+            <button
+              onClick={() => setShowHelpModal(true)}
+              title="Abrir Guía y Centro de Ayuda (Ctrl+H / F1)"
+              className="p-1.5 sm:px-2.5 sm:py-1 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer flex items-center gap-1.5 text-xs font-bold"
+            >
+              <HelpCircle className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
+              <span className="hidden md:inline text-[11px]">Guía / Ayuda</span>
+            </button>
 
             <button
               onClick={toggleTheme}
@@ -1757,6 +1736,7 @@ export default function App() {
               onOpenChurchDetail={(_iglesiaId) => {
                 setActiveTab('sheet');
               }}
+              onOpenHelp={() => setShowHelpModal(true)}
             />
           )}
 
@@ -3054,6 +3034,12 @@ export default function App() {
         isOpen={!!voucherGasto}
         onClose={() => setVoucherGasto(null)}
         gasto={voucherGasto}
+      />
+
+      {/* ── CENTRO DE AYUDA & GUÍA DEL SISTEMA ── */}
+      <HelpModal
+        isOpen={showHelpModal}
+        onClose={() => setShowHelpModal(false)}
       />
     </div>
   );
