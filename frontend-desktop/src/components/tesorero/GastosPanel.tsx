@@ -12,6 +12,7 @@ import {
   Search,
   History,
   Coins,
+  FileText,
 } from "lucide-react";
 import { formatCOP } from "../../utils/formatters";
 
@@ -52,6 +53,7 @@ interface GastosPanelProps {
   onNew: () => void;
   onEdit: (gasto: Gasto) => void;
   onDelete: (gasto: Gasto) => void;
+  onOpenVoucher?: (gasto: Gasto) => void;
   selectedPeriodoNombre: string;
   isPeriodOpen: boolean;
 }
@@ -85,6 +87,7 @@ export function GastosPanel({
   onNew,
   onEdit,
   onDelete,
+  onOpenVoucher,
   selectedPeriodoNombre,
   isPeriodOpen,
 }: GastosPanelProps) {
@@ -530,26 +533,37 @@ export function GastosPanel({
                           <div className="text-right flex-shrink-0">
                             <p className="text-sm font-black text-rose-600">−{formatCOP(Number(g.monto))}</p>
                           </div>
-                          {isPeriodOpen && (
-                            <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition">
-                              <button
-                                type="button"
-                                onClick={() => onEdit(g)}
-                                className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition cursor-pointer"
-                                title="Editar"
-                              >
-                                <Pencil className="w-3.5 h-3.5" />
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => onDelete(g)}
-                                className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition cursor-pointer"
-                                title="Eliminar"
-                              >
-                                <Trash2 className="w-3.5 h-3.5" />
-                              </button>
-                            </div>
-                          )}
+                          <div className="flex items-center gap-1">
+                            <button
+                              type="button"
+                              onClick={() => onOpenVoucher && onOpenVoucher(g)}
+                              className="px-2.5 py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-lg text-xs font-bold transition flex items-center gap-1 cursor-pointer border border-indigo-200 shadow-2xs"
+                              title="Ver Comprobante de Egreso / Enviar por WhatsApp / Imprimir PDF"
+                            >
+                              <FileText className="w-3.5 h-3.5" />
+                              <span>Voucher</span>
+                            </button>
+                            {isPeriodOpen && (
+                              <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition">
+                                <button
+                                  type="button"
+                                  onClick={() => onEdit(g)}
+                                  className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition cursor-pointer"
+                                  title="Editar"
+                                >
+                                  <Pencil className="w-3.5 h-3.5" />
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => onDelete(g)}
+                                  className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition cursor-pointer"
+                                  title="Eliminar"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+                            )}
+                          </div>
                         </div>
                       ))}
                     </div>

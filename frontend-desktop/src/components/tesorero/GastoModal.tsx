@@ -46,28 +46,33 @@ export function GastoModal({
   onSave,
   onDelete,
   saving,
-  campos,
+  campos = [],
   resumen = [],
-  periodos,
+  periodos = [],
 }: GastoModalProps) {
   if (!isOpen) return null;
 
-  const fondosDisponibles = campos.filter((c) => c.es_fondo);
+  const camposSafe = Array.isArray(campos) ? campos : [];
+  const resumenSafe = Array.isArray(resumen) ? resumen : [];
+
+  const fondosDisponibles = camposSafe.filter(
+    (c) => Boolean(c?.es_fondo) || c?.id === data.campo_fondo_id
+  );
 
   // Find info about the currently selected fund
-  const selectedResumen = resumen.find((r) => r.campo_fondo_id === data.campo_fondo_id);
-  const selectedCampo = campos.find((c) => c.id === data.campo_fondo_id);
-  const isAcumulable = selectedResumen?.es_acumulable ?? selectedCampo?.es_acumulable ?? false;
+  const selectedResumen = resumenSafe.find((r) => r.campo_fondo_id === data.campo_fondo_id);
+  const selectedCampo = camposSafe.find((c) => c.id === data.campo_fondo_id);
+  const isAcumulable = Boolean(selectedResumen?.es_acumulable ?? selectedCampo?.es_acumulable ?? false);
 
   const numMonto = Number(data.monto || 0);
   const saldoFondo = selectedResumen
-    ? (isAcumulable ? selectedResumen.saldo_acumulado : selectedResumen.saldo_periodo)
+    ? (isAcumulable ? Number(selectedResumen.saldo_acumulado ?? 0) : Number(selectedResumen.saldo_periodo ?? 0))
     : 0;
 
   const isOverdrawn = selectedResumen && numMonto > 0 && numMonto > saldoFondo;
 
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fade-in">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
         {/* Header */}
         <div className="flex items-center justify-between p-5 border-b border-slate-100 bg-slate-50/50">
@@ -111,7 +116,7 @@ export function GastoModal({
               >
                 <option value="">— Seleccionar fondo de tesorería —</option>
                 {fondosDisponibles.map((c) => {
-                  const r = resumen.find((item) => item.campo_fondo_id === c.id);
+                  const r = resumenSafe.find((item) => item.campo_fondo_id === c.id);
                   const isAcum = r?.es_acumulable ?? c.es_acumulable;
                   const saldo = r ? (isAcum ? r.saldo_acumulado : r.saldo_periodo) : null;
                   return (
@@ -126,7 +131,7 @@ export function GastoModal({
             )}
 
             {/* Selected Fund Info Card */}
-            {selectedResumen && (
+            {(selectedResumen || selectedCampo) && data.campo_fondo_id && (
               <div className={`mt-2.5 p-3 rounded-xl border text-xs ${
                 isAcumulable ? "bg-indigo-50/70 border-indigo-200 text-indigo-950" : "bg-slate-50 border-slate-200 text-slate-800"
               }`}>
@@ -150,8 +155,8 @@ export function GastoModal({
                 </div>
                 <p className="text-[11px] text-slate-600 leading-relaxed">
                   {isAcumulable
-                    ? `Este fondo acumula saldos a través de todos los períodos. Recaudo histórico total: ${formatCOP(selectedResumen.fondo_acumulado)}.`
-                    : `Este fondo opera solo con el recaudo del período actual: ${formatCOP(selectedResumen.fondo_periodo)}.`}
+                    ? `Este fondo acumula saldos a través de todos los períodos. Recaudo histórico total: ${formatCOP(selectedResumen?.fondo_acumulado ?? 0)}.`
+                    : `Este fondo opera con el recaudo del período actual: ${formatCOP(selectedResumen?.fondo_periodo ?? 0)}.`}
                 </p>
               </div>
             )}
@@ -260,7 +265,7 @@ export function GastoModal({
               ) : data.id ? (
                 "Guardar Cambios"
               ) : (
-                "Registrar Gasto"
+                "Registrar Gasto & Generar Voucher"
               )}
             </button>
           </div>

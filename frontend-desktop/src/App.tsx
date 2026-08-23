@@ -84,6 +84,7 @@ import { NotificationCenter } from './components/notifications/NotificationCente
 // Gastos Feature
 import { GastosPanel } from './components/tesorero/GastosPanel';
 import { GastoModal } from './components/tesorero/GastoModal';
+import { GastoVoucherModal, GastoVoucherData } from './components/tesorero/GastoVoucherModal';
 
 // Reports Feature
 import { ReportsPanel } from './components/reports/ReportsPanel';
@@ -185,6 +186,7 @@ export default function App() {
     periodo_id: '',
   });
   const [savingGasto, setSavingGasto] = useState(false);
+  const [voucherGasto, setVoucherGasto] = useState<GastoVoucherData | null>(null);
 
   // Selected states (with localStorage persistence for active table)
   const [selectedPeriodoId, setSelectedPeriodoId] = useState<string>('');
@@ -575,15 +577,30 @@ export default function App() {
         campo_fondo_id: gastoModalData.campo_fondo_id,
         periodo_id: gastoModalData.periodo_id || selectedPeriodoId,
       };
+      let savedGastoId = gastoModalData.id;
       if (gastoModalData.id) {
         await axios.put(`${API_BASE}/gastos/${gastoModalData.id}`, payload);
-        triggerToast('Gasto actualizado');
+        triggerToast('Gasto actualizado exitosamente');
       } else {
-        await axios.post(`${API_BASE}/gastos`, payload);
-        triggerToast('Gasto registrado');
+        const res = await axios.post(`${API_BASE}/gastos`, payload);
+        savedGastoId = res.data?.id || `g_${Date.now()}`;
+        triggerToast('Gasto registrado exitosamente');
       }
       setShowGastoModal(false);
       fetchGastos();
+
+      // Open voucher modal automatically so the treasurer can share/print immediately
+      const fondoObj = campos.find((c: any) => c.id === gastoModalData.campo_fondo_id);
+      const periodoObj = periodos.find((p: any) => p.id === (gastoModalData.periodo_id || selectedPeriodoId));
+      setVoucherGasto({
+        id: savedGastoId,
+        descripcion: gastoModalData.descripcion,
+        monto: Number(gastoModalData.monto),
+        fecha: gastoModalData.fecha,
+        campo_fondo_nombre: fondoObj?.nombre || 'Fondo de Tesorería',
+        periodo_nombre: periodoObj?.nombre || 'Período Actual',
+        creado_por_nombre: user?.nombre_completo || 'Tesorería',
+      });
     } catch (err: any) {
       const msg = Array.isArray(err.response?.data?.message)
         ? err.response.data.message.join(', ')
@@ -2425,6 +2442,17 @@ export default function App() {
           onNew={openNewGasto}
           onEdit={openEditGasto}
           onDelete={deleteGasto}
+          onOpenVoucher={(g) => {
+            setVoucherGasto({
+              id: g.id,
+              descripcion: g.descripcion,
+              monto: Number(g.monto),
+              fecha: g.fecha,
+              campo_fondo_nombre: g.campo_fondo?.nombre,
+              periodo_nombre: g.periodo?.nombre || selectedPeriodObj?.nombre,
+              creado_por_nombre: g.creado_por?.nombre_completo || user?.nombre_completo,
+            });
+          }}
           selectedPeriodoNombre={selectedPeriodObj?.nombre || ''}
           isPeriodOpen={isPeriodOpen}
         />
@@ -2916,6 +2944,13 @@ export default function App() {
         row={workflowRow}
         periodo={selectedPeriodObj}
         onChangeStatus={handleChangeWorkflowStatus}
+      />
+
+      {/* ── COMPROBANTE / VOUCHER DE GASTO ── */}
+      <GastoVoucherModal
+        isOpen={!!voucherGasto}
+        onClose={() => setVoucherGasto(null)}
+        gasto={voucherGasto}
       />
     </div>
   );
