@@ -395,15 +395,16 @@ export function MobileView({
     };
   }, [currentChurchRow, columns]);
 
-  // Emolumentos calculation for church view
+  // Emolumentos calculation specifically matching the field "Total Emolumentos"
   const totalEmolumentos = useMemo(() => {
     if (!currentChurchRow || !columns.length) return 0;
     const emoCol = columns.find((c: any) => 
       c.slug === 'total_emolumentos' || 
-      c.nombre?.toLowerCase() === 'total emolumentos' ||
-      c.slug === 'subtotal_emolumentos' ||
-      c.nombre?.toLowerCase().includes('emolumento')
+      c.nombre?.trim().toLowerCase() === 'total emolumentos'
+    ) || columns.find((c: any) => 
+      c.nombre?.toLowerCase().includes('total emolumento')
     );
+
     if (emoCol) {
       const val = currentChurchRow.valores?.find((v: any) => v.campo_id === emoCol.id);
       if (val) {

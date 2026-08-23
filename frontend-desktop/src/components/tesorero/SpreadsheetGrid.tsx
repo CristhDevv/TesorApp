@@ -13,6 +13,7 @@ interface SpreadsheetGridProps {
   rows: FilaGrid[];
   columns: ColumnaGrid[];
   columnTotals: Record<string, number>;
+  totalIngresosPeriodo?: number;
   editingCell: EditingCell | null;
   editValue: string;
   setEditValue: (v: string) => void;
@@ -68,35 +69,38 @@ const GridRow = React.memo(function GridRow({
   activeCell,
   setActiveCell,
 }: GridRowProps) {
-  const columnsMap = React.useMemo(() => new Map(columns.map((c) => [c.id, c])), [columns]);
+  const columnsMap = React.useMemo(() => {
+    return new Map(columns.map((c) => [c.id, c]));
+  }, [columns]);
+
+  const rowGrandTotal = React.useMemo(() => {
+    let sum = 0;
+    fila.valores.forEach((val) => {
+      const isCalc = val.modo_calculo === 'calculado';
+      const num = Number(isCalc ? (val.valor_calculado || 0) : (val.valor_manual || 0));
+      if (!isNaN(num)) sum += num;
+    });
+    return sum;
+  }, [fila.valores]);
 
   return (
-    <tr className="group hover:bg-indigo-50/30 dark:hover:bg-indigo-950/20 transition-colors duration-75">
-      {/* Row number */}
-      <td className="sticky left-0 z-10 bg-slate-50 dark:bg-slate-900 border-r border-b border-slate-200 dark:border-slate-800 px-2 py-0 h-8 text-center font-mono text-[9px] text-slate-500 dark:text-slate-400 w-8">
+    <tr className="hover:bg-slate-50 dark:hover:bg-slate-900/60 transition-colors group">
+      {/* Row Index */}
+      <td className="sticky left-0 z-10 bg-white dark:bg-slate-950 group-hover:bg-slate-50 dark:group-hover:bg-slate-900/60 border-b border-r border-slate-200 dark:border-slate-800 w-8 h-8 text-center text-[10px] font-mono text-slate-400 select-none">
         {rowIdx + 1}
       </td>
 
-      {/* Church name — sticky */}
-      <td className="sticky left-8 z-10 bg-white dark:bg-slate-900 border-r-2 border-b border-slate-300 dark:border-slate-800 px-2 h-8 text-slate-900 dark:text-white font-bold text-[11px] min-w-[240px] shadow-[2px_0_6px_rgba(0,0,0,0.05)]">
-        <div className="flex items-center justify-between gap-1.5 h-full">
-          <div className="flex items-center gap-1.5 min-w-0">
-            <span className="truncate" title={fila.iglesia_nombre}>
-              {fila.iglesia_nombre}
-            </span>
-            {fila.codigo && (
-              <span className="text-[9px] font-mono text-slate-400 dark:text-slate-500 shrink-0">
-                {fila.codigo}
-              </span>
-            )}
-          </div>
-
+      {/* Church Name and Status Controls */}
+      <td className="sticky left-8 z-10 bg-white dark:bg-slate-950 group-hover:bg-slate-50 dark:group-hover:bg-slate-900/60 border-b border-r-2 border-slate-300 dark:border-slate-700 px-3 h-8 text-xs select-none shadow-[2px_0_6px_rgba(0,0,0,0.03)]">
+        <div className="flex items-center justify-between gap-2">
+          <span className="font-bold text-slate-900 dark:text-slate-100 truncate">
+            {fila.iglesia_nombre}
+          </span>
           <div className="flex items-center gap-1.5 shrink-0">
-            {/* Status badge */}
             <button
               type="button"
               onClick={() => onOpenWorkflow && onOpenWorkflow(fila)}
-              className="shrink-0 cursor-pointer hover:opacity-80 transition"
+              className="cursor-pointer transition hover:opacity-80"
               title="Ver/Modificar estado de aprobación del informe"
             >
               {fila.estado_informe === 'enviado' ? (
@@ -191,6 +195,14 @@ const GridRow = React.memo(function GridRow({
           />
         );
       })}
+
+      {/* ── Total General por Fila ── */}
+      <td
+        className="sticky right-0 z-10 border-b border-l-2 border-slate-300 dark:border-slate-700 px-2.5 h-8 text-right font-mono text-[11px] font-black tabular-nums bg-emerald-50/70 dark:bg-emerald-950/40 text-emerald-900 dark:text-emerald-300 select-none shadow-[-2px_0_6px_rgba(0,0,0,0.03)]"
+        title={`Total general de ${fila.iglesia_nombre}: ${formatCOP(rowGrandTotal)}`}
+      >
+        {formatCOP(rowGrandTotal)}
+      </td>
     </tr>
   );
 });
@@ -212,6 +224,7 @@ export const SpreadsheetGrid = React.memo(function SpreadsheetGrid({
   rows,
   columns,
   columnTotals,
+  totalIngresosPeriodo,
   editingCell,
   editValue,
   setEditValue,
@@ -235,6 +248,18 @@ export const SpreadsheetGrid = React.memo(function SpreadsheetGrid({
       </div>
     );
   }
+
+  const grandTotalAllRows = React.useMemo(() => {
+    let grandSum = 0;
+    rows.forEach((row) => {
+      row.valores.forEach((val) => {
+        const isCalc = val.modo_calculo === 'calculado';
+        const num = Number(isCalc ? (val.valor_calculado || 0) : (val.valor_manual || 0));
+        if (!isNaN(num)) grandSum += num;
+      });
+    });
+    return grandSum;
+  }, [rows]);
 
   return (
     <div className="flex-1 min-h-0 flex flex-col bg-white dark:bg-slate-950">
@@ -284,6 +309,20 @@ export const SpreadsheetGrid = React.memo(function SpreadsheetGrid({
                   </th>
                 );
               })}
+
+              {/* ── Total General Column Header ── */}
+              <th
+                onClick={() => onSortChange('total_general')}
+                className="sticky right-0 z-30 border-b border-l-2 border-slate-300 dark:border-slate-700 px-3 h-8 min-w-[130px] bg-slate-100 dark:bg-slate-800 select-none group text-right cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-700/80 transition shadow-[-2px_0_6px_rgba(0,0,0,0.04)]"
+                title="Suma total de todas las columnas de la fila"
+              >
+                <div className="flex items-center justify-end gap-1.5">
+                  <span className="text-[11px] font-black text-emerald-800 dark:text-emerald-300 uppercase tracking-wider">
+                    Total General
+                  </span>
+                  <SortIcon colKey="total_general" sort={gridSort} />
+                </div>
+              </th>
             </tr>
           </thead>
 
@@ -336,14 +375,25 @@ export const SpreadsheetGrid = React.memo(function SpreadsheetGrid({
                   </td>
                 );
               })}
+
+              {/* ── Gran Total Consolidado Footer ── */}
+              <td className="sticky right-0 z-30 border-t-2 border-l-2 border-slate-300 dark:border-slate-700 px-2.5 h-8 text-right font-mono text-[11px] font-black tabular-nums bg-emerald-100 dark:bg-emerald-900/60 text-emerald-950 dark:text-emerald-100 shadow-[-2px_0_6px_rgba(0,0,0,0.05)]">
+                {formatCOP(grandTotalAllRows)}
+              </td>
             </tr>
           </tfoot>
         </table>
       </div>
 
-      {/* ── FIXED COLOR LEGEND AT BOTTOM ── */}
-      <div className="h-6 bg-slate-50 dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 px-3 flex items-center justify-between text-[10px] text-slate-600 dark:text-slate-400 shrink-0 select-none">
-        <div className="flex items-center gap-4">
+      {/* ── FIXED SUMMARY & COLOR LEGEND AT BOTTOM ── */}
+      <div className="h-7 bg-slate-50 dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 px-3 flex items-center justify-between text-[10px] text-slate-600 dark:text-slate-400 shrink-0 select-none">
+        <div className="flex items-center gap-3">
+          {totalIngresosPeriodo != null && (
+            <div className="flex items-center gap-1.5 px-2 py-0.5 rounded bg-emerald-100/80 dark:bg-emerald-950 border border-emerald-300 dark:border-emerald-700/80 text-emerald-950 dark:text-emerald-200 font-bold">
+              <span className="uppercase text-[9px] tracking-wider text-emerald-700 dark:text-emerald-400">Total Ingresos Período:</span>
+              <span className="font-mono font-black text-emerald-900 dark:text-emerald-100">{formatCOP(totalIngresosPeriodo)}</span>
+            </div>
+          )}
           <div className="flex items-center gap-1.5">
             <span className="w-2.5 h-2.5 rounded-xs bg-blue-100 dark:bg-blue-950 border border-blue-400" />
             <span className="text-blue-900 dark:text-blue-300 font-semibold">Calculado por fórmula</span>

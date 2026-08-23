@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import type { Tabla, Periodo } from '../../types/contabilidad';
 import { PeriodBadge } from '../common/PeriodBadge';
+import { formatCOP } from '../../utils/formatters';
 
 interface TableFilterToolbarProps {
   // Tesorero mode
@@ -20,6 +21,7 @@ interface TableFilterToolbarProps {
   periodos: Periodo[];
   selectedTablaId: string;
   selectedPeriodoId: string;
+  totalIngresosPeriodo?: number;
   onTablaChange: (id: string) => void;
   onPeriodoChange: (id: string) => void;
   onOpenTableConfig: () => void;
@@ -58,6 +60,7 @@ export function TableFilterToolbar({
   periodos,
   selectedTablaId,
   selectedPeriodoId,
+  totalIngresosPeriodo,
   onTablaChange,
   onPeriodoChange,
   onOpenTableConfig,
@@ -220,6 +223,14 @@ export function TableFilterToolbar({
           )}
         </div>
       </div>
+
+      {/* ─── CENTER/RIGHT KPI: TOTAL INGRESOS PERÍODO ─── */}
+      {totalIngresosPeriodo != null && (
+        <div className="hidden lg:flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-300 dark:border-emerald-700 text-emerald-900 dark:text-emerald-200 shadow-2xs">
+          <span className="text-[10px] uppercase font-extrabold tracking-wider text-emerald-700 dark:text-emerald-400">Total Ingresos Período:</span>
+          <span className="font-mono font-black text-xs text-emerald-950 dark:text-emerald-100">{formatCOP(totalIngresosPeriodo)}</span>
+        </div>
+      )}
 
       {/* ─── RIGHT SECTION: SEARCH & ACTIONS ─── */}
       <div className="flex items-center gap-2 shrink-0">

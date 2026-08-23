@@ -1214,6 +1214,11 @@ export default function App() {
             ? a.iglesia_nombre.localeCompare(b.iglesia_nombre, 'es', { sensitivity: 'base' })
             : b.iglesia_nombre.localeCompare(a.iglesia_nombre, 'es', { sensitivity: 'base' });
         }
+        if (gridSort.colKey === 'total_general') {
+          const sumA = (a.valores || []).reduce((acc: number, v: any) => acc + (Number(v.modo_calculo === 'calculado' ? v.valor_calculado : v.valor_manual) || 0), 0);
+          const sumB = (b.valores || []).reduce((acc: number, v: any) => acc + (Number(v.modo_calculo === 'calculado' ? v.valor_calculado : v.valor_manual) || 0), 0);
+          return gridSort.direction === 'asc' ? sumA - sumB : sumB - sumA;
+        }
         const recA = a.valores?.find((v: any) => v.campo_id === gridSort.colKey);
         const recB = b.valores?.find((v: any) => v.campo_id === gridSort.colKey);
         const valA = Number(recA ? (recA.modo_calculo === 'calculado' ? recA.valor_calculado : recA.valor_manual) : 0) || 0;
@@ -1223,6 +1228,32 @@ export default function App() {
     }
     return list;
   }, [gridData, gridSearch, onlyOverriddenFilter, gridSort]);
+
+  const totalIngresosPeriodo = useMemo(() => {
+    if (!gridData?.filas || !gridData?.columnas) return 0;
+    const ingresoColIds = new Set(
+      gridData.columnas
+        .filter((c: any) => {
+          const sec = (c.seccion || c.seccion_iglesia || '').toLowerCase();
+          const name = (c.nombre || '').toLowerCase();
+          const slug = (c.slug || '').toLowerCase();
+          return sec === 'ingresos' || name.includes('diezmo') || name.includes('ofrenda') || slug.includes('diezmo') || slug.includes('ofrenda');
+        })
+        .map((c: any) => c.id)
+    );
+
+    let total = 0;
+    gridData.filas.forEach((row: any) => {
+      (row.valores || []).forEach((v: any) => {
+        if (ingresoColIds.has(v.campo_id)) {
+          const isCalc = v.modo_calculo === 'calculado';
+          const num = Number(isCalc ? (v.valor_calculado || 0) : (v.valor_manual || 0));
+          if (!isNaN(num)) total += num;
+        }
+      });
+    });
+    return total;
+  }, [gridData]);
 
   const sortedIglesias = useMemo(() => {
     const list = iglesias.filter(
@@ -1752,6 +1783,7 @@ export default function App() {
               selectedPeriodoId={selectedPeriodoId}
               onTablaChange={handleTableChange}
               onPeriodoChange={setSelectedPeriodoId}
+              totalIngresosPeriodo={totalIngresosPeriodo}
               onOpenTableConfig={() => {
                 if (selectedTableObj) {
                   setTableModalData({
@@ -1804,6 +1836,7 @@ export default function App() {
                 rows={sortedAndFilteredGridRows}
                 columns={gridData?.columnas || []}
                 columnTotals={columnTotals}
+                totalIngresosPeriodo={totalIngresosPeriodo}
                 editingCell={editingCell}
                 editValue={editValue}
                 setEditValue={setEditValue}
