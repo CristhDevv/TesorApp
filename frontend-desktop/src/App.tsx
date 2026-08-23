@@ -24,9 +24,6 @@ import {
   TrendingDown,
   Smartphone,
   Sparkles,
-  MessageSquare,
-  Sliders,
-  Maximize2,
   ChevronRight,
   PanelLeftClose,
   PanelLeftOpen,
@@ -91,6 +88,9 @@ import { NotificationCenter } from './components/notifications/NotificationCente
 import { GastosPanel } from './components/tesorero/GastosPanel';
 import { GastoModal } from './components/tesorero/GastoModal';
 
+// Reports Feature
+import { ReportsPanel } from './components/reports/ReportsPanel';
+
 
 const API_BASE = window.location.origin;
 axios.defaults.timeout = 15000;
@@ -100,7 +100,7 @@ export default function App() {
 
   const [token, setToken] = useState<string | null>(localStorage.getItem('token'));
   const [user, setUser] = useState<any>(null);
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'sheet' | 'iglesias' | 'campos' | 'permisos' | 'usuarios' | 'historial' | 'gastos'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'sheet' | 'iglesias' | 'campos' | 'permisos' | 'usuarios' | 'historial' | 'gastos' | 'reportes'>('dashboard');
   const [loading, setLoading] = useState(false);
   const [toast, setToast] = useState<{ msg: string; type: 'success' | 'error' } | null>(null);
 
@@ -1375,6 +1375,21 @@ export default function App() {
               </div>
               {activeTab === 'sheet' && <ChevronRight className="w-3.5 h-3.5 text-indigo-200" />}
             </button>
+
+            <button
+              onClick={() => setActiveTab('reportes')}
+              className={`w-full px-3 py-2 rounded-xl text-xs font-semibold flex items-center justify-between transition-all duration-150 cursor-pointer ${
+                activeTab === 'reportes'
+                  ? 'bg-indigo-600 text-white font-bold shadow-md shadow-indigo-600/30'
+                  : 'text-slate-400 hover:text-white hover:bg-slate-900/80'
+              }`}
+            >
+              <div className="flex items-center gap-2.5">
+                <FileText className={`w-4 h-4 ${activeTab === 'reportes' ? 'text-white' : 'text-slate-400'}`} />
+                <span>Reportes</span>
+              </div>
+              {activeTab === 'reportes' && <ChevronRight className="w-3.5 h-3.5 text-indigo-200" />}
+            </button>
           </div>
 
           {/* Section: GESTIÓN & ADMINISTRACIÓN */}
@@ -1483,68 +1498,6 @@ export default function App() {
               </button>
             </div>
           )}
-
-          {/* Section: HERRAMIENTAS EJECUTIVAS (WOW) */}
-          {isTesorero && (
-            <div className="space-y-1">
-              <span className="px-3 text-[10px] font-extrabold text-slate-400 uppercase tracking-widest block">
-                Herramientas Ejecutivas
-              </span>
-
-              <button
-                onClick={() => setShowAICopilot(true)}
-                className="w-full px-3 py-2 rounded-xl text-xs font-semibold flex items-center justify-between text-slate-300 hover:text-white hover:bg-slate-900/80 transition cursor-pointer group"
-              >
-                <div className="flex items-center gap-2.5">
-                  <Sparkles className="w-4 h-4 text-amber-300 group-hover:rotate-12 transition transform" />
-                  <span>Asistente IA Copilot</span>
-                </div>
-                <span className="text-[9px] bg-gradient-to-r from-purple-500 to-indigo-500 text-white font-extrabold px-1.5 py-0.2 rounded-full shadow-2xs">
-                  IA
-                </span>
-              </button>
-
-              <button
-                onClick={() => setShowExecutivePDF(true)}
-                className="w-full px-3 py-2 rounded-xl text-xs font-semibold flex items-center justify-between text-slate-300 hover:text-white hover:bg-slate-900/80 transition cursor-pointer group"
-              >
-                <div className="flex items-center gap-2.5">
-                  <FileText className="w-4 h-4 text-indigo-400 group-hover:scale-110 transition transform" />
-                  <span>Informe PDF de Junta</span>
-                </div>
-              </button>
-
-              <button
-                onClick={() => setShowSimulator(true)}
-                className="w-full px-3 py-2 rounded-xl text-xs font-semibold flex items-center justify-between text-slate-300 hover:text-white hover:bg-slate-900/80 transition cursor-pointer group"
-              >
-                <div className="flex items-center gap-2.5">
-                  <Sliders className="w-4 h-4 text-emerald-400 group-hover:scale-110 transition transform" />
-                  <span>Simulador Financiero</span>
-                </div>
-              </button>
-
-              <button
-                onClick={() => setShowPresentation(true)}
-                className="w-full px-3 py-2 rounded-xl text-xs font-semibold flex items-center justify-between text-slate-300 hover:text-white hover:bg-slate-900/80 transition cursor-pointer group"
-              >
-                <div className="flex items-center gap-2.5">
-                  <Maximize2 className="w-4 h-4 text-purple-400 group-hover:scale-110 transition transform" />
-                  <span>Modo Sala de Juntas</span>
-                </div>
-              </button>
-
-              <button
-                onClick={() => setShowNotificationCenter(true)}
-                className="w-full px-3 py-2 rounded-xl text-xs font-semibold flex items-center justify-between text-slate-300 hover:text-white hover:bg-slate-900/80 transition cursor-pointer group"
-              >
-                <div className="flex items-center gap-2.5">
-                  <MessageSquare className="w-4 h-4 text-teal-400 group-hover:scale-110 transition transform" />
-                  <span>Mensajes a Pastores</span>
-                </div>
-              </button>
-            </div>
-          )}
         </div>
 
         {/* Bottom User Card */}
@@ -1608,6 +1561,7 @@ export default function App() {
               {activeTab === 'usuarios' && 'Gestión de Usuarios & Accesos'}
               {activeTab === 'historial' && 'Auditoría & Trazabilidad de Cambios'}
               {activeTab === 'gastos' && 'Gastos & Control de Fondos'}
+              {activeTab === 'reportes' && 'Centro de Reportes & Consolidados'}
             </span>
           </div>
 
@@ -2522,6 +2476,28 @@ export default function App() {
           onDelete={deleteGasto}
           selectedPeriodoNombre={selectedPeriodObj?.nombre || ''}
           isPeriodOpen={isPeriodOpen}
+        />
+      )}
+
+      {/* ── TAB 8: REPORTES ── */}
+      {activeTab === 'reportes' && (
+        <ReportsPanel
+          apiBase={API_BASE}
+          gridData={gridData}
+          periodos={periodos}
+          selectedPeriodoId={selectedPeriodoId}
+          setSelectedPeriodoId={setSelectedPeriodoId}
+          tablas={tablas}
+          selectedTablaId={selectedTablaId}
+          setSelectedTablaId={handleTableChange}
+          iglesias={iglesias}
+          campos={campos}
+          gastosResumen={gastosResumen}
+          isTesorero={isTesorero}
+          user={user}
+          onOpenExecutivePDF={() => setShowExecutivePDF(true)}
+          onOpenSimulator={() => setShowSimulator(true)}
+          onOpenPresentation={() => setShowPresentation(true)}
         />
       )}
 
