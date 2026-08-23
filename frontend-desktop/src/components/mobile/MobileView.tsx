@@ -23,7 +23,9 @@ import {
   X, 
   Trash2, 
   Upload,
-  Share2
+  Share2,
+  Sun,
+  Moon
 } from 'lucide-react';
 import { OfflineBanner } from './OfflineBanner';
 import { ChurchSearchModal } from './ChurchSearchModal';
@@ -36,6 +38,8 @@ interface MobileViewProps {
   onLogout: () => void;
   onSwitchToDesktop: () => void;
   API_BASE: string;
+  theme?: 'light' | 'dark';
+  onToggleTheme?: () => void;
 }
 
 interface ReceiptItem {
@@ -55,6 +59,8 @@ export function MobileView({
   onLogout,
   onSwitchToDesktop,
   API_BASE,
+  theme,
+  onToggleTheme,
 }: MobileViewProps) {
   const isTesorero = user?.rol === 'tesorero';
 
@@ -389,12 +395,12 @@ export function MobileView({
   const churchReceipts = receipts.filter(r => r.churchId === selectedIglesia && r.periodId === selectedPeriodo);
 
   return (
-    <div className="h-full w-full bg-slate-100 flex flex-col font-sans overflow-y-auto pb-28 touch-pan-y overscroll-y-contain">
+    <div className="h-full w-full bg-slate-50 dark:bg-slate-950 flex flex-col font-sans overflow-y-auto pb-28 touch-pan-y overscroll-y-contain">
       {/* Offline Status Banner */}
       <OfflineBanner />
 
       {/* Dynamic Header */}
-      <header className="sticky top-0 bg-slate-900 text-white z-30 px-4 py-2.5 flex flex-col gap-2 shadow-md">
+      <header className="sticky top-0 bg-white dark:bg-slate-900 text-slate-900 dark:text-white z-30 px-4 py-2.5 flex flex-col gap-2 border-b border-slate-200 dark:border-slate-800 shadow-2xs">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <div className="p-1.5 bg-indigo-600 rounded-lg text-white">
@@ -402,8 +408,8 @@ export function MobileView({
             </div>
             <div>
               <div className="flex items-center gap-1.5">
-                <span className="font-extrabold text-sm tracking-tight">TesorApp</span>
-                <span className="text-[9px] bg-indigo-500/30 text-indigo-200 font-bold px-1.5 py-0.5 rounded border border-indigo-400/30">
+                <span className="font-extrabold text-sm tracking-tight text-slate-900 dark:text-white">TesorApp</span>
+                <span className="text-[9px] bg-indigo-50 dark:bg-indigo-500/30 text-indigo-700 dark:text-indigo-200 font-bold px-1.5 py-0.5 rounded border border-indigo-200 dark:border-indigo-400/30">
                   {isTesorero ? 'Tesorero' : 'Sede'}
                 </span>
               </div>
@@ -411,16 +417,25 @@ export function MobileView({
           </div>
 
           <div className="flex items-center gap-1.5">
+            {onToggleTheme && (
+              <button
+                onClick={onToggleTheme}
+                title={theme === 'dark' ? "Modo Claro" : "Modo Oscuro"}
+                className="p-1.5 text-slate-500 hover:text-slate-900 dark:text-slate-300 dark:hover:text-amber-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition cursor-pointer"
+              >
+                {theme === 'dark' ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4 text-slate-700" />}
+              </button>
+            )}
             <button
               onClick={onSwitchToDesktop}
               title="Cambiar a vista de escritorio"
-              className="p-1.5 text-slate-300 hover:text-white hover:bg-slate-800 rounded-lg text-xs flex items-center gap-1 transition cursor-pointer"
+              className="p-1.5 text-slate-500 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-xs flex items-center gap-1 transition cursor-pointer"
             >
               <Monitor className="w-4 h-4" />
             </button>
             <button 
               onClick={onLogout} 
-              className="p-1.5 text-slate-300 hover:text-rose-400 hover:bg-slate-800 rounded-lg cursor-pointer"
+              className="p-1.5 text-slate-500 hover:text-rose-600 dark:text-slate-300 dark:hover:text-rose-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg cursor-pointer"
               title="Cerrar sesión"
             >
               <LogOut className="w-4 h-4" />
@@ -429,12 +444,12 @@ export function MobileView({
         </div>
 
         {/* Filters and selectors */}
-        <div className="grid grid-cols-2 gap-2 pt-1 border-t border-slate-800">
+        <div className="grid grid-cols-2 gap-2 pt-1 border-t border-slate-100 dark:border-slate-800">
           <div>
             <select
               value={selectedPeriodo}
               onChange={(e) => setSelectedPeriodo(e.target.value)}
-              className="w-full px-2 py-1.5 bg-slate-800 border border-slate-700 rounded-lg text-xs font-bold text-slate-100 focus:outline-none focus:border-indigo-500"
+              className="w-full px-2 py-1.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-bold text-slate-900 dark:text-slate-100 focus:outline-none focus:border-indigo-500"
             >
               {periodos.map((p: any) => (
                 <option key={p.id} value={p.id}>
@@ -449,7 +464,7 @@ export function MobileView({
               <select
                 value={selectedTabla}
                 onChange={(e) => setSelectedTabla(e.target.value)}
-                className="w-full px-2 py-1.5 bg-slate-800 border border-slate-700 rounded-lg text-xs font-bold text-slate-100 focus:outline-none focus:border-indigo-500"
+                className="w-full px-2 py-1.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-bold text-slate-900 dark:text-slate-100 focus:outline-none focus:border-indigo-500"
               >
                 {tablas.map((t: any) => (
                   <option key={t.id} value={t.id}>
@@ -458,7 +473,7 @@ export function MobileView({
                 ))}
               </select>
             ) : (
-              <div className="px-2 py-1.5 bg-slate-800/80 border border-slate-700 rounded-lg text-xs font-bold text-indigo-300 truncate">
+              <div className="px-2 py-1.5 bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-bold text-indigo-700 dark:text-indigo-300 truncate">
                 {iglesias[0]?.nombre || 'Mi Congregación'}
               </div>
             )}
@@ -471,15 +486,15 @@ export function MobileView({
             <button
               type="button"
               onClick={() => setShowChurchSearch(true)}
-              className="w-full px-3 py-1.5 bg-slate-800 border border-slate-700 rounded-lg text-xs font-bold text-slate-100 flex items-center justify-between hover:bg-slate-700 transition cursor-pointer"
+              className="w-full px-3 py-1.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-bold text-slate-900 dark:text-slate-100 flex items-center justify-between hover:bg-slate-100 dark:hover:bg-slate-700 transition cursor-pointer"
             >
               <div className="flex items-center gap-1.5 truncate">
-                <Building2 className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
+                <Building2 className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400 shrink-0" />
                 <span className="truncate">
                   {iglesias.find((i: any) => i.id === selectedIglesia)?.nombre || 'Seleccionar Congregación'}
                 </span>
               </div>
-              <div className="flex items-center gap-1 text-slate-400 shrink-0 font-normal text-[10px]">
+              <div className="flex items-center gap-1 text-slate-500 dark:text-slate-400 shrink-0 font-normal text-[10px]">
                 <Search className="w-3 h-3" />
                 <span>Buscar ({iglesias.length})</span>
               </div>
@@ -995,18 +1010,41 @@ export function MobileView({
       {activeScreen === 'profile' && (
         <div className="p-3.5 flex-1 flex flex-col justify-between">
           <div className="space-y-3.5">
-            <h3 className="text-base font-extrabold text-slate-900">Perfil y Ajustes</h3>
+            <h3 className="text-base font-extrabold text-slate-900 dark:text-white">Perfil y Ajustes</h3>
             
-            <div className="p-4 bg-white border border-slate-200 rounded-2xl text-center shadow-xs">
-              <div className="w-12 h-12 rounded-full bg-slate-900 text-white flex items-center justify-center mx-auto text-base font-extrabold mb-2 shadow-xs">
+            <div className="p-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl text-center shadow-xs">
+              <div className="w-12 h-12 rounded-full bg-slate-900 dark:bg-indigo-600 text-white flex items-center justify-center mx-auto text-base font-extrabold mb-2 shadow-xs">
                 {user?.nombre_completo?.substring(0, 2).toUpperCase() || 'US'}
               </div>
-              <h4 className="font-extrabold text-slate-900 text-sm">{user?.nombre_completo || user?.nombre}</h4>
-              <p className="text-xs text-slate-500 mt-0.5">{user?.correo}</p>
-              <div className="mt-2.5 inline-flex items-center gap-1 bg-indigo-50 border border-indigo-200 text-indigo-700 px-3 py-0.5 rounded-full text-xs font-extrabold capitalize">
+              <h4 className="font-extrabold text-slate-900 dark:text-white text-sm">{user?.nombre_completo || user?.nombre}</h4>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">{user?.correo}</p>
+              <div className="mt-2.5 inline-flex items-center gap-1 bg-indigo-50 dark:bg-indigo-900/40 border border-indigo-200 dark:border-indigo-800 text-indigo-700 dark:text-indigo-300 px-3 py-0.5 rounded-full text-xs font-extrabold capitalize">
                 Rol: {user?.rol}
               </div>
             </div>
+
+            {/* Theme Toggle Card */}
+            {onToggleTheme && (
+              <div className="p-3.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl flex items-center justify-between shadow-xs">
+                <div className="flex items-center gap-2.5">
+                  <div className="p-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-amber-400">
+                    {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+                  </div>
+                  <div>
+                    <h5 className="font-extrabold text-xs text-slate-900 dark:text-white">Apariencia / Tema</h5>
+                    <p className="text-[10px] text-slate-500 dark:text-slate-400">
+                      {theme === 'dark' ? 'Modo Oscuro Activo' : 'Modo Claro (Fondo Blanco)'}
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={onToggleTheme}
+                  className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-900 dark:text-white text-xs font-extrabold rounded-xl transition cursor-pointer border border-slate-200 dark:border-slate-700"
+                >
+                  {theme === 'dark' ? 'Cambiar a Claro' : 'Cambiar a Oscuro'}
+                </button>
+              </div>
+            )}
 
             <button
               onClick={onSwitchToDesktop}
@@ -1019,7 +1057,7 @@ export function MobileView({
 
           <button
             onClick={onLogout}
-            className="w-full py-3 border border-slate-300 bg-white hover:bg-slate-100 rounded-xl text-slate-700 font-extrabold text-xs transition flex items-center justify-center gap-2 cursor-pointer mt-4 shadow-2xs"
+            className="w-full py-3 border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl text-slate-700 dark:text-slate-300 font-extrabold text-xs transition flex items-center justify-center gap-2 cursor-pointer mt-4 shadow-2xs"
           >
             <LogOut className="w-4 h-4 text-rose-500" />
             Cerrar Sesión
@@ -1035,11 +1073,11 @@ export function MobileView({
       )}
 
       {/* Bottom Navigation Tab Bar */}
-      <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 h-16 flex items-center justify-around z-40 shadow-lg px-2">
+      <nav className="fixed bottom-0 left-0 right-0 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 h-16 flex items-center justify-around z-40 shadow-lg px-2">
         <button
           onClick={() => setActiveScreen('capture')}
           className={`flex flex-col items-center justify-center flex-1 h-full transition cursor-pointer ${
-            activeScreen === 'capture' ? 'text-indigo-600 font-extrabold' : 'text-slate-400'
+            activeScreen === 'capture' ? 'text-indigo-600 dark:text-indigo-400 font-extrabold' : 'text-slate-400 dark:text-slate-500'
           }`}
         >
           <FileSpreadsheet className="w-4 h-4" />
@@ -1050,7 +1088,7 @@ export function MobileView({
           <button
             onClick={() => setActiveScreen('gastos')}
             className={`flex flex-col items-center justify-center flex-1 h-full transition cursor-pointer ${
-              activeScreen === 'gastos' ? 'text-indigo-600 font-extrabold' : 'text-slate-400'
+              activeScreen === 'gastos' ? 'text-indigo-600 dark:text-indigo-400 font-extrabold' : 'text-slate-400 dark:text-slate-500'
             }`}
           >
             <TrendingDown className="w-4 h-4" />
@@ -1061,7 +1099,7 @@ export function MobileView({
         <button
           onClick={() => setActiveScreen('history')}
           className={`flex flex-col items-center justify-center flex-1 h-full transition cursor-pointer ${
-            activeScreen === 'history' ? 'text-indigo-600 font-extrabold' : 'text-slate-400'
+            activeScreen === 'history' ? 'text-indigo-600 dark:text-indigo-400 font-extrabold' : 'text-slate-400 dark:text-slate-500'
           }`}
         >
           <History className="w-4 h-4" />
@@ -1071,7 +1109,7 @@ export function MobileView({
         <button
           onClick={() => setActiveScreen('summary')}
           className={`flex flex-col items-center justify-center flex-1 h-full transition cursor-pointer ${
-            activeScreen === 'summary' ? 'text-indigo-600 font-extrabold' : 'text-slate-400'
+            activeScreen === 'summary' ? 'text-indigo-600 dark:text-indigo-400 font-extrabold' : 'text-slate-400 dark:text-slate-500'
           }`}
         >
           <TrendingUp className="w-4 h-4" />
@@ -1081,7 +1119,7 @@ export function MobileView({
         <button
           onClick={() => setActiveScreen('profile')}
           className={`flex flex-col items-center justify-center flex-1 h-full transition cursor-pointer ${
-            activeScreen === 'profile' ? 'text-indigo-600 font-extrabold' : 'text-slate-400'
+            activeScreen === 'profile' ? 'text-indigo-600 dark:text-indigo-400 font-extrabold' : 'text-slate-400 dark:text-slate-500'
           }`}
         >
           <User className="w-4 h-4" />

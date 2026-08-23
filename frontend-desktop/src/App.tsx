@@ -26,6 +26,8 @@ import {
   ChevronRight,
   PanelLeftClose,
   PanelLeftOpen,
+  Sun,
+  Moon,
 } from 'lucide-react';
 import {
   Chart as ChartJS,
@@ -311,6 +313,37 @@ export default function App() {
   const [fieldSort, setFieldSort] = useState<SortState>({ colKey: 'orden', direction: 'asc' });
   const [userSort, setUserSort] = useState<SortState>({ colKey: 'nombre_completo', direction: 'asc' });
   const [auditSort, setAuditSort] = useState<SortState>({ colKey: 'realizado_en', direction: 'desc' });
+
+  // ─── Theme State (Light by default, Dark toggle) ───────────────────────
+  const [theme, setTheme] = useState<'light' | 'dark'>(() => {
+    try {
+      const saved = localStorage.getItem('tesorapp_theme');
+      return saved === 'dark' ? 'dark' : 'light';
+    } catch {
+      return 'light';
+    }
+  });
+
+  const toggleTheme = () => {
+    const next = theme === 'light' ? 'dark' : 'light';
+    setTheme(next);
+    try {
+      localStorage.setItem('tesorapp_theme', next);
+      if (next === 'dark') {
+        document.documentElement.classList.add('dark');
+      } else {
+        document.documentElement.classList.remove('dark');
+      }
+    } catch {}
+  };
+
+  useEffect(() => {
+    if (theme === 'dark') {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  }, [theme]);
 
   // ─── Core Computed Roles and Selected Objects (declared early to prevent TDZ) ───
   const isTesorero = user?.rol === 'tesorero';
@@ -1370,29 +1403,31 @@ export default function App() {
         onLogout={handleLogout}
         onSwitchToDesktop={() => setOverride('desktop')}
         API_BASE={API_BASE}
+        theme={theme}
+        onToggleTheme={toggleTheme}
       />
     );
   }
 
-  // ─── MAIN APP SHELL (Left Sidebar + Minimalist Modern Workspace) ──────────────
+  // ─── MAIN APP SHELL (Minimalist White Default Workspace with Dark Mode) ──────────────
   return (
-    <div className="h-screen w-screen flex overflow-hidden bg-slate-950 text-slate-100 select-none font-sans">
-      {/* ── LEFT SIDEBAR (Collapsible) ── */}
+    <div className="h-screen w-screen flex overflow-hidden bg-white text-slate-900 dark:bg-slate-950 dark:text-slate-100 select-none font-sans">
+      {/* ── LEFT SIDEBAR (Collapsible & Minimalist) ── */}
       <aside
-        className={`bg-slate-950 border-r border-slate-800/80 flex flex-col justify-between shrink-0 select-none z-30 shadow-2xl transition-all duration-300 ease-in-out ${
+        className={`bg-white dark:bg-slate-950 border-r border-slate-200 dark:border-slate-800/80 flex flex-col justify-between shrink-0 select-none z-30 shadow-xs dark:shadow-2xl transition-all duration-300 ease-in-out ${
           sidebarOpen ? 'w-64' : 'w-0 overflow-hidden border-none opacity-0 pointer-events-none'
         }`}
       >
         {/* Brand Header */}
-        <div className="p-4 border-b border-slate-800/80 flex items-center justify-between">
+        <div className="p-4 border-b border-slate-100 dark:border-slate-800/80 flex items-center justify-between">
           <div className="flex items-center gap-3 min-w-0">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-indigo-600 via-indigo-500 to-purple-600 flex items-center justify-center text-white shadow-lg shadow-indigo-500/20 border border-indigo-400/30 shrink-0">
-              <Building2 className="w-5 h-5" />
+            <div className="w-8 h-8 rounded-xl bg-indigo-600 dark:bg-indigo-500 flex items-center justify-center text-white shadow-xs shrink-0">
+              <Building2 className="w-4 h-4" />
             </div>
             <div className="min-w-0">
               <div className="flex items-center gap-1.5">
-                <span className="font-extrabold text-sm tracking-tight text-white">TESORAPP</span>
-                <span className="text-[9px] bg-indigo-500/20 text-indigo-300 font-bold px-1.5 py-0.2 rounded border border-indigo-500/30">
+                <span className="font-extrabold text-sm tracking-tight text-slate-900 dark:text-white">TESORAPP</span>
+                <span className="text-[9px] bg-indigo-50 dark:bg-indigo-500/20 text-indigo-700 dark:text-indigo-300 font-bold px-1.5 py-0.2 rounded border border-indigo-200 dark:border-indigo-500/30">
                   PRO
                 </span>
               </div>
@@ -1404,14 +1439,14 @@ export default function App() {
           <button
             onClick={toggleSidebar}
             title="Ocultar barra lateral (Ctrl+B)"
-            className="p-1.5 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition cursor-pointer shrink-0 ml-1"
+            className="p-1.5 text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition cursor-pointer shrink-0 ml-1"
           >
             <PanelLeftClose className="w-4 h-4" />
           </button>
         </div>
 
         {/* Navigation Sections */}
-        <div className="flex-1 overflow-y-auto p-3 space-y-6">
+        <div className="flex-1 overflow-y-auto p-3 space-y-5">
           {/* Section: PRINCIPAL */}
           <div className="space-y-1">
             <span className="px-3 text-[10px] font-extrabold text-slate-400 uppercase tracking-widest block">
@@ -1423,15 +1458,15 @@ export default function App() {
                 onClick={() => setActiveTab('dashboard')}
                 className={`w-full px-3 py-2 rounded-xl text-xs font-semibold flex items-center justify-between transition-all duration-150 cursor-pointer ${
                   activeTab === 'dashboard'
-                    ? 'bg-indigo-600 text-white font-bold shadow-md shadow-indigo-600/30'
-                    : 'text-slate-400 hover:text-white hover:bg-slate-900/80'
+                    ? 'bg-indigo-50 text-indigo-800 font-extrabold border border-indigo-200 dark:bg-indigo-600 dark:text-white dark:border-transparent dark:shadow-md'
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-900/80'
                 }`}
               >
                 <div className="flex items-center gap-2.5">
-                  <TrendingUp className={`w-4 h-4 ${activeTab === 'dashboard' ? 'text-amber-300' : 'text-slate-400'}`} />
+                  <TrendingUp className={`w-4 h-4 ${activeTab === 'dashboard' ? 'text-indigo-600 dark:text-amber-300' : 'text-slate-400'}`} />
                   <span>Tablero Ejecutivo</span>
                 </div>
-                {activeTab === 'dashboard' && <ChevronRight className="w-3.5 h-3.5 text-indigo-200" />}
+                {activeTab === 'dashboard' && <ChevronRight className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-200" />}
               </button>
             )}
 
@@ -1439,30 +1474,30 @@ export default function App() {
               onClick={() => setActiveTab('sheet')}
               className={`w-full px-3 py-2 rounded-xl text-xs font-semibold flex items-center justify-between transition-all duration-150 cursor-pointer ${
                 activeTab === 'sheet'
-                  ? 'bg-indigo-600 text-white font-bold shadow-md shadow-indigo-600/30'
-                  : 'text-slate-400 hover:text-white hover:bg-slate-900/80'
+                  ? 'bg-indigo-50 text-indigo-800 font-extrabold border border-indigo-200 dark:bg-indigo-600 dark:text-white dark:border-transparent dark:shadow-md'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-900/80'
               }`}
             >
               <div className="flex items-center gap-2.5">
-                <FileSpreadsheet className={`w-4 h-4 ${activeTab === 'sheet' ? 'text-white' : 'text-slate-400'}`} />
+                <FileSpreadsheet className={`w-4 h-4 ${activeTab === 'sheet' ? 'text-indigo-600 dark:text-white' : 'text-slate-400'}`} />
                 <span>{isTesorero ? 'Planilla Contable' : 'Mi Reporte'}</span>
               </div>
-              {activeTab === 'sheet' && <ChevronRight className="w-3.5 h-3.5 text-indigo-200" />}
+              {activeTab === 'sheet' && <ChevronRight className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-200" />}
             </button>
 
             <button
               onClick={() => setActiveTab('reportes')}
               className={`w-full px-3 py-2 rounded-xl text-xs font-semibold flex items-center justify-between transition-all duration-150 cursor-pointer ${
                 activeTab === 'reportes'
-                  ? 'bg-indigo-600 text-white font-bold shadow-md shadow-indigo-600/30'
-                  : 'text-slate-400 hover:text-white hover:bg-slate-900/80'
+                  ? 'bg-indigo-50 text-indigo-800 font-extrabold border border-indigo-200 dark:bg-indigo-600 dark:text-white dark:border-transparent dark:shadow-md'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-900/80'
               }`}
             >
               <div className="flex items-center gap-2.5">
-                <FileText className={`w-4 h-4 ${activeTab === 'reportes' ? 'text-white' : 'text-slate-400'}`} />
+                <FileText className={`w-4 h-4 ${activeTab === 'reportes' ? 'text-indigo-600 dark:text-white' : 'text-slate-400'}`} />
                 <span>Reportes</span>
               </div>
-              {activeTab === 'reportes' && <ChevronRight className="w-3.5 h-3.5 text-indigo-200" />}
+              {activeTab === 'reportes' && <ChevronRight className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-200" />}
             </button>
           </div>
 
@@ -1477,15 +1512,15 @@ export default function App() {
                 onClick={() => setActiveTab('iglesias')}
                 className={`w-full px-3 py-2 rounded-xl text-xs font-semibold flex items-center justify-between transition-all duration-150 cursor-pointer ${
                   activeTab === 'iglesias'
-                    ? 'bg-indigo-600 text-white font-bold shadow-md shadow-indigo-600/30'
-                    : 'text-slate-400 hover:text-white hover:bg-slate-900/80'
+                    ? 'bg-indigo-50 text-indigo-800 font-extrabold border border-indigo-200 dark:bg-indigo-600 dark:text-white dark:border-transparent dark:shadow-md'
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-900/80'
                 }`}
               >
                 <div className="flex items-center gap-2.5">
-                  <Building2 className={`w-4 h-4 ${activeTab === 'iglesias' ? 'text-white' : 'text-slate-400'}`} />
+                  <Building2 className={`w-4 h-4 ${activeTab === 'iglesias' ? 'text-indigo-600 dark:text-white' : 'text-slate-400'}`} />
                   <span>Congregaciones</span>
                 </div>
-                <span className="text-[10px] font-mono font-bold bg-slate-900 text-slate-400 px-1.5 py-0.5 rounded border border-slate-800">
+                <span className="text-[10px] font-mono font-bold bg-slate-100 text-slate-600 dark:bg-slate-900 dark:text-slate-400 px-1.5 py-0.5 rounded border border-slate-200 dark:border-slate-800">
                   {iglesias.length}
                 </span>
               </button>
@@ -1494,15 +1529,15 @@ export default function App() {
                 onClick={() => setActiveTab('campos')}
                 className={`w-full px-3 py-2 rounded-xl text-xs font-semibold flex items-center justify-between transition-all duration-150 cursor-pointer ${
                   activeTab === 'campos'
-                    ? 'bg-indigo-600 text-white font-bold shadow-md shadow-indigo-600/30'
-                    : 'text-slate-400 hover:text-white hover:bg-slate-900/80'
+                    ? 'bg-indigo-50 text-indigo-800 font-extrabold border border-indigo-200 dark:bg-indigo-600 dark:text-white dark:border-transparent dark:shadow-md'
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-900/80'
                 }`}
               >
                 <div className="flex items-center gap-2.5">
-                  <Layers className={`w-4 h-4 ${activeTab === 'campos' ? 'text-white' : 'text-slate-400'}`} />
+                  <Layers className={`w-4 h-4 ${activeTab === 'campos' ? 'text-indigo-600 dark:text-white' : 'text-slate-400'}`} />
                   <span>Columnas & Fórmulas</span>
                 </div>
-                <span className="text-[10px] font-mono font-bold bg-slate-900 text-slate-400 px-1.5 py-0.5 rounded border border-slate-800">
+                <span className="text-[10px] font-mono font-bold bg-slate-100 text-slate-600 dark:bg-slate-900 dark:text-slate-400 px-1.5 py-0.5 rounded border border-slate-200 dark:border-slate-800">
                   {campos.length}
                 </span>
               </button>
@@ -1511,15 +1546,15 @@ export default function App() {
                 onClick={() => setActiveTab('usuarios')}
                 className={`w-full px-3 py-2 rounded-xl text-xs font-semibold flex items-center justify-between transition-all duration-150 cursor-pointer ${
                   activeTab === 'usuarios'
-                    ? 'bg-indigo-600 text-white font-bold shadow-md shadow-indigo-600/30'
-                    : 'text-slate-400 hover:text-white hover:bg-slate-900/80'
+                    ? 'bg-indigo-50 text-indigo-800 font-extrabold border border-indigo-200 dark:bg-indigo-600 dark:text-white dark:border-transparent dark:shadow-md'
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-900/80'
                 }`}
               >
                 <div className="flex items-center gap-2.5">
-                  <Users className={`w-4 h-4 ${activeTab === 'usuarios' ? 'text-white' : 'text-slate-400'}`} />
+                  <Users className={`w-4 h-4 ${activeTab === 'usuarios' ? 'text-indigo-600 dark:text-white' : 'text-slate-400'}`} />
                   <span>Usuarios y Roles</span>
                 </div>
-                <span className="text-[10px] font-mono font-bold bg-slate-900 text-slate-400 px-1.5 py-0.5 rounded border border-slate-800">
+                <span className="text-[10px] font-mono font-bold bg-slate-100 text-slate-600 dark:bg-slate-900 dark:text-slate-400 px-1.5 py-0.5 rounded border border-slate-200 dark:border-slate-800">
                   {usuarios.length}
                 </span>
               </button>
@@ -1528,12 +1563,12 @@ export default function App() {
                 onClick={() => setActiveTab('historial')}
                 className={`w-full px-3 py-2 rounded-xl text-xs font-semibold flex items-center justify-between transition-all duration-150 cursor-pointer ${
                   activeTab === 'historial'
-                    ? 'bg-indigo-600 text-white font-bold shadow-md shadow-indigo-600/30'
-                    : 'text-slate-400 hover:text-white hover:bg-slate-900/80'
+                    ? 'bg-indigo-50 text-indigo-800 font-extrabold border border-indigo-200 dark:bg-indigo-600 dark:text-white dark:border-transparent dark:shadow-md'
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-900/80'
                 }`}
               >
                 <div className="flex items-center gap-2.5">
-                  <History className={`w-4 h-4 ${activeTab === 'historial' ? 'text-white' : 'text-slate-400'}`} />
+                  <History className={`w-4 h-4 ${activeTab === 'historial' ? 'text-indigo-600 dark:text-white' : 'text-slate-400'}`} />
                   <span>Registro Auditoría</span>
                 </div>
               </button>
@@ -1542,16 +1577,16 @@ export default function App() {
                 onClick={() => setActiveTab('gastos')}
                 className={`w-full px-3 py-2 rounded-xl text-xs font-semibold flex items-center justify-between transition-all duration-150 cursor-pointer ${
                   activeTab === 'gastos'
-                    ? 'bg-rose-600 text-white font-bold shadow-md shadow-rose-600/30'
-                    : 'text-slate-400 hover:text-white hover:bg-slate-900/80'
+                    ? 'bg-rose-50 text-rose-800 font-extrabold border border-rose-200 dark:bg-rose-600 dark:text-white dark:border-transparent dark:shadow-md'
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-900/80'
                 }`}
               >
                 <div className="flex items-center gap-2.5">
-                  <TrendingDown className={`w-4 h-4 ${activeTab === 'gastos' ? 'text-white' : 'text-slate-400'}`} />
+                  <TrendingDown className={`w-4 h-4 ${activeTab === 'gastos' ? 'text-rose-600 dark:text-white' : 'text-slate-400'}`} />
                   <span>Gastos</span>
                 </div>
                 {gastos.length > 0 && (
-                  <span className="text-[10px] font-mono font-bold bg-rose-800 text-rose-300 px-1.5 py-0.5 rounded border border-rose-700">
+                  <span className="text-[10px] font-mono font-bold bg-rose-100 text-rose-800 dark:bg-rose-800 dark:text-rose-300 px-1.5 py-0.5 rounded border border-rose-200 dark:border-rose-700">
                     {gastos.length}
                   </span>
                 )}
@@ -1560,16 +1595,16 @@ export default function App() {
           )}
         </div>
 
-        {/* Bottom User Card */}
-        <div className="p-3 border-t border-slate-800/80 bg-slate-950/60">
-          <div className="flex items-center justify-between gap-2 p-2 rounded-xl bg-slate-900/90 border border-slate-800">
+        {/* Bottom User Card & Theme Toggle */}
+        <div className="p-3 border-t border-slate-100 dark:border-slate-800/80 bg-slate-50/50 dark:bg-slate-950/60">
+          <div className="flex items-center justify-between gap-2 p-2 rounded-xl bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 shadow-2xs">
             <div className="flex items-center gap-2.5 min-w-0">
-              <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-indigo-600 to-purple-600 flex items-center justify-center text-white font-bold text-xs shrink-0 shadow-xs">
+              <div className="w-8 h-8 rounded-lg bg-indigo-600 dark:bg-indigo-500 flex items-center justify-center text-white font-bold text-xs shrink-0 shadow-xs">
                 {user?.nombre_completo?.[0]?.toUpperCase() || 'T'}
               </div>
               <div className="min-w-0">
-                <h4 className="text-xs font-bold text-white truncate">{user?.nombre_completo}</h4>
-                <span className="text-[10px] text-indigo-300 font-semibold block capitalize truncate">
+                <h4 className="text-xs font-bold text-slate-900 dark:text-white truncate">{user?.nombre_completo}</h4>
+                <span className="text-[10px] text-indigo-600 dark:text-indigo-300 font-semibold block capitalize truncate">
                   {user?.rol || 'Usuario'}
                 </span>
               </div>
@@ -1577,16 +1612,23 @@ export default function App() {
 
             <div className="flex items-center gap-1 shrink-0">
               <button
+                onClick={toggleTheme}
+                title={theme === 'dark' ? "Modo Claro" : "Modo Oscuro"}
+                className="p-1.5 text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-amber-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition cursor-pointer"
+              >
+                {theme === 'dark' ? <Sun className="w-3.5 h-3.5 text-amber-400" /> : <Moon className="w-3.5 h-3.5" />}
+              </button>
+              <button
                 onClick={() => setOverride('mobile')}
                 title="Cambiar a vista móvil"
-                className="p-1.5 text-slate-400 hover:text-indigo-300 hover:bg-slate-800 rounded-lg transition cursor-pointer"
+                className="p-1.5 text-slate-500 hover:text-indigo-600 dark:text-slate-400 dark:hover:text-indigo-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition cursor-pointer"
               >
                 <Smartphone className="w-3.5 h-3.5" />
               </button>
               <button
                 onClick={handleLogout}
                 title="Cerrar sesión"
-                className="p-1.5 text-slate-400 hover:text-rose-400 hover:bg-slate-800 rounded-lg transition cursor-pointer"
+                className="p-1.5 text-slate-500 hover:text-rose-600 dark:text-slate-400 dark:hover:text-rose-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition cursor-pointer"
               >
                 <LogOut className="w-3.5 h-3.5" />
               </button>
@@ -1595,24 +1637,24 @@ export default function App() {
         </div>
       </aside>
 
-      {/* ── RIGHT MAIN WORKSPACE (Light / Clean Minimalist Background) ── */}
-      <main className="flex-1 flex flex-col min-w-0 h-full overflow-hidden bg-slate-50">
+      {/* ── RIGHT MAIN WORKSPACE (Light / Clean Minimalist Background with Dark Mode) ── */}
+      <main className="flex-1 flex flex-col min-w-0 h-full overflow-hidden bg-slate-50 dark:bg-slate-950">
         {/* Dynamic Top Header Bar */}
-        <header className="h-12 bg-white border-b border-slate-200 px-4 flex items-center justify-between shrink-0 z-20 shadow-2xs">
+        <header className="h-12 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 px-4 flex items-center justify-between shrink-0 z-20 shadow-2xs">
           <div className="flex items-center gap-3">
             <button
               onClick={toggleSidebar}
               title={sidebarOpen ? "Ocultar menú lateral (Ctrl+B)" : "Mostrar menú lateral (Ctrl+B)"}
               className={`p-1.5 rounded-lg transition cursor-pointer border ${
                 sidebarOpen 
-                  ? 'text-slate-500 hover:text-slate-900 hover:bg-slate-100 border-slate-200' 
-                  : 'text-indigo-600 bg-indigo-50 hover:bg-indigo-100 border-indigo-200 shadow-xs'
+                  ? 'text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 border-slate-200 dark:border-slate-700' 
+                  : 'text-indigo-600 bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-900/40 dark:text-indigo-300 border-indigo-200 dark:border-indigo-800 shadow-xs'
               }`}
             >
               {sidebarOpen ? <PanelLeftClose className="w-4 h-4" /> : <PanelLeftOpen className="w-4 h-4" />}
             </button>
 
-            <span className="text-xs font-extrabold uppercase tracking-wider text-slate-700">
+            <span className="text-xs font-extrabold uppercase tracking-wider text-slate-700 dark:text-slate-200">
               {activeTab === 'dashboard' && 'Tablero Ejecutivo & Métricas'}
               {activeTab === 'sheet' && 'Planilla Contable General'}
               {activeTab === 'iglesias' && 'Directorio de Congregaciones'}
@@ -1624,13 +1666,32 @@ export default function App() {
             </span>
           </div>
 
-          <div className="flex items-center gap-3 text-xs">
+          <div className="flex items-center gap-2.5 text-xs">
             {selectedPeriodObj && (
-              <div className="flex items-center gap-1.5 bg-slate-100 text-slate-700 px-2.5 py-1 rounded-lg border border-slate-200 font-semibold text-[11px]">
+              <div className="flex items-center gap-1.5 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 px-2.5 py-1 rounded-lg border border-slate-200 dark:border-slate-700 font-semibold text-[11px]">
                 <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                <span>Periodo: <strong className="text-slate-900">{selectedPeriodObj.nombre}</strong></span>
+                <span>Periodo: <strong className="text-slate-900 dark:text-white">{selectedPeriodObj.nombre}</strong></span>
               </div>
             )}
+
+            <button
+              onClick={toggleTheme}
+              title={theme === 'dark' ? "Cambiar a Modo Claro (Fondo Blanco)" : "Cambiar a Modo Oscuro"}
+              className="p-1.5 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer flex items-center gap-1 text-xs font-semibold"
+            >
+              {theme === 'dark' ? (
+                <>
+                  <Sun className="w-3.5 h-3.5 text-amber-400" />
+                  <span className="hidden sm:inline text-[11px]">Claro</span>
+                </>
+              ) : (
+                <>
+                  <Moon className="w-3.5 h-3.5 text-slate-700" />
+                  <span className="hidden sm:inline text-[11px]">Oscuro</span>
+                </>
+              )}
+            </button>
+
             <div className="flex items-center gap-1">
               <button
                 onClick={() => setShowAICopilot(true)}
