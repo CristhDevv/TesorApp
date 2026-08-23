@@ -65,22 +65,22 @@ export const EditableCell = React.memo(function EditableCell({
   // - Overridden: Soft amber/yellow background (bg-amber-50 text-amber-900) + pencil icon
   // - Readonly / Closed period: Light gray background (bg-slate-50 text-slate-400)
   // - Normal editable manual: bg-white text-slate-900
-  let stateClasses = 'bg-white text-slate-900 hover:bg-slate-50';
+  let stateClasses = 'bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 hover:bg-slate-50 dark:hover:bg-slate-800';
 
   if (isOverridden) {
-    stateClasses = 'bg-amber-50/90 text-amber-900 font-semibold hover:bg-amber-100/80';
+    stateClasses = 'bg-amber-50/90 dark:bg-amber-950/40 text-amber-900 dark:text-amber-200 font-semibold hover:bg-amber-100/80 dark:hover:bg-amber-900/50';
   } else if (isCalculated) {
-    stateClasses = 'bg-blue-50/70 text-blue-900 font-semibold hover:bg-blue-100/70';
+    stateClasses = 'bg-blue-50/70 dark:bg-blue-950/40 text-blue-900 dark:text-blue-200 font-semibold hover:bg-blue-100/70 dark:hover:bg-blue-900/50';
   }
 
   if (!isPeriodOpen || (!canEdit && !isCalculated)) {
-    stateClasses += ' cursor-not-allowed bg-slate-50 text-slate-400 opacity-70';
+    stateClasses += ' cursor-not-allowed bg-slate-50 dark:bg-slate-950/80 text-slate-400 dark:text-slate-600 opacity-70';
   } else {
     stateClasses += ' cursor-pointer';
   }
 
   if (isEditing) {
-    stateClasses = 'bg-white ring-2 ring-indigo-500 ring-inset z-10 text-slate-900';
+    stateClasses = 'bg-white dark:bg-slate-800 ring-2 ring-indigo-500 ring-inset z-10 text-slate-900 dark:text-white';
   } else if (isActive) {
     stateClasses += ' ring-1 ring-indigo-500 ring-inset';
   }
@@ -97,14 +97,14 @@ export const EditableCell = React.memo(function EditableCell({
           onStartEdit();
         }
       }}
-      className={`border-r border-b border-slate-200 h-8 px-2 tabular-nums text-[12px] font-mono text-right select-none transition-colors relative ${stateClasses}`}
+      className={`border-r border-b border-slate-200 dark:border-slate-800 h-8 px-2 tabular-nums text-[12px] font-mono text-right select-none transition-colors relative ${stateClasses}`}
     >
       {isEditing ? (
         <input
           ref={inputRef}
           type="number"
           step="any"
-          className="w-full h-full bg-transparent text-right font-mono text-[12px] text-slate-900 focus:outline-none"
+          className="w-full h-full bg-transparent text-right font-mono text-[12px] text-slate-900 dark:text-white focus:outline-none"
           value={editValue}
           onChange={(e) => onChangeEdit(e.target.value)}
           onBlur={() => onCommit(editValue)}

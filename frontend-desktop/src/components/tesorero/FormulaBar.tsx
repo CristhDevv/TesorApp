@@ -24,10 +24,10 @@ export const FormulaBar = React.memo(function FormulaBar({
 }: FormulaBarProps) {
   if (!activeCell) {
     return (
-      <div className="h-[28px] bg-slate-50 border-b border-slate-200 px-3 flex items-center justify-between text-[11px] text-slate-400 select-none shrink-0 font-mono">
+      <div className="h-[28px] bg-slate-50 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 px-3 flex items-center justify-between text-[11px] text-slate-400 dark:text-slate-500 select-none shrink-0 font-mono">
         <div className="flex items-center gap-2">
-          <FunctionSquare className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-          <span className="text-slate-500 font-sans italic text-[10px]">
+          <FunctionSquare className="w-3.5 h-3.5 text-slate-400 dark:text-slate-500 shrink-0" />
+          <span className="text-slate-500 dark:text-slate-400 font-sans italic text-[10px]">
             Selecciona una celda para inspeccionar su fórmula y dependencias
           </span>
         </div>
@@ -55,14 +55,14 @@ export const FormulaBar = React.memo(function FormulaBar({
     .filter(Boolean) as Campo[];
 
   return (
-    <div className="h-[28px] bg-slate-50 border-b border-slate-200 px-3 flex items-center gap-2 text-[11px] select-none shrink-0 overflow-x-auto text-slate-800">
+    <div className="h-[28px] bg-slate-50 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 px-3 flex items-center gap-2 text-[11px] select-none shrink-0 overflow-x-auto text-slate-800 dark:text-slate-200">
       {/* Active cell coordinates badge */}
-      <div className="flex items-center gap-1 shrink-0 bg-white border border-slate-300 px-1.5 py-0.5 rounded text-[10px] font-mono text-slate-700 shadow-2xs">
-        <span className="font-bold truncate max-w-[110px] text-indigo-700">
+      <div className="flex items-center gap-1 shrink-0 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 px-1.5 py-0.5 rounded text-[10px] font-mono text-slate-700 dark:text-slate-200 shadow-2xs">
+        <span className="font-bold truncate max-w-[110px] text-indigo-700 dark:text-indigo-400">
           {row?.iglesia_nombre ?? 'Iglesia'}
         </span>
         <ArrowRight className="w-2.5 h-2.5 text-slate-400 shrink-0" />
-        <span className="font-bold truncate max-w-[100px] text-slate-900">
+        <span className="font-bold truncate max-w-[100px] text-slate-900 dark:text-white">
           {col?.nombre ?? 'Campo'}
         </span>
       </div>
@@ -71,10 +71,10 @@ export const FormulaBar = React.memo(function FormulaBar({
       <span
         className={`px-1.5 py-0.2 rounded text-[9px] font-bold uppercase tracking-wider shrink-0 border ${
           isOverridden
-            ? 'bg-amber-100 text-amber-900 border-amber-300'
+            ? 'bg-amber-100 dark:bg-amber-950/60 text-amber-900 dark:text-amber-200 border-amber-300 dark:border-amber-700'
             : isCalc
-            ? 'bg-blue-100 text-blue-900 border-blue-300'
-            : 'bg-slate-200 text-slate-700 border-slate-300'
+            ? 'bg-blue-100 dark:bg-blue-950/60 text-blue-900 dark:text-blue-200 border-blue-300 dark:border-blue-700'
+            : 'bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-300 dark:border-slate-700'
         }`}
       >
         {isOverridden ? 'Sobrescrito' : isCalc ? 'Fórmula' : 'Manual'}
@@ -84,30 +84,30 @@ export const FormulaBar = React.memo(function FormulaBar({
       <div className="flex items-center gap-1.5 font-mono text-[11px] min-w-0 flex-1">
         <FunctionSquare
           className={`w-3.5 h-3.5 shrink-0 ${
-            isCalc ? 'text-blue-600' : 'text-slate-400'
+            isCalc ? 'text-blue-600 dark:text-blue-400' : 'text-slate-400 dark:text-slate-500'
           }`}
         />
         {isCalc && formula ? (
-          <span className="font-bold text-blue-800 truncate" title={formula}>
+          <span className="font-bold text-blue-800 dark:text-blue-300 truncate" title={formula}>
             = {formula}
           </span>
         ) : (
-          <span className="text-slate-400 font-sans italic text-[10px]">
+          <span className="text-slate-400 dark:text-slate-500 font-sans italic text-[10px]">
             (Valor manual directo)
           </span>
         )}
       </div>
 
       {/* Computed / Actual value */}
-      <div className="flex items-center gap-1.5 shrink-0 pl-2 border-l border-slate-200 font-mono text-[11px]">
-        <span className="text-slate-500 text-[10px]">Valor:</span>
+      <div className="flex items-center gap-1.5 shrink-0 pl-2 border-l border-slate-200 dark:border-slate-800 font-mono text-[11px]">
+        <span className="text-slate-500 dark:text-slate-400 text-[10px]">Valor:</span>
         <span
           className={`font-bold tabular-nums ${
             isOverridden
-              ? 'text-amber-800'
+              ? 'text-amber-800 dark:text-amber-300'
               : isCalc
-              ? 'text-blue-800'
-              : 'text-slate-900'
+              ? 'text-blue-800 dark:text-blue-300'
+              : 'text-slate-900 dark:text-white'
           }`}
         >
           {formatCOP(displayVal)}
@@ -116,19 +116,19 @@ export const FormulaBar = React.memo(function FormulaBar({
 
       {/* Upstream dependencies pills */}
       {validDeps.length > 0 && (
-        <div className="hidden lg:flex items-center gap-1 shrink-0 pl-2 border-l border-slate-200 text-[10px]">
-          <span className="text-slate-400 text-[9px]">Depende de:</span>
+        <div className="hidden lg:flex items-center gap-1 shrink-0 pl-2 border-l border-slate-200 dark:border-slate-800 text-[10px]">
+          <span className="text-slate-400 dark:text-slate-500 text-[9px]">Depende de:</span>
           {validDeps.slice(0, 3).map((dep) => (
             <span
               key={dep.id}
-              className="px-1.5 py-0.2 bg-white border border-slate-200 rounded text-[9px] font-mono text-slate-700"
+              className="px-1.5 py-0.2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded text-[9px] font-mono text-slate-700 dark:text-slate-200"
               title={`Slug: ${dep.slug}`}
             >
               {dep.nombre}
             </span>
           ))}
           {validDeps.length > 3 && (
-            <span className="text-slate-400 text-[9px]">
+            <span className="text-slate-400 dark:text-slate-500 text-[9px]">
               +{validDeps.length - 3}
             </span>
           )}

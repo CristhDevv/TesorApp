@@ -390,7 +390,7 @@ He analizado los registros de **${periodName}**:
     const lines = rawText.split('\n');
 
     return (
-      <div className="space-y-1.5 text-xs leading-relaxed text-slate-800">
+      <div className="space-y-1.5 text-xs leading-relaxed text-slate-800 dark:text-slate-200">
         {lines.map((line, lineIdx) => {
           const trimmed = line.trim();
 
@@ -403,7 +403,7 @@ He analizado los registros de **${periodName}**:
           if (trimmed.startsWith('###') || trimmed.startsWith('##')) {
             const cleanTitle = trimmed.replace(/^#+\s*/, '');
             return (
-              <h4 key={lineIdx} className="font-bold text-sm text-slate-900 pt-1.5 pb-0.5">
+              <h4 key={lineIdx} className="font-bold text-sm text-slate-900 dark:text-white pt-1.5 pb-0.5">
                 {renderInlineFormattedText(cleanTitle, rawText)}
               </h4>
             );
@@ -415,7 +415,7 @@ He analizado los registros de **${periodName}**:
             return (
               <div
                 key={lineIdx}
-                className="p-2 my-1 border-l-2 border-indigo-400 bg-indigo-50/70 rounded-r-lg text-slate-700 italic"
+                className="p-2 my-1 border-l-2 border-indigo-400 dark:border-indigo-500 bg-indigo-50/70 dark:bg-indigo-950/40 rounded-r-lg text-slate-700 dark:text-slate-300 italic"
               >
                 {renderInlineFormattedText(cleanQuote, rawText)}
               </div>
@@ -427,7 +427,7 @@ He analizado los registros de **${periodName}**:
           if (numMatch) {
             return (
               <div key={lineIdx} className="flex items-start gap-1.5 pl-1 my-0.5">
-                <span className="font-bold text-indigo-600 shrink-0">{numMatch[1]}.</span>
+                <span className="font-bold text-indigo-600 dark:text-indigo-400 shrink-0">{numMatch[1]}.</span>
                 <div className="flex-1">{renderInlineFormattedText(numMatch[2], rawText)}</div>
               </div>
             );
@@ -438,7 +438,7 @@ He analizado los registros de **${periodName}**:
             const cleanBullet = trimmed.replace(/^[•-]\s*/, '');
             return (
               <div key={lineIdx} className="flex items-start gap-1.5 pl-1 my-0.5">
-                <span className="text-indigo-500 font-bold shrink-0">•</span>
+                <span className="text-indigo-500 dark:text-indigo-400 font-bold shrink-0">•</span>
                 <div className="flex-1">{renderInlineFormattedText(cleanBullet, rawText)}</div>
               </div>
             );
@@ -455,7 +455,7 @@ He analizado los registros de **${periodName}**:
 
   return (
     <div className="fixed inset-0 z-50 flex justify-end bg-slate-900/40 backdrop-blur-2xs animate-fade-in">
-      <div className="bg-white w-full max-w-md h-full shadow-2xl flex flex-col border-l border-slate-200">
+      <div className="bg-white dark:bg-slate-900 w-full max-w-md h-full shadow-2xl flex flex-col border-l border-slate-200 dark:border-slate-800">
         {/* Drawer Top Header */}
         <div className="p-4 bg-gradient-to-r from-indigo-900 via-indigo-800 to-slate-900 text-white flex items-center justify-between shadow-xs">
           <div className="flex items-center gap-2.5">
@@ -482,20 +482,20 @@ He analizado los registros de **${periodName}**:
         </div>
 
         {/* Quick Context Bar */}
-        <div className="px-4 py-2 bg-slate-100 border-b border-slate-200 text-[11px] text-slate-600 flex items-center justify-between">
+        <div className="px-4 py-2 bg-slate-100 dark:bg-slate-950 border-b border-slate-200 dark:border-slate-800 text-[11px] text-slate-600 dark:text-slate-400 flex items-center justify-between">
           <div className="flex items-center gap-1.5">
-            <span className="font-semibold text-slate-700">Período:</span>
-            <span className="bg-white px-2 py-0.5 rounded border border-slate-200 font-bold text-indigo-700">
+            <span className="font-semibold text-slate-700 dark:text-slate-300">Período:</span>
+            <span className="bg-white dark:bg-slate-900 px-2 py-0.5 rounded border border-slate-200 dark:border-slate-700 font-bold text-indigo-700 dark:text-indigo-300">
               {currentPeriod?.nombre || 'Actual'}
             </span>
           </div>
-          <div className="text-slate-500">
+          <div className="text-slate-500 dark:text-slate-400">
             {rows.length} sedes • {columns.length} columnas
           </div>
         </div>
 
         {/* Chat History with Auto-scroll */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-slate-50 scroll-smooth">
+        <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-slate-50 dark:bg-slate-950 scroll-smooth">
           {messages.map((msg) => {
             const isAi = msg.sender === 'ai';
             return (
@@ -506,7 +506,7 @@ He analizado los registros de **${periodName}**:
                 <div
                   className={`max-w-[92%] p-4 rounded-2xl text-xs leading-relaxed ${
                     isAi
-                      ? 'bg-white border border-slate-200 text-slate-800 shadow-xs rounded-tl-xs'
+                      ? 'bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-800 dark:text-slate-200 shadow-xs rounded-tl-xs'
                       : 'bg-indigo-600 text-white shadow-md rounded-tr-xs'
                   }`}
                 >
@@ -520,7 +520,7 @@ He analizado los registros de **${periodName}**:
                 <div className="flex items-center gap-2 mt-1 px-1">
                   <span className="text-[10px] text-slate-400">{msg.timestamp}</span>
                   {msg.modelUsed && (
-                    <span className="text-[9px] text-indigo-500 font-bold bg-indigo-50 px-1.5 py-0.2 rounded border border-indigo-100 flex items-center gap-1">
+                    <span className="text-[9px] text-indigo-500 dark:text-indigo-400 font-bold bg-indigo-50 dark:bg-indigo-950/60 px-1.5 py-0.2 rounded border border-indigo-100 dark:border-indigo-900 flex items-center gap-1">
                       <Cpu className="w-2.5 h-2.5" />
                       {msg.modelUsed}
                     </span>
@@ -529,7 +529,7 @@ He analizado los registros de **${periodName}**:
                     <div className="flex items-center gap-1.5">
                       <button
                         onClick={() => copyToClipboard(msg.id, msg.text)}
-                        className="text-[10px] text-slate-400 hover:text-indigo-600 flex items-center gap-0.5 cursor-pointer"
+                        className="text-[10px] text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 flex items-center gap-0.5 cursor-pointer"
                         title="Copiar texto"
                       >
                         {copiedId === msg.id ? (
@@ -547,7 +547,7 @@ He analizado los registros de **${periodName}**:
 
                       <button
                         onClick={() => handlePrintMessage(msg.text)}
-                        className="text-[10px] text-slate-400 hover:text-indigo-600 flex items-center gap-0.5 cursor-pointer ml-1"
+                        className="text-[10px] text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 flex items-center gap-0.5 cursor-pointer ml-1"
                         title="Imprimir / Exportar a PDF"
                       >
                         <Printer className="w-3 h-3" />
@@ -561,7 +561,7 @@ He analizado los registros de **${periodName}**:
           })}
 
           {isTyping && (
-            <div className="flex items-center gap-2 p-3 bg-white border border-slate-200 rounded-2xl w-fit text-xs text-slate-500 shadow-xs animate-pulse">
+            <div className="flex items-center gap-2 p-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl w-fit text-xs text-slate-500 dark:text-slate-400 shadow-xs animate-pulse">
               <Sparkles className="w-4 h-4 text-purple-600 animate-spin" />
               <span>Gemini está analizando y respondiendo tu consulta...</span>
             </div>
@@ -572,7 +572,7 @@ He analizado los registros de **${periodName}**:
         </div>
 
         {/* Input Bar */}
-        <div className="p-3 bg-white border-t border-slate-200 shrink-0">
+        <div className="p-3 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 shrink-0">
           <form
             onSubmit={(e) => {
               e.preventDefault();
@@ -582,7 +582,7 @@ He analizado los registros de **${periodName}**:
           >
             <input
               type="text"
-              className="flex-1 px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-indigo-600 focus:bg-white text-xs font-medium shadow-2xs"
+              className="flex-1 px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:border-indigo-600 focus:bg-white dark:focus:bg-slate-800 text-xs font-medium shadow-2xs"
               placeholder="Hazle una consulta a Gemini sobre la planilla, sedes o cómo usar la app..."
               value={inputQuery}
               onChange={(e) => setInputQuery(e.target.value)}

@@ -185,18 +185,18 @@ export function ReportsPanel({
   }, [comparacionData]);
 
   return (
-    <div className="flex flex-col h-full bg-slate-50 overflow-hidden">
+    <div className="flex flex-col h-full bg-slate-50 dark:bg-slate-950 overflow-hidden">
       {/* ── SINGLE COMPACT UNIFIED TOOLBAR (Height ~ 44px) ── */}
-      <div className="bg-white border-b border-slate-200 px-4 py-2 flex flex-wrap items-center justify-between gap-3 shrink-0 shadow-2xs">
+      <div className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 px-4 py-2 flex flex-wrap items-center justify-between gap-3 shrink-0 shadow-2xs">
         {/* Left: Compact Sub-Tabs */}
-        <div className="flex items-center gap-1 bg-slate-100 p-0.5 rounded-lg border border-slate-200">
+        <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 p-0.5 rounded-lg border border-slate-200 dark:border-slate-700">
           <button
             type="button"
             onClick={() => setReportType("consolidado")}
             className={`px-2.5 py-1 rounded-md text-[11px] font-bold transition cursor-pointer flex items-center gap-1.5 ${
               reportType === "consolidado"
                 ? "bg-indigo-600 text-white shadow-2xs"
-                : "text-slate-600 hover:text-slate-900"
+                : "text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white"
             }`}
           >
             <BarChart3 className="w-3 h-3" />
@@ -209,7 +209,7 @@ export function ReportsPanel({
             className={`px-2.5 py-1 rounded-md text-[11px] font-bold transition cursor-pointer flex items-center gap-1.5 ${
               reportType === "comparativo"
                 ? "bg-indigo-600 text-white shadow-2xs"
-                : "text-slate-600 hover:text-slate-900"
+                : "text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white"
             }`}
           >
             <TrendingUp className="w-3 h-3" />
@@ -222,7 +222,7 @@ export function ReportsPanel({
             className={`px-2.5 py-1 rounded-md text-[11px] font-bold transition cursor-pointer flex items-center gap-1.5 ${
               reportType === "fondos"
                 ? "bg-indigo-600 text-white shadow-2xs"
-                : "text-slate-600 hover:text-slate-900"
+                : "text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white"
             }`}
           >
             <Coins className="w-3 h-3" />
@@ -235,7 +235,7 @@ export function ReportsPanel({
             className={`px-2.5 py-1 rounded-md text-[11px] font-bold transition cursor-pointer flex items-center gap-1.5 ${
               reportType === "individual"
                 ? "bg-indigo-600 text-white shadow-2xs"
-                : "text-slate-600 hover:text-slate-900"
+                : "text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white"
             }`}
           >
             <Building2 className="w-3 h-3" />
@@ -246,15 +246,15 @@ export function ReportsPanel({
         {/* Center: Compact Context Selectors */}
         <div className="flex items-center gap-2">
           {tablas.length > 0 && isTesorero && (
-            <div className="flex items-center gap-1 bg-slate-50 border border-slate-200 rounded-md px-2 py-0.5 text-xs">
+            <div className="flex items-center gap-1 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-md px-2 py-0.5 text-xs">
               <Layers className="w-3 h-3 text-slate-400" />
               <select
                 value={selectedTablaId}
                 onChange={(e) => setSelectedTablaId(e.target.value)}
-                className="bg-transparent text-[11px] font-bold text-slate-700 focus:outline-none cursor-pointer"
+                className="bg-transparent text-[11px] font-bold text-slate-700 dark:text-slate-200 focus:outline-none cursor-pointer"
               >
                 {tablas.map((t) => (
-                  <option key={t.id} value={t.id}>
+                  <option key={t.id} value={t.id} className="dark:bg-slate-800 dark:text-white">
                     {t.nombre}
                   </option>
                 ))}
@@ -263,15 +263,15 @@ export function ReportsPanel({
           )}
 
           {periodos.length > 0 && (
-            <div className="flex items-center gap-1 bg-slate-50 border border-slate-200 rounded-md px-2 py-0.5 text-xs">
+            <div className="flex items-center gap-1 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-md px-2 py-0.5 text-xs">
               <Calendar className="w-3 h-3 text-slate-400" />
               <select
                 value={selectedPeriodoId}
                 onChange={(e) => setSelectedPeriodoId(e.target.value)}
-                className="bg-transparent text-[11px] font-bold text-slate-700 focus:outline-none cursor-pointer"
+                className="bg-transparent text-[11px] font-bold text-slate-700 dark:text-slate-200 focus:outline-none cursor-pointer"
               >
                 {periodos.map((p) => (
-                  <option key={p.id} value={p.id}>
+                  <option key={p.id} value={p.id} className="dark:bg-slate-800 dark:text-white">
                     {p.nombre} {p.estado === "cerrado" ? "(cerrado)" : ""}
                   </option>
                 ))}
@@ -292,8 +292,6 @@ export function ReportsPanel({
             <Download className="w-3 h-3" />
             <span>{downloadingExcel ? "Exportando..." : "Excel"}</span>
           </button>
-
-          {/* Excel Export is kept */}
         </div>
       </div>
 
@@ -301,30 +299,30 @@ export function ReportsPanel({
       <div className="flex-1 overflow-auto p-4">
         {/* ── 1. REPORTE CONSOLIDADO POR PERÍODO ── */}
         {reportType === "consolidado" && (
-          <div className="bg-white rounded-xl border border-slate-200 shadow-xs overflow-hidden">
+          <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-xs overflow-hidden">
             <div className="overflow-x-auto max-h-[calc(100vh-140px)]">
               <table className="w-full text-xs text-left border-collapse">
-                <thead className="bg-slate-800 text-white font-bold sticky top-0 z-10">
+                <thead className="bg-slate-800 dark:bg-slate-900 text-white font-bold sticky top-0 z-10">
                   <tr>
-                    <th className="p-2.5 border-r border-slate-700 w-10 text-center">#</th>
-                    <th className="p-2.5 border-r border-slate-700 min-w-[180px]">Congregación / Sede</th>
+                    <th className="p-2.5 border-r border-slate-700 dark:border-slate-800 w-10 text-center">#</th>
+                    <th className="p-2.5 border-r border-slate-700 dark:border-slate-800 min-w-[180px]">Congregación / Sede</th>
                     {gridData?.columnas.map((col) => (
-                      <th key={col.id} className="p-2.5 border-r border-slate-700 text-right min-w-[120px]">
+                      <th key={col.id} className="p-2.5 border-r border-slate-700 dark:border-slate-800 text-right min-w-[120px]">
                         <div>{col.nombre}</div>
-                        <span className="text-[9px] font-normal text-slate-300">
+                        <span className="text-[9px] font-normal text-slate-300 dark:text-slate-400">
                           {col.modo_calculo === "calculado" ? "Calculado" : "Manual"}
                         </span>
                       </th>
                     ))}
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100">
+                <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                   {gridData?.filas.map((row, idx) => (
-                    <tr key={row.iglesia_id} className="hover:bg-slate-50 transition">
-                      <td className="p-2 text-center text-slate-400 font-mono border-r border-slate-100">
+                    <tr key={row.iglesia_id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition">
+                      <td className="p-2 text-center text-slate-400 font-mono border-r border-slate-100 dark:border-slate-800">
                         {idx + 1}
                       </td>
-                      <td className="p-2 font-bold text-slate-900 border-r border-slate-100">
+                      <td className="p-2 font-bold text-slate-900 dark:text-white border-r border-slate-100 dark:border-slate-800">
                         {row.iglesia_nombre}
                       </td>
                       {gridData.columnas.map((col) => {
@@ -334,8 +332,8 @@ export function ReportsPanel({
                         return (
                           <td
                             key={col.id}
-                            className={`p-2 text-right font-mono border-r border-slate-100 ${
-                              isCalc ? "font-bold text-indigo-900 bg-indigo-50/20" : "text-slate-700"
+                            className={`p-2 text-right font-mono border-r border-slate-100 dark:border-slate-800 ${
+                              isCalc ? "font-bold text-indigo-900 dark:text-indigo-300 bg-indigo-50/20 dark:bg-indigo-950/40" : "text-slate-700 dark:text-slate-300"
                             }`}
                           >
                             {col.tipo === "moneda" ? formatCOP(num) : num}
@@ -346,13 +344,13 @@ export function ReportsPanel({
                   ))}
                 </tbody>
                 {/* Totals Footer */}
-                <tfoot className="bg-slate-100 font-bold text-slate-900 sticky bottom-0 border-t-2 border-slate-300">
+                <tfoot className="bg-slate-100 dark:bg-slate-800 font-bold text-slate-900 dark:text-white sticky bottom-0 border-t-2 border-slate-300 dark:border-slate-700">
                   <tr>
-                    <td colSpan={2} className="p-2.5 text-right uppercase tracking-wider text-xs border-r border-slate-200">
+                    <td colSpan={2} className="p-2.5 text-right uppercase tracking-wider text-xs border-r border-slate-200 dark:border-slate-700">
                       Totales Generales:
                     </td>
                     {gridData?.columnas.map((col) => (
-                      <td key={col.id} className="p-2.5 text-right font-mono font-black text-indigo-950 border-r border-slate-200">
+                      <td key={col.id} className="p-2.5 text-right font-mono font-black text-indigo-950 dark:text-indigo-300 border-r border-slate-200 dark:border-slate-700">
                         {col.tipo === "moneda"
                           ? formatCOP(consolidatedTotals[col.id] || 0)
                           : (consolidatedTotals[col.id] || 0)}
@@ -369,17 +367,17 @@ export function ReportsPanel({
         {reportType === "comparativo" && (
           <div className="space-y-4">
             {/* Inline Filter Controls */}
-            <div className="bg-white p-3 rounded-xl border border-slate-200 shadow-2xs flex flex-wrap items-center gap-3">
+            <div className="bg-white dark:bg-slate-900 p-3 rounded-xl border border-slate-200 dark:border-slate-800 shadow-2xs flex flex-wrap items-center gap-3">
               {isTesorero && (
                 <div className="flex items-center gap-1.5 flex-1 min-w-[200px]">
                   <span className="text-[10px] font-black text-slate-400 uppercase">Sede:</span>
                   <select
                     value={selectedChurchForComp}
                     onChange={(e) => setSelectedChurchForComp(e.target.value)}
-                    className="flex-1 px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold text-slate-900 focus:outline-none focus:border-indigo-600"
+                    className="flex-1 px-2.5 py-1.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-bold text-slate-900 dark:text-white focus:outline-none focus:border-indigo-600"
                   >
                     {iglesias.map((i) => (
-                      <option key={i.id} value={i.id}>
+                      <option key={i.id} value={i.id} className="dark:bg-slate-800 dark:text-white">
                         {i.nombre}
                       </option>
                     ))}
@@ -392,10 +390,10 @@ export function ReportsPanel({
                 <select
                   value={selectedFieldForComp}
                   onChange={(e) => setSelectedFieldForComp(e.target.value)}
-                  className="flex-1 px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold text-slate-900 focus:outline-none focus:border-indigo-600"
+                  className="flex-1 px-2.5 py-1.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-bold text-slate-900 dark:text-white focus:outline-none focus:border-indigo-600"
                 >
                   {campos.map((c) => (
-                    <option key={c.id} value={c.id}>
+                    <option key={c.id} value={c.id} className="dark:bg-slate-800 dark:text-white">
                       {c.nombre} ({c.seccion})
                     </option>
                   ))}
@@ -414,7 +412,7 @@ export function ReportsPanel({
             </div>
 
             {/* Evolution Chart */}
-            <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-2xs">
+            <div className="bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-2xs">
               <div className="h-60 w-full">
                 {comparacionData.length > 0 ? (
                   <Line
@@ -423,13 +421,19 @@ export function ReportsPanel({
                       responsive: true,
                       maintainAspectRatio: false,
                       plugins: {
-                        legend: { position: "top" },
+                        legend: { position: "top", labels: { color: "#94a3b8" } },
                       },
                       scales: {
                         y: {
                           ticks: {
+                            color: "#94a3b8",
                             callback: (val) => `$ ${Number(val).toLocaleString("es-CO")}`,
                           },
+                          grid: { color: "rgba(148, 163, 184, 0.1)" },
+                        },
+                        x: {
+                          ticks: { color: "#94a3b8" },
+                          grid: { display: false },
                         },
                       },
                     }}
@@ -443,9 +447,9 @@ export function ReportsPanel({
             </div>
 
             {/* Evolution Table */}
-            <div className="bg-white rounded-xl border border-slate-200 shadow-2xs overflow-hidden">
+            <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-2xs overflow-hidden">
               <table className="w-full text-xs text-left">
-                <thead className="bg-slate-50 text-slate-700 font-bold border-b border-slate-200">
+                <thead className="bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-200 font-bold border-b border-slate-200 dark:border-slate-700">
                   <tr>
                     <th className="p-2.5">Período</th>
                     <th className="p-2.5 text-right">Valor Reportado</th>
@@ -453,20 +457,20 @@ export function ReportsPanel({
                     <th className="p-2.5 text-right">Variación vs. Anterior</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100 font-mono">
+                <tbody className="divide-y divide-slate-100 dark:divide-slate-800 font-mono">
                   {comparacionData.map((d) => (
-                    <tr key={d.periodo_id} className="hover:bg-slate-50">
-                      <td className="p-2.5 font-sans font-bold text-slate-800">{d.periodo_nombre}</td>
-                      <td className="p-2.5 text-right font-bold text-indigo-950">{formatCOP(d.valor)}</td>
-                      <td className="p-2.5 text-right text-slate-600">{formatCOP(d.valor_acumulado)}</td>
+                    <tr key={d.periodo_id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50">
+                      <td className="p-2.5 font-sans font-bold text-slate-800 dark:text-slate-200">{d.periodo_nombre}</td>
+                      <td className="p-2.5 text-right font-bold text-indigo-950 dark:text-indigo-300">{formatCOP(d.valor)}</td>
+                      <td className="p-2.5 text-right text-slate-600 dark:text-slate-400">{formatCOP(d.valor_acumulado)}</td>
                       <td className="p-2.5 text-right">
                         <span
                           className={`inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full text-[11px] font-bold ${
                             d.variacion_porcentual > 0
-                              ? "bg-emerald-100 text-emerald-700"
+                              ? "bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300"
                               : d.variacion_porcentual < 0
-                              ? "bg-rose-100 text-rose-700"
-                              : "bg-slate-100 text-slate-600"
+                              ? "bg-rose-100 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300"
+                              : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400"
                           }`}
                         >
                           {d.variacion_porcentual > 0 ? "+" : ""}
@@ -487,37 +491,37 @@ export function ReportsPanel({
             {gastosResumen.map((f) => (
               <div
                 key={f.campo_fondo_id}
-                className={`bg-white rounded-xl border p-3.5 shadow-2xs ${
-                  f.es_acumulable ? "border-indigo-200 ring-1 ring-indigo-500/10" : "border-slate-200"
+                className={`bg-white dark:bg-slate-900 rounded-xl border p-3.5 shadow-2xs ${
+                  f.es_acumulable ? "border-indigo-200 dark:border-indigo-800/60 ring-1 ring-indigo-500/10" : "border-slate-200 dark:border-slate-800"
                 }`}
               >
                 <div className="flex items-center justify-between mb-1.5">
                   <span
                     className={`text-[9px] font-black uppercase px-1.5 py-0.5 rounded ${
                       f.es_acumulable
-                        ? "bg-indigo-50 text-indigo-700 border border-indigo-200"
-                        : "bg-slate-100 text-slate-600"
+                        ? "bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800"
+                        : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300"
                     }`}
                   >
                     {f.es_acumulable ? "🏛️ Fondo Acumulativo" : "⚡ Fondo de Período"}
                   </span>
                   <Wallet className="w-3.5 h-3.5 text-slate-400" />
                 </div>
-                <h4 className="text-xs font-bold text-slate-900 truncate">{f.campo_fondo_nombre}</h4>
+                <h4 className="text-xs font-bold text-slate-900 dark:text-white truncate">{f.campo_fondo_nombre}</h4>
 
-                <div className="mt-2 space-y-1 text-xs bg-slate-50 p-2 rounded-lg border border-slate-100 font-mono">
-                  <div className="flex justify-between text-slate-600 text-[11px]">
+                <div className="mt-2 space-y-1 text-xs bg-slate-50 dark:bg-slate-800/60 p-2 rounded-lg border border-slate-100 dark:border-slate-800 font-mono">
+                  <div className="flex justify-between text-slate-600 dark:text-slate-400 text-[11px]">
                     <span className="font-sans">{f.es_acumulable ? "Recaudo Histórico:" : "Recaudo Período:"}</span>
-                    <span className="font-bold text-slate-800">{formatCOP(f.total_fondo)}</span>
+                    <span className="font-bold text-slate-800 dark:text-slate-200">{formatCOP(f.total_fondo)}</span>
                   </div>
-                  <div className="flex justify-between text-rose-600 text-[11px]">
+                  <div className="flex justify-between text-rose-600 dark:text-rose-400 text-[11px]">
                     <span className="font-sans">Gastos deducidos:</span>
                     <span className="font-bold">−{formatCOP(f.total_gastos)}</span>
                   </div>
-                  <div className="h-px bg-slate-200 my-0.5" />
-                  <div className="flex justify-between font-black text-slate-900 text-xs pt-0.5">
+                  <div className="h-px bg-slate-200 dark:bg-slate-700 my-0.5" />
+                  <div className="flex justify-between font-black text-slate-900 dark:text-white text-xs pt-0.5">
                     <span className="font-sans">Saldo Disponible:</span>
-                    <span className={f.saldo_disponible < 0 ? "text-rose-600" : "text-emerald-600"}>
+                    <span className={f.saldo_disponible < 0 ? "text-rose-600 dark:text-rose-400" : "text-emerald-600 dark:text-emerald-400"}>
                       {formatCOP(f.saldo_disponible)}
                     </span>
                   </div>
@@ -531,16 +535,16 @@ export function ReportsPanel({
         {reportType === "individual" && (
           <div className="space-y-3">
             {isTesorero && (
-              <div className="bg-white p-3 rounded-xl border border-slate-200 shadow-2xs flex items-center gap-2">
+              <div className="bg-white dark:bg-slate-900 p-3 rounded-xl border border-slate-200 dark:border-slate-800 shadow-2xs flex items-center gap-2">
                 <Building2 className="w-3.5 h-3.5 text-slate-400" />
-                <span className="text-xs font-bold text-slate-700">Congregación:</span>
+                <span className="text-xs font-bold text-slate-700 dark:text-slate-200">Congregación:</span>
                 <select
                   value={selectedChurchForIndiv}
                   onChange={(e) => setSelectedChurchForIndiv(e.target.value)}
-                  className="px-2.5 py-1 bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold text-slate-900 focus:outline-none focus:border-indigo-600"
+                  className="px-2.5 py-1 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-bold text-slate-900 dark:text-white focus:outline-none focus:border-indigo-600"
                 >
                   {iglesias.map((i) => (
-                    <option key={i.id} value={i.id}>
+                    <option key={i.id} value={i.id} className="dark:bg-slate-800 dark:text-white">
                       {i.nombre} ({i.codigo || "Sede"})
                     </option>
                   ))}
@@ -548,16 +552,16 @@ export function ReportsPanel({
               </div>
             )}
 
-            <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-2xs space-y-4">
-              <div className="flex items-start justify-between border-b border-slate-200 pb-3">
+            <div className="bg-white dark:bg-slate-900 p-5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-2xs space-y-4">
+              <div className="flex items-start justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
                 <div>
-                  <h2 className="text-sm font-bold text-slate-900">{currentChurchIndiv?.nombre}</h2>
-                  <p className="text-xs text-slate-500 mt-0.5">
-                    Pastor: <span className="font-semibold text-slate-700">{currentChurchIndiv?.nombre_pastor || "No asignado"}</span> · Tel: {currentChurchIndiv?.telefono || "—"}
+                  <h2 className="text-sm font-bold text-slate-900 dark:text-white">{currentChurchIndiv?.nombre}</h2>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                    Pastor: <span className="font-semibold text-slate-700 dark:text-slate-300">{currentChurchIndiv?.nombre_pastor || "No asignado"}</span> · Tel: {currentChurchIndiv?.telefono || "—"}
                   </p>
                 </div>
-                <div className="inline-flex items-center gap-1 bg-indigo-50 border border-indigo-200 text-indigo-900 px-2.5 py-0.5 rounded-lg text-xs font-bold">
-                  <Calendar className="w-3 h-3 text-indigo-600" />
+                <div className="inline-flex items-center gap-1 bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-200 dark:border-indigo-800 text-indigo-900 dark:text-indigo-300 px-2.5 py-0.5 rounded-lg text-xs font-bold">
+                  <Calendar className="w-3 h-3 text-indigo-600 dark:text-indigo-400" />
                   <span>{currentPeriodObj?.nombre || "Período"}</span>
                 </div>
               </div>
@@ -576,13 +580,13 @@ export function ReportsPanel({
                     return (
                       <div
                         key={col.id}
-                        className="flex items-center justify-between p-2.5 rounded-lg bg-slate-50 border border-slate-100"
+                        className="flex items-center justify-between p-2.5 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-800"
                       >
                         <div>
-                          <p className="text-xs font-bold text-slate-800">{col.nombre}</p>
+                          <p className="text-xs font-bold text-slate-800 dark:text-slate-200">{col.nombre}</p>
                           <span className="text-[9px] text-slate-400 capitalize">{col.seccion || "General"}</span>
                         </div>
-                        <div className="text-right font-mono font-bold text-xs text-slate-900">
+                        <div className="text-right font-mono font-bold text-xs text-slate-900 dark:text-white">
                           {col.tipo === "moneda" ? formatCOP(num) : num}
                         </div>
                       </div>

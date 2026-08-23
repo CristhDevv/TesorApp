@@ -55,18 +55,18 @@ export function PeriodCreateModal({ isOpen, onClose, onSubmit }: PeriodCreateMod
       aria-modal="true"
       className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-fade-in"
     >
-      <div className="bg-white rounded-xl shadow-2xl border border-slate-200 max-w-sm w-full p-5 space-y-4">
-        <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+      <div className="bg-white dark:bg-slate-900 rounded-xl shadow-2xl border border-slate-200 dark:border-slate-800 max-w-sm w-full p-5 space-y-4">
+        <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
           <div className="flex items-center gap-2">
-            <div className="p-1.5 bg-indigo-50 text-indigo-600 rounded-lg border border-indigo-100">
+            <div className="p-1.5 bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 rounded-lg border border-indigo-100 dark:border-indigo-800">
               <Calendar className="w-4 h-4" />
             </div>
-            <h3 className="text-sm font-bold text-slate-900">Nuevo Periodo Contable</h3>
+            <h3 className="text-sm font-bold text-slate-900 dark:text-white">Nuevo Periodo Contable</h3>
           </div>
           <button
             onClick={onClose}
             aria-label="Cerrar"
-            className="text-slate-400 hover:text-slate-600 p-1 rounded-md"
+            className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1 rounded-md cursor-pointer"
           >
             <X className="w-4 h-4" />
           </button>
@@ -74,13 +74,13 @@ export function PeriodCreateModal({ isOpen, onClose, onSubmit }: PeriodCreateMod
 
         <form onSubmit={handleSubmit} className="space-y-3">
           <div>
-            <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">
+            <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase mb-1">
               Mes
             </label>
             <select
               value={mesIdx}
               onChange={(e) => setMesIdx(Number(e.target.value))}
-              className="w-full px-3 py-1.5 bg-slate-50 border border-slate-300 rounded-lg text-xs font-semibold text-slate-800 focus:outline-none focus:border-indigo-600 cursor-pointer"
+              className="w-full px-3 py-1.5 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg text-xs font-semibold text-slate-800 dark:text-slate-100 focus:outline-none focus:border-indigo-600 cursor-pointer"
             >
               {MESES.map((m, idx) => (
                 <option key={m} value={idx}>
@@ -91,7 +91,7 @@ export function PeriodCreateModal({ isOpen, onClose, onSubmit }: PeriodCreateMod
           </div>
 
           <div>
-            <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">
+            <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase mb-1">
               Año
             </label>
             <input
@@ -100,22 +100,22 @@ export function PeriodCreateModal({ isOpen, onClose, onSubmit }: PeriodCreateMod
               max={2035}
               value={year}
               onChange={(e) => setYear(Number(e.target.value))}
-              className="w-full px-3 py-1.5 bg-slate-50 border border-slate-300 rounded-lg text-xs font-semibold text-slate-800 focus:outline-none focus:border-indigo-600"
+              className="w-full px-3 py-1.5 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg text-xs font-semibold text-slate-800 dark:text-slate-100 focus:outline-none focus:border-indigo-600"
             />
           </div>
 
-          <div className="p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-center">
-            <span className="text-[10px] text-slate-500 block uppercase font-medium">Nombre Resultante</span>
-            <span className="text-xs font-bold text-indigo-700 font-mono">
+          <div className="p-2.5 bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-lg text-center">
+            <span className="text-[10px] text-slate-500 dark:text-slate-400 block uppercase font-medium">Nombre Resultante</span>
+            <span className="text-xs font-bold text-indigo-700 dark:text-indigo-300 font-mono">
               {MESES[mesIdx]} {year}
             </span>
           </div>
 
-          <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
+          <div className="flex justify-end gap-2 pt-2 border-t border-slate-100 dark:border-slate-800">
             <button
               type="button"
               onClick={onClose}
-              className="px-3.5 py-1.5 border border-slate-300 rounded-lg text-xs font-semibold text-slate-700 hover:bg-slate-50 transition cursor-pointer"
+              className="px-3.5 py-1.5 border border-slate-300 dark:border-slate-700 rounded-lg text-xs font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition cursor-pointer"
             >
               Cancelar
             </button>

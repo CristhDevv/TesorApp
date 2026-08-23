@@ -67,28 +67,28 @@ export function AuditDrawer({
 
       {/* Drawer */}
       <div
-        className={`fixed top-0 right-0 h-full w-[460px] max-w-full bg-white border-l border-slate-200 shadow-2xl z-50 flex flex-col transition-transform duration-300 ease-out ${
+        className={`fixed top-0 right-0 h-full w-[460px] max-w-full bg-white dark:bg-slate-900 border-l border-slate-200 dark:border-slate-800 shadow-2xl z-50 flex flex-col transition-transform duration-300 ease-out ${
           isOpen ? 'translate-x-0' : 'translate-x-full'
         }`}
       >
         {/* Header */}
-        <div className="h-[46px] px-4 flex items-center justify-between border-b border-slate-200 shrink-0 bg-slate-50">
+        <div className="h-[46px] px-4 flex items-center justify-between border-b border-slate-200 dark:border-slate-800 shrink-0 bg-slate-50 dark:bg-slate-950">
           <div className="flex items-center gap-2">
-            <History className="w-4 h-4 text-indigo-600" />
-            <h3 className="text-sm font-bold text-slate-900">
+            <History className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+            <h3 className="text-sm font-bold text-slate-900 dark:text-white">
               Bitácora de Auditoría ({filteredLogs.length})
             </h3>
           </div>
           <button
             onClick={onClose}
-            className="p-1 text-slate-400 hover:text-slate-700 hover:bg-slate-200 rounded transition"
+            className="p-1 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-800 rounded transition cursor-pointer"
           >
             <X className="w-4 h-4" />
           </button>
         </div>
 
         {/* Filters */}
-        <div className="p-3 bg-slate-50 border-b border-slate-200 space-y-2 shrink-0">
+        <div className="p-3 bg-slate-50 dark:bg-slate-950 border-b border-slate-200 dark:border-slate-800 space-y-2 shrink-0">
           <div className="relative">
             <Search className="w-3.5 h-3.5 absolute left-2.5 top-2 text-slate-400 pointer-events-none" />
             <input
@@ -96,14 +96,14 @@ export function AuditDrawer({
               placeholder="Filtrar por usuario, acción..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-8 pr-3 py-1.5 bg-white border border-slate-300 rounded text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-indigo-600"
+              className="w-full pl-8 pr-3 py-1.5 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded text-xs text-slate-900 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:border-indigo-600"
             />
           </div>
 
           <select
             value={selectedChurchId}
             onChange={(e) => setSelectedChurchId(e.target.value)}
-            className="w-full px-2.5 py-1.5 bg-white border border-slate-300 rounded text-xs text-slate-800 focus:outline-none focus:border-indigo-600 cursor-pointer"
+            className="w-full px-2.5 py-1.5 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:border-indigo-600 cursor-pointer"
           >
             <option value="">-- Todas las iglesias --</option>
             {iglesias.map((ig) => (
@@ -115,20 +115,20 @@ export function AuditDrawer({
         </div>
 
         {/* Log Entries */}
-        <div className="flex-1 overflow-y-auto p-3 space-y-2 bg-slate-50/50">
+        <div className="flex-1 overflow-y-auto p-3 space-y-2 bg-slate-50/50 dark:bg-slate-900/50">
           {filteredLogs.length === 0 ? (
-            <div className="py-12 text-center text-xs text-slate-500">
+            <div className="py-12 text-center text-xs text-slate-500 dark:text-slate-400">
               No hay eventos de auditoría registrados para este filtro.
             </div>
           ) : (
             filteredLogs.map((log) => (
               <div
                 key={log.id}
-                className="bg-white border border-slate-200 rounded-lg p-3 space-y-1.5 text-xs shadow-2xs hover:border-slate-300 transition"
+                className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-3 space-y-1.5 text-xs shadow-2xs hover:border-slate-300 dark:hover:border-slate-600 transition"
               >
                 <div className="flex items-center justify-between text-[11px]">
-                  <span className="font-semibold text-slate-900 flex items-center gap-1">
-                    <User className="w-3 h-3 text-slate-500" />
+                  <span className="font-semibold text-slate-900 dark:text-slate-100 flex items-center gap-1">
+                    <User className="w-3 h-3 text-slate-500 dark:text-slate-400" />
                     {log.usuario?.nombre_completo || 'Sistema'}
                   </span>
                   <span className="font-mono text-[10px] text-slate-400">
@@ -142,10 +142,10 @@ export function AuditDrawer({
                 </div>
 
                 <div className="flex items-center gap-1.5">
-                  <span className="px-1.5 py-0.5 rounded bg-slate-100 text-slate-800 font-mono text-[9px] uppercase border border-slate-200 font-bold">
+                  <span className="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-700 text-slate-800 dark:text-slate-200 font-mono text-[9px] uppercase border border-slate-200 dark:border-slate-600 font-bold">
                     {log.accion}
                   </span>
-                  <span className="text-[10px] font-mono text-slate-500 capitalize">
+                  <span className="text-[10px] font-mono text-slate-500 dark:text-slate-400 capitalize">
                     {log.entidad}
                   </span>
                 </div>
@@ -154,14 +154,14 @@ export function AuditDrawer({
                 log.valor_anterior &&
                 log.valor_nuevo ? (
                   <div className="flex items-center gap-1.5 pt-1 text-[11px] font-mono">
-                    <span className="bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200 text-slate-600">
+                    <span className="bg-slate-100 dark:bg-slate-700 px-1.5 py-0.5 rounded border border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-300">
                       {formatCOP(
                         (log.valor_anterior as any).valor_manual ||
                           (log.valor_anterior as any).valor_calculado
                       )}
                     </span>
                     <ArrowRight className="w-3 h-3 text-slate-400 shrink-0" />
-                    <span className="bg-amber-50 text-amber-900 px-1.5 py-0.5 rounded border border-amber-300 font-bold">
+                    <span className="bg-amber-50 dark:bg-amber-950/60 text-amber-900 dark:text-amber-300 px-1.5 py-0.5 rounded border border-amber-300 dark:border-amber-800 font-bold">
                       {formatCOP(
                         (log.valor_nuevo as any).valor_manual ||
                           (log.valor_nuevo as any).valor_calculado

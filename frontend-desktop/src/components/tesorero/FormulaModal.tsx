@@ -77,18 +77,18 @@ export function FormulaModal({
 
   return (
     <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-2xs flex items-center justify-center p-4 z-50">
-      <div className="bg-white border border-slate-300 rounded-xl shadow-2xl max-w-lg w-full overflow-hidden flex flex-col animate-in fade-in zoom-in-95 duration-150">
+      <div className="bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-xl shadow-2xl max-w-lg w-full overflow-hidden flex flex-col animate-in fade-in zoom-in-95 duration-150">
         {/* Header */}
-        <div className="px-4 py-3 border-b border-slate-200 flex items-center justify-between bg-slate-50">
+        <div className="px-4 py-3 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between bg-slate-50 dark:bg-slate-950">
           <div className="flex items-center gap-2">
-            <Sigma className="w-4 h-4 text-indigo-600" />
-            <h3 className="font-bold text-slate-900 text-sm">
-              Editar Fórmula: <span className="text-indigo-600">{column.nombre}</span>
+            <Sigma className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+            <h3 className="font-bold text-slate-900 dark:text-white text-sm">
+              Editar Fórmula: <span className="text-indigo-600 dark:text-indigo-400">{column.nombre}</span>
             </h3>
           </div>
           <button
             onClick={onClose}
-            className="text-slate-400 hover:text-slate-600 p-1 rounded transition"
+            className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1 rounded transition cursor-pointer"
           >
             <X className="w-4 h-4" />
           </button>
@@ -97,7 +97,7 @@ export function FormulaModal({
         {/* Content */}
         <form onSubmit={handleSave} className="p-4 space-y-4 text-xs">
           {/* Tabs */}
-          <div className="flex bg-slate-100 p-1 rounded-lg border border-slate-200">
+          <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-lg border border-slate-200 dark:border-slate-700">
             {(['porcentaje', 'suma', 'resta', 'teclado'] as const).map((tab) => (
               <button
                 key={tab}
@@ -112,10 +112,10 @@ export function FormulaModal({
                     setFormula(diffBase && diffMinus ? `${diffBase} - ${diffMinus}` : '');
                   }
                 }}
-                className={`flex-1 py-1.5 rounded-md font-semibold text-xs transition ${
+                className={`flex-1 py-1.5 rounded-md font-semibold text-xs transition cursor-pointer ${
                   activeTab === tab
-                    ? 'bg-white text-indigo-700 shadow-xs border border-slate-200'
-                    : 'text-slate-600 hover:text-slate-900'
+                    ? 'bg-white dark:bg-slate-900 text-indigo-700 dark:text-indigo-300 shadow-xs border border-slate-200 dark:border-slate-700'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
                 }`}
               >
                 {tab === 'porcentaje' ? '% Porcentaje' : tab === 'suma' ? '∑ Suma' : tab === 'resta' ? 'A - B Resta' : '✎ Libre'}
@@ -125,9 +125,9 @@ export function FormulaModal({
 
           {/* Porcentaje */}
           {activeTab === 'porcentaje' && (
-            <div className="space-y-3 bg-slate-50 p-3 rounded-lg border border-slate-200">
+            <div className="space-y-3 bg-slate-50 dark:bg-slate-800/60 p-3 rounded-lg border border-slate-200 dark:border-slate-700">
               <div className="flex items-center gap-2">
-                <span className="text-slate-700 font-bold">Porcentaje:</span>
+                <span className="text-slate-700 dark:text-slate-300 font-bold">Porcentaje:</span>
                 <input
                   type="number"
                   step="0.01"
@@ -139,9 +139,9 @@ export function FormulaModal({
                     setPercentRate(r);
                     setFormula(buildPercentFormula(r, selectedCols));
                   }}
-                  className="w-16 px-2 py-1 bg-white border border-slate-300 rounded text-center text-slate-900 font-bold focus:outline-none focus:border-indigo-600"
+                  className="w-16 px-2 py-1 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded text-center text-slate-900 dark:text-slate-100 font-bold focus:outline-none focus:border-indigo-600"
                 />
-                <span className="font-bold text-slate-600">%</span>
+                <span className="font-bold text-slate-600 dark:text-slate-400">%</span>
                 <div className="flex gap-1 ml-auto">
                   {[1, 3, 5, 10, 15].map((p) => (
                     <button
@@ -151,10 +151,10 @@ export function FormulaModal({
                         setPercentRate(p);
                         setFormula(buildPercentFormula(p, selectedCols));
                       }}
-                      className={`px-2 py-0.5 rounded text-[10px] font-bold border transition ${
+                      className={`px-2 py-0.5 rounded text-[10px] font-bold border transition cursor-pointer ${
                         percentRate === p
                           ? 'bg-indigo-600 text-white border-indigo-600'
-                          : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-100'
+                          : 'bg-white dark:bg-slate-850 text-slate-700 dark:text-slate-300 border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800'
                       }`}
                     >
                       {p}%
@@ -164,14 +164,14 @@ export function FormulaModal({
               </div>
 
               <div>
-                <span className="text-slate-600 font-semibold block mb-1">Aplicar sobre las columnas:</span>
-                <div className="grid grid-cols-2 gap-1.5 max-h-36 overflow-y-auto p-1.5 bg-white rounded border border-slate-200">
+                <span className="text-slate-600 dark:text-slate-400 font-semibold block mb-1">Aplicar sobre las columnas:</span>
+                <div className="grid grid-cols-2 gap-1.5 max-h-36 overflow-y-auto p-1.5 bg-white dark:bg-slate-900 rounded border border-slate-200 dark:border-slate-800">
                   {availableCampos.map((c) => {
                     const checked = selectedCols.includes(c.slug);
                     return (
                       <label
                         key={c.id}
-                        className="flex items-center gap-1.5 cursor-pointer p-1 rounded hover:bg-slate-50"
+                        className="flex items-center gap-1.5 cursor-pointer p-1 rounded hover:bg-slate-50 dark:hover:bg-slate-800"
                       >
                         <input
                           type="checkbox"
@@ -185,7 +185,7 @@ export function FormulaModal({
                           }}
                           className="accent-indigo-600"
                         />
-                        <span className="text-slate-800 truncate text-[11px] font-medium">{c.nombre}</span>
+                        <span className="text-slate-800 dark:text-slate-200 truncate text-[11px] font-medium">{c.nombre}</span>
                       </label>
                     );
                   })}
@@ -196,15 +196,15 @@ export function FormulaModal({
 
           {/* Suma */}
           {activeTab === 'suma' && (
-            <div className="space-y-2 bg-slate-50 p-3 rounded-lg border border-slate-200">
-              <span className="text-slate-600 font-semibold block mb-1">Selecciona columnas a sumar:</span>
-              <div className="grid grid-cols-2 gap-1.5 max-h-40 overflow-y-auto p-1.5 bg-white rounded border border-slate-200">
+            <div className="space-y-2 bg-slate-50 dark:bg-slate-800/60 p-3 rounded-lg border border-slate-200 dark:border-slate-700">
+              <span className="text-slate-600 dark:text-slate-400 font-semibold block mb-1">Selecciona columnas a sumar:</span>
+              <div className="grid grid-cols-2 gap-1.5 max-h-40 overflow-y-auto p-1.5 bg-white dark:bg-slate-900 rounded border border-slate-200 dark:border-slate-800">
                 {availableCampos.map((c) => {
                   const checked = selectedCols.includes(c.slug);
                   return (
                     <label
                       key={c.id}
-                      className="flex items-center gap-1.5 cursor-pointer p-1 rounded hover:bg-slate-50"
+                      className="flex items-center gap-1.5 cursor-pointer p-1 rounded hover:bg-slate-50 dark:hover:bg-slate-800"
                     >
                       <input
                         type="checkbox"
@@ -218,7 +218,7 @@ export function FormulaModal({
                         }}
                         className="accent-indigo-600"
                       />
-                      <span className="text-slate-800 truncate text-[11px] font-medium">{c.nombre}</span>
+                      <span className="text-slate-800 dark:text-slate-200 truncate text-[11px] font-medium">{c.nombre}</span>
                     </label>
                   );
                 })}
@@ -228,16 +228,16 @@ export function FormulaModal({
 
           {/* Resta */}
           {activeTab === 'resta' && (
-            <div className="grid grid-cols-2 gap-2 bg-slate-50 p-3 rounded-lg border border-slate-200">
+            <div className="grid grid-cols-2 gap-2 bg-slate-50 dark:bg-slate-800/60 p-3 rounded-lg border border-slate-200 dark:border-slate-700">
               <div>
-                <span className="text-slate-600 font-semibold block mb-1">Columna Base (A):</span>
+                <span className="text-slate-600 dark:text-slate-400 font-semibold block mb-1">Columna Base (A):</span>
                 <select
                   value={diffBase}
                   onChange={(e) => {
                     setDiffBase(e.target.value);
                     setFormula(e.target.value && diffMinus ? `${e.target.value} - ${diffMinus}` : '');
                   }}
-                  className="w-full px-2 py-1.5 bg-white border border-slate-300 rounded text-slate-800 text-xs focus:outline-none focus:border-indigo-600"
+                  className="w-full px-2 py-1.5 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded text-slate-800 dark:text-slate-200 text-xs focus:outline-none focus:border-indigo-600 cursor-pointer"
                 >
                   <option value="">-- Seleccionar --</option>
                   {availableCampos.map((c) => (
@@ -249,14 +249,14 @@ export function FormulaModal({
               </div>
 
               <div>
-                <span className="text-slate-600 font-semibold block mb-1">Menos Deducción (B):</span>
+                <span className="text-slate-600 dark:text-slate-400 font-semibold block mb-1">Menos Deducción (B):</span>
                 <select
                   value={diffMinus}
                   onChange={(e) => {
                     setDiffMinus(e.target.value);
                     setFormula(diffBase && e.target.value ? `${diffBase} - ${e.target.value}` : '');
                   }}
-                  className="w-full px-2 py-1.5 bg-white border border-slate-300 rounded text-slate-800 text-xs focus:outline-none focus:border-indigo-600"
+                  className="w-full px-2 py-1.5 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded text-slate-800 dark:text-slate-200 text-xs focus:outline-none focus:border-indigo-600 cursor-pointer"
                 >
                   <option value="">-- Seleccionar --</option>
                   {availableCampos.map((c) => (
@@ -271,14 +271,14 @@ export function FormulaModal({
 
           {/* Teclado libre */}
           {activeTab === 'teclado' && (
-            <div className="space-y-2 bg-slate-50 p-3 rounded-lg border border-slate-200">
+            <div className="space-y-2 bg-slate-50 dark:bg-slate-800/60 p-3 rounded-lg border border-slate-200 dark:border-slate-700">
               <div className="flex flex-wrap gap-1 max-h-24 overflow-y-auto">
                 {availableCampos.map((c) => (
                   <button
                     key={c.id}
                     type="button"
                     onClick={() => setFormula((prev) => (prev ? `${prev} ${c.slug}` : c.slug))}
-                    className="px-2 py-0.5 bg-white hover:bg-slate-100 text-slate-800 border border-slate-300 rounded text-[10px] font-medium shadow-2xs"
+                    className="px-2 py-0.5 bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 border border-slate-300 dark:border-slate-700 rounded text-[10px] font-medium shadow-2xs cursor-pointer"
                   >
                     + {c.nombre}
                   </button>
@@ -290,7 +290,7 @@ export function FormulaModal({
                     key={op}
                     type="button"
                     onClick={() => setFormula((prev) => (prev ? `${prev} ${op}` : op))}
-                    className="px-2 py-0.5 bg-white hover:bg-slate-100 text-slate-900 font-mono font-bold border border-slate-300 rounded text-xs shadow-2xs"
+                    className="px-2 py-0.5 bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-900 dark:text-slate-100 font-mono font-bold border border-slate-300 dark:border-slate-700 rounded text-xs shadow-2xs cursor-pointer"
                   >
                     {op}
                   </button>
@@ -300,10 +300,10 @@ export function FormulaModal({
           )}
 
           {/* Formula preview */}
-          <div className="bg-slate-50 p-2.5 rounded-lg border border-slate-200 space-y-1">
+          <div className="bg-slate-50 dark:bg-slate-800/60 p-2.5 rounded-lg border border-slate-200 dark:border-slate-700 space-y-1">
             <div className="flex items-center justify-between">
-              <span className="text-[11px] text-slate-600 font-bold">Expresión:</span>
-              <span className="font-mono text-blue-700 text-xs font-bold bg-white px-2 py-0.5 rounded border border-slate-300 truncate max-w-[280px]">
+              <span className="text-[11px] text-slate-600 dark:text-slate-400 font-bold">Expresión:</span>
+              <span className="font-mono text-blue-700 dark:text-blue-300 text-xs font-bold bg-white dark:bg-slate-900 px-2 py-0.5 rounded border border-slate-300 dark:border-slate-700 truncate max-w-[280px]">
                 = {formula || '(sin fórmula)'}
               </span>
             </div>
@@ -311,24 +311,24 @@ export function FormulaModal({
               type="text"
               value={formula}
               onChange={(e) => setFormula(e.target.value)}
-              className="w-full px-2 py-1 bg-white border border-slate-300 rounded text-slate-900 font-mono text-xs focus:outline-none focus:border-indigo-600"
+              className="w-full px-2 py-1 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded text-slate-900 dark:text-slate-100 font-mono text-xs focus:outline-none focus:border-indigo-600"
               placeholder="diezmos + ofrendas"
             />
           </div>
 
           {/* Actions */}
-          <div className="flex justify-end gap-2 pt-2 border-t border-slate-200">
+          <div className="flex justify-end gap-2 pt-2 border-t border-slate-200 dark:border-slate-800">
             <button
               type="button"
               onClick={onClose}
-              className="px-3 py-1.5 border border-slate-300 rounded text-slate-600 hover:text-slate-900 hover:bg-slate-100 text-xs font-semibold transition"
+              className="px-3 py-1.5 border border-slate-300 dark:border-slate-700 rounded text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 text-xs font-semibold transition cursor-pointer"
             >
               Cancelar
             </button>
             <button
               type="submit"
               disabled={saving || !formula.trim()}
-              className="px-4 py-1.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white rounded font-bold text-xs flex items-center gap-1.5 shadow-xs transition"
+              className="px-4 py-1.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white rounded font-bold text-xs flex items-center gap-1.5 shadow-xs transition cursor-pointer"
             >
               <CheckCircle2 className="w-3.5 h-3.5" />
               {saving ? 'Guardando...' : 'Guardar y Recalcular'}

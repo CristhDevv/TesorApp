@@ -59,10 +59,10 @@ interface ColumnConfigDrawerProps {
 }
 
 const INPUT_CLS =
-  'w-full px-2.5 py-1.5 bg-white border border-slate-300 rounded text-slate-900 focus:outline-none focus:border-indigo-600 text-xs font-semibold';
+  'w-full px-2.5 py-1.5 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded text-slate-900 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:border-indigo-600 text-xs font-semibold';
 const SELECT_CLS = `${INPUT_CLS} cursor-pointer`;
 const LABEL_CLS =
-  'block font-bold text-slate-600 text-[10px] uppercase mb-1 tracking-wider';
+  'block font-bold text-slate-600 dark:text-slate-400 text-[10px] uppercase mb-1 tracking-wider';
 
 function SectionBtn({
   active,
@@ -77,10 +77,10 @@ function SectionBtn({
     <button
       type="button"
       onClick={onClick}
-      className={`p-2 rounded-lg border text-left flex flex-col gap-0.5 transition text-xs ${
+      className={`p-2 rounded-lg border text-left flex flex-col gap-0.5 transition text-xs cursor-pointer ${
         active
-          ? 'bg-indigo-50 border-indigo-600 text-indigo-950 font-bold shadow-xs'
-          : 'bg-white border-slate-300 text-slate-700 hover:bg-slate-50'
+          ? 'bg-indigo-50 dark:bg-indigo-950/60 border-indigo-600 dark:border-indigo-500 text-indigo-950 dark:text-indigo-200 font-bold shadow-xs'
+          : 'bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700'
       }`}
     >
       {children}
@@ -124,28 +124,28 @@ export function ColumnConfigDrawer({
       {/* Backdrop */}
       {isOpen && (
         <div
-          className="fixed inset-0 bg-slate-900/30 z-40"
+          className="fixed inset-0 bg-slate-900/40 backdrop-blur-2xs z-40"
           onClick={onClose}
         />
       )}
 
       {/* Drawer */}
       <div
-        className={`fixed top-0 right-0 h-full w-[440px] max-w-full bg-white border-l border-slate-200 shadow-2xl z-50 flex flex-col transition-transform duration-300 ease-out ${
+        className={`fixed top-0 right-0 h-full w-[440px] max-w-full bg-white dark:bg-slate-900 border-l border-slate-200 dark:border-slate-800 shadow-2xl z-50 flex flex-col transition-transform duration-300 ease-out ${
           isOpen ? 'translate-x-0' : 'translate-x-full'
         }`}
       >
         {/* Header */}
-        <div className="h-[46px] px-4 flex items-center justify-between border-b border-slate-200 shrink-0 bg-slate-50">
+        <div className="h-[46px] px-4 flex items-center justify-between border-b border-slate-200 dark:border-slate-800 shrink-0 bg-slate-50 dark:bg-slate-950">
           <div className="flex items-center gap-2">
-            <Columns className="w-4 h-4 text-indigo-600" />
-            <h3 className="text-sm font-bold text-slate-900">
+            <Columns className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+            <h3 className="text-sm font-bold text-slate-900 dark:text-white">
               {fieldModalData.id ? 'Editar Columna' : 'Nueva Columna'}
             </h3>
           </div>
           <button
             onClick={onClose}
-            className="p-1 text-slate-400 hover:text-slate-700 hover:bg-slate-200 rounded transition"
+            className="p-1 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-800 rounded transition cursor-pointer"
           >
             <X className="w-4 h-4" />
           </button>
@@ -829,9 +829,9 @@ export function ColumnConfigDrawer({
 
             {/* Selector de Destino Contable del Fondo */}
             {fieldModalData.es_fondo && (
-              <div className="mt-3 pt-3 border-t border-indigo-200/80 space-y-2">
+              <div className="mt-3 pt-3 border-t border-indigo-200/80 dark:border-indigo-800/80 space-y-2">
                 <div className="flex items-center justify-between">
-                  <label className="block text-[10px] font-extrabold uppercase tracking-wider text-slate-700">
+                  <label className="block text-[10px] font-extrabold uppercase tracking-wider text-slate-700 dark:text-slate-300">
                     Destino Contable del Dinero Recaudado
                   </label>
                   <HelpTooltip
@@ -846,15 +846,15 @@ export function ColumnConfigDrawer({
                     onClick={() => update({ es_transito: false })}
                     className={`p-2 rounded-lg border text-left transition cursor-pointer ${
                       !fieldModalData.es_transito
-                        ? 'border-indigo-600 bg-white text-indigo-950 font-bold shadow-xs'
-                        : 'border-slate-200 bg-slate-50/70 text-slate-600 hover:bg-white'
+                        ? 'border-indigo-600 dark:border-indigo-500 bg-white dark:bg-slate-800 text-indigo-950 dark:text-indigo-200 font-bold shadow-xs'
+                        : 'border-slate-200 dark:border-slate-700 bg-slate-50/70 dark:bg-slate-800/50 text-slate-600 dark:text-slate-400 hover:bg-white dark:hover:bg-slate-800'
                     }`}
                   >
                     <div className="flex items-center gap-1.5 text-xs">
-                      <Building2 className="w-3.5 h-3.5 text-indigo-600" />
+                      <Building2 className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
                       <span>🏛️ Fondo Propio</span>
                     </div>
-                    <p className="text-[10px] text-slate-500 font-normal mt-1 leading-tight">
+                    <p className="text-[10px] text-slate-500 dark:text-slate-400 font-normal mt-1 leading-tight">
                       Queda en caja de la Zona 52 para gastos locales.
                     </p>
                   </button>
@@ -864,15 +864,15 @@ export function ColumnConfigDrawer({
                     onClick={() => update({ es_transito: true })}
                     className={`p-2 rounded-lg border text-left transition cursor-pointer ${
                       fieldModalData.es_transito
-                        ? 'border-indigo-600 bg-white text-indigo-950 font-bold shadow-xs'
-                        : 'border-slate-200 bg-slate-50/70 text-slate-600 hover:bg-white'
+                        ? 'border-indigo-600 dark:border-indigo-500 bg-white dark:bg-slate-800 text-indigo-950 dark:text-indigo-200 font-bold shadow-xs'
+                        : 'border-slate-200 dark:border-slate-700 bg-slate-50/70 dark:bg-slate-800/50 text-slate-600 dark:text-slate-400 hover:bg-white dark:hover:bg-slate-800'
                     }`}
                   >
                     <div className="flex items-center gap-1.5 text-xs">
-                      <Send className="w-3.5 h-3.5 text-indigo-600" />
+                      <Send className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
                       <span>🚀 En Tránsito</span>
                     </div>
-                    <p className="text-[10px] text-slate-500 font-normal mt-1 leading-tight">
+                    <p className="text-[10px] text-slate-500 dark:text-slate-400 font-normal mt-1 leading-tight">
                       Viaja / Se gira a un ente superior (no infla caja).
                     </p>
                   </button>
@@ -880,7 +880,7 @@ export function ColumnConfigDrawer({
 
                 {fieldModalData.es_transito && (
                   <div className="pt-1.5">
-                    <label className="block text-[10px] font-bold text-slate-700 mb-1">
+                    <label className="block text-[10px] font-bold text-slate-700 dark:text-slate-300 mb-1">
                       Ente Superior Destinatario (Opcional):
                     </label>
                     <input
@@ -888,7 +888,7 @@ export function ColumnConfigDrawer({
                       placeholder="Ej: Sede Nacional, Fondo Pensional Central..."
                       value={fieldModalData.ente_superior_nombre || ''}
                       onChange={(e) => update({ ente_superior_nombre: e.target.value })}
-                      className="w-full px-2.5 py-1.5 bg-white border border-slate-300 rounded-lg text-xs text-slate-900 focus:outline-none focus:border-indigo-600 shadow-2xs"
+                      className="w-full px-2.5 py-1.5 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg text-xs text-slate-900 dark:text-slate-100 focus:outline-none focus:border-indigo-600 shadow-2xs"
                     />
                   </div>
                 )}
@@ -898,12 +898,12 @@ export function ColumnConfigDrawer({
         </form>
 
         {/* Footer actions */}
-        <div className="p-4 border-t border-slate-200 flex items-center justify-between gap-2 shrink-0 bg-slate-50">
+        <div className="p-4 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between gap-2 shrink-0 bg-slate-50 dark:bg-slate-950">
           {fieldModalData.id && onDelete && (
             <button
               type="button"
               onClick={onDelete}
-              className="px-3 py-1.5 text-rose-600 hover:text-rose-700 hover:bg-rose-50 border border-rose-200 rounded font-semibold text-xs transition"
+              className="px-3 py-1.5 text-rose-600 hover:text-rose-700 hover:bg-rose-50 dark:hover:bg-rose-950/40 border border-rose-200 dark:border-rose-800 rounded font-semibold text-xs transition cursor-pointer"
             >
               Eliminar
             </button>
@@ -912,7 +912,7 @@ export function ColumnConfigDrawer({
             <button
               type="button"
               onClick={onClose}
-              className="px-3 py-1.5 border border-slate-300 rounded font-semibold text-slate-600 hover:text-slate-900 hover:bg-slate-100 text-xs transition"
+              className="px-3 py-1.5 border border-slate-300 dark:border-slate-700 rounded font-semibold text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 text-xs transition cursor-pointer"
             >
               Cancelar
             </button>
@@ -920,7 +920,7 @@ export function ColumnConfigDrawer({
               type="submit"
               onClick={onSave}
               disabled={savingField}
-              className="px-4 py-1.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white rounded font-bold text-xs flex items-center gap-1.5 shadow-xs transition"
+              className="px-4 py-1.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white rounded font-bold text-xs flex items-center gap-1.5 shadow-xs transition cursor-pointer"
             >
               <CheckCircle2 className="w-3.5 h-3.5" />
               {savingField ? 'Guardando…' : 'Guardar Columna'}

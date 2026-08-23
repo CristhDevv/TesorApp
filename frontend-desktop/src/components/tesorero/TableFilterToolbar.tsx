@@ -105,19 +105,19 @@ export function TableFilterToolbar({
   }, []);
 
   return (
-    <div className="h-[44px] bg-white border-b border-slate-200 px-3 flex items-center justify-between shrink-0 text-xs gap-2 select-none shadow-2xs">
+    <div className="h-[44px] bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 px-3 flex items-center justify-between shrink-0 text-xs gap-2 select-none shadow-2xs">
       {/* ─── LEFT SECTION: TABLE & PERIOD SELECTORS ─── */}
       <div className="flex items-center gap-2 min-w-0">
         {isTesorero ? (
           <>
             {/* Table Selector */}
             <div className="flex items-center gap-1.5">
-              <span className="text-slate-500 font-bold text-[10px] uppercase tracking-wider shrink-0">
+              <span className="text-slate-500 dark:text-slate-400 font-bold text-[10px] uppercase tracking-wider shrink-0">
                 Tabla
               </span>
               <div className="relative">
                 <select
-                  className="bg-slate-50 border border-slate-300 rounded px-2.5 pr-7 py-1 font-bold text-slate-800 text-[11px] focus:outline-none focus:border-indigo-600 appearance-none cursor-pointer hover:bg-slate-100"
+                  className="bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded px-2.5 pr-7 py-1 font-bold text-slate-800 dark:text-slate-100 text-[11px] focus:outline-none focus:border-indigo-600 appearance-none cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700"
                   value={selectedTablaId}
                   onChange={(e) => onTablaChange(e.target.value)}
                 >
@@ -134,7 +134,7 @@ export function TableFilterToolbar({
               <button
                 onClick={onOpenTableConfig}
                 disabled={!selectedTablaId || selectedTablaId === 'all'}
-                className="p-1 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded border border-slate-300 transition disabled:opacity-40"
+                className="p-1 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 rounded border border-slate-300 dark:border-slate-700 transition disabled:opacity-40"
                 title={selectedTablaId === 'all' ? 'El consolidado general muestra todas las columnas activas' : 'Configurar columnas de la tabla activa'}
               >
                 <Sliders className="w-3.5 h-3.5" />
@@ -142,23 +142,23 @@ export function TableFilterToolbar({
 
               <button
                 onClick={onNewTable}
-                className="px-2 py-1 bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-300 rounded font-semibold flex items-center gap-1 text-[10px] transition"
+                className="px-2 py-1 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-300 dark:border-slate-700 rounded font-semibold flex items-center gap-1 text-[10px] transition"
               >
                 <Plus className="w-3 h-3" />
                 Nueva
               </button>
             </div>
 
-            <div className="h-4 w-px bg-slate-200 mx-0.5" />
+            <div className="h-4 w-px bg-slate-200 dark:bg-slate-800 mx-0.5" />
           </>
         ) : (
           /* Church name display for iglesia role */
-          <div className="flex items-center gap-1.5 bg-slate-100 px-2 py-0.5 rounded border border-slate-300">
-            <span className="font-bold text-slate-900 text-xs">
+          <div className="flex items-center gap-1.5 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded border border-slate-300 dark:border-slate-700">
+            <span className="font-bold text-slate-900 dark:text-slate-100 text-xs">
               {churchName || 'Mi Iglesia'}
             </span>
             {churchCode && (
-              <span className="text-[10px] text-slate-500 font-mono">
+              <span className="text-[10px] text-slate-500 dark:text-slate-400 font-mono">
                 ({churchCode})
               </span>
             )}
@@ -167,12 +167,12 @@ export function TableFilterToolbar({
 
         {/* Period Selector & Status Badge */}
         <div className="flex items-center gap-1.5">
-          <span className="text-slate-500 font-bold text-[10px] uppercase tracking-wider shrink-0">
+          <span className="text-slate-500 dark:text-slate-400 font-bold text-[10px] uppercase tracking-wider shrink-0">
             Periodo
           </span>
           <div className="relative">
             <select
-              className="bg-slate-50 border border-slate-300 rounded px-2.5 pr-7 py-1 font-bold text-slate-800 text-[11px] focus:outline-none focus:border-indigo-600 appearance-none cursor-pointer hover:bg-slate-100"
+              className="bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded px-2.5 pr-7 py-1 font-bold text-slate-800 dark:text-slate-100 text-[11px] focus:outline-none focus:border-indigo-600 appearance-none cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700"
               value={selectedPeriodoId}
               onChange={(e) => onPeriodoChange(e.target.value)}
             >
@@ -195,7 +195,7 @@ export function TableFilterToolbar({
               {isPeriodOpen ? (
                 <button
                   onClick={() => onClosePeriod(selectedPeriodoId)}
-                  className="px-2 py-1 bg-slate-50 hover:bg-rose-50 text-rose-700 hover:text-rose-800 border border-slate-300 rounded font-bold text-[10px] transition"
+                  className="px-2 py-1 bg-slate-50 dark:bg-rose-950/40 hover:bg-rose-50 dark:hover:bg-rose-900/60 text-rose-700 dark:text-rose-300 hover:text-rose-800 border border-slate-300 dark:border-rose-800/60 rounded font-bold text-[10px] transition"
                   title="Cerrar período y bloquear ediciones"
                 >
                   Cerrar
@@ -203,7 +203,7 @@ export function TableFilterToolbar({
               ) : (
                 <button
                   onClick={() => onReopenPeriod(selectedPeriodoId)}
-                  className="px-2 py-1 bg-slate-50 hover:bg-emerald-50 text-emerald-700 hover:text-emerald-800 border border-slate-300 rounded font-bold text-[10px] transition"
+                  className="px-2 py-1 bg-slate-50 dark:bg-emerald-950/40 hover:bg-emerald-50 dark:hover:bg-emerald-900/60 text-emerald-700 dark:text-emerald-300 hover:text-emerald-800 border border-slate-300 dark:border-emerald-800/60 rounded font-bold text-[10px] transition"
                   title="Reabrir período contable"
                 >
                   Reabrir
@@ -211,7 +211,7 @@ export function TableFilterToolbar({
               )}
               <button
                 onClick={onCreatePeriod}
-                className="p-1 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded border border-slate-300 transition"
+                className="p-1 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 rounded border border-slate-300 dark:border-slate-700 transition"
                 title="Crear nuevo período mensual"
               >
                 <Plus className="w-3.5 h-3.5" />
@@ -231,7 +231,7 @@ export function TableFilterToolbar({
             placeholder="Buscar iglesia..."
             value={gridSearch}
             onChange={(e) => onGridSearchChange(e.target.value)}
-            className="w-36 pl-7 pr-12 py-1 bg-slate-50 border border-slate-300 rounded text-slate-900 text-[11px] placeholder-slate-400 focus:outline-none focus:border-indigo-600 focus:bg-white"
+            className="w-36 pl-7 pr-12 py-1 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded text-slate-900 dark:text-slate-100 text-[11px] placeholder-slate-400 focus:outline-none focus:border-indigo-600 focus:bg-white dark:focus:bg-slate-800"
           />
           {gridSearch ? (
             <button
@@ -244,7 +244,7 @@ export function TableFilterToolbar({
             <button
               type="button"
               onClick={onOpenQuickSearch}
-              className="absolute right-1 px-1 py-0.2 bg-white border border-slate-200 rounded text-[9px] font-mono text-slate-400 hover:text-slate-600 shadow-2xs"
+              className="absolute right-1 px-1 py-0.2 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded text-[9px] font-mono text-slate-400 dark:text-slate-300 hover:text-slate-600 shadow-2xs"
               title="Abrir buscador con Ctrl+K"
             >
               ⌘K
@@ -260,8 +260,8 @@ export function TableFilterToolbar({
               onClick={() => setShowFiltersDropdown(!showFiltersDropdown)}
               className={`px-2.5 py-1 rounded font-bold text-[10px] flex items-center gap-1 border transition ${
                 onlyOverriddenFilter || showAllColumns
-                  ? 'bg-indigo-50 text-indigo-700 border-indigo-300'
-                  : 'bg-slate-50 text-slate-700 hover:bg-slate-100 border-slate-300'
+                  ? 'bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border-indigo-300 dark:border-indigo-800'
+                  : 'bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 border-slate-300 dark:border-slate-700'
               }`}
             >
               <Filter className="w-3 h-3" />
@@ -270,13 +270,13 @@ export function TableFilterToolbar({
             </button>
 
             {showFiltersDropdown && (
-              <div className="absolute right-0 top-full mt-1 w-56 bg-white border border-slate-300 rounded-lg shadow-xl p-2 z-40 space-y-2 text-xs">
-                <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500 border-b border-slate-100 pb-1">
+              <div className="absolute right-0 top-full mt-1 w-56 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg shadow-xl p-2 z-40 space-y-2 text-xs">
+                <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 border-b border-slate-100 dark:border-slate-800 pb-1">
                   Opciones de Vista
                 </p>
 
                 {/* All vs Consolidated Columns */}
-                <label className="flex items-center gap-2 cursor-pointer p-1 rounded hover:bg-slate-50 text-slate-800 text-[11px]">
+                <label className="flex items-center gap-2 cursor-pointer p-1 rounded hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-800 dark:text-slate-200 text-[11px]">
                   <input
                     type="checkbox"
                     checked={showAllColumns}
@@ -288,7 +288,7 @@ export function TableFilterToolbar({
 
                 {/* Overridden only filter */}
                 {onToggleOnlyOverridden && (
-                  <label className="flex items-center gap-2 cursor-pointer p-1 rounded hover:bg-slate-50 text-slate-800 text-[11px]">
+                  <label className="flex items-center gap-2 cursor-pointer p-1 rounded hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-800 dark:text-slate-200 text-[11px]">
                     <input
                       type="checkbox"
                       checked={onlyOverriddenFilter}
@@ -307,10 +307,10 @@ export function TableFilterToolbar({
         {isTesorero && onOpenAuditDrawer && (
           <button
             onClick={onOpenAuditDrawer}
-            className="px-2.5 py-1 bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-300 rounded font-bold text-[10px] flex items-center gap-1 transition"
+            className="px-2.5 py-1 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-300 dark:border-slate-700 rounded font-bold text-[10px] flex items-center gap-1 transition"
             title="Abrir bitácora de auditoría"
           >
-            <History className="w-3 h-3 text-indigo-600" />
+            <History className="w-3 h-3 text-indigo-600 dark:text-indigo-400" />
             Auditoría
           </button>
         )}
@@ -333,8 +333,8 @@ export function TableFilterToolbar({
             onClick={onToggleAnalytics}
             className={`px-2.5 py-1 rounded font-bold border flex items-center gap-1 text-[10px] transition ${
               showAnalytics
-                ? 'bg-indigo-50 text-indigo-700 border-indigo-300'
-                : 'bg-slate-50 text-slate-700 hover:bg-slate-100 border-slate-300'
+                ? 'bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border-indigo-300 dark:border-indigo-800'
+                : 'bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 border-slate-300 dark:border-slate-700'
             }`}
           >
             <TrendingUp className="w-3.5 h-3.5" />
@@ -355,7 +355,7 @@ export function TableFilterToolbar({
         )}
 
         {/* Row count */}
-        <span className="text-[10px] text-slate-500 font-mono shrink-0 ml-1">
+        <span className="text-[10px] text-slate-500 dark:text-slate-400 font-mono shrink-0 ml-1">
           {filteredCount}/{totalCount}
         </span>
       </div>

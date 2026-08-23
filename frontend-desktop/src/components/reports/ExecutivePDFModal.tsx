@@ -151,7 +151,7 @@ export function ExecutivePDFModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4 animate-fade-in font-sans">
-      <div className="bg-white w-full max-w-4xl max-h-[90vh] rounded-2xl shadow-2xl border border-slate-200 flex flex-col overflow-hidden">
+      <div className="bg-white dark:bg-slate-900 w-full max-w-4xl max-h-[90vh] rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 flex flex-col overflow-hidden">
         {/* Modal Header */}
         <div className="p-5 bg-slate-900 text-white flex items-center justify-between shrink-0">
           <div className="flex items-center gap-3">
@@ -171,49 +171,49 @@ export function ExecutivePDFModal({
         </div>
 
         {/* PDF Preview Sheet */}
-        <div className="flex-1 overflow-y-auto p-6 bg-slate-100">
-          <div className="max-w-3xl mx-auto bg-white border border-slate-300 rounded-xl shadow-md p-8 space-y-6">
+        <div className="flex-1 overflow-y-auto p-6 bg-slate-100 dark:bg-slate-950">
+          <div className="max-w-3xl mx-auto bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-xl shadow-md p-8 space-y-6">
             {/* Sheet Header */}
-            <div className="border-b border-slate-200 pb-4 flex items-center justify-between">
+            <div className="border-b border-slate-200 dark:border-slate-800 pb-4 flex items-center justify-between">
               <div>
                 <div className="flex items-center gap-2">
-                  <div className="p-1.5 bg-slate-900 text-white rounded-lg">
+                  <div className="p-1.5 bg-slate-900 dark:bg-slate-800 text-white rounded-lg">
                     <Building2 className="w-4 h-4" />
                   </div>
-                  <h2 className="text-base font-extrabold text-slate-900">TESORAPP CONTABILIDAD</h2>
+                  <h2 className="text-base font-extrabold text-slate-900 dark:text-white">TESORAPP CONTABILIDAD</h2>
                 </div>
-                <p className="text-xs text-slate-500 mt-1">Informe General de Tesorería y Balance Consolidado</p>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">Informe General de Tesorería y Balance Consolidado</p>
               </div>
               <div className="text-right text-xs">
-                <span className="font-bold text-slate-900 block">Periodo: {currentPeriod?.nombre}</span>
-                <span className="text-slate-400">Fecha: {new Date().toLocaleDateString('es-CO')}</span>
+                <span className="font-bold text-slate-900 dark:text-white block">Periodo: {currentPeriod?.nombre}</span>
+                <span className="text-slate-400 dark:text-slate-500">Fecha: {new Date().toLocaleDateString('es-CO')}</span>
               </div>
             </div>
 
             {/* KPI Cards Preview */}
             <div className="grid grid-cols-3 gap-3">
-              <div className="p-3 bg-slate-50 border border-slate-200 rounded-lg text-center">
+              <div className="p-3 bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-lg text-center">
                 <span className="text-[10px] font-bold text-slate-400 uppercase block">Total Consolidado</span>
-                <span className="text-base font-extrabold font-mono text-slate-900 mt-0.5 block">
+                <span className="text-base font-extrabold font-mono text-slate-900 dark:text-white mt-0.5 block">
                   {formatCOP(totalGeneral)}
                 </span>
               </div>
-              <div className="p-3 bg-slate-50 border border-slate-200 rounded-lg text-center">
+              <div className="p-3 bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-lg text-center">
                 <span className="text-[10px] font-bold text-slate-400 uppercase block">Congregaciones</span>
-                <span className="text-base font-extrabold font-mono text-indigo-600 mt-0.5 block">
+                <span className="text-base font-extrabold font-mono text-indigo-600 dark:text-indigo-400 mt-0.5 block">
                   {rows.length} Sedes
                 </span>
               </div>
-              <div className="p-3 bg-slate-50 border border-slate-200 rounded-lg text-center">
+              <div className="p-3 bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-lg text-center">
                 <span className="text-[10px] font-bold text-slate-400 uppercase block">Estado</span>
-                <span className="text-xs font-bold text-emerald-600 mt-1 block">
+                <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 mt-1 block">
                   {currentPeriod?.estado === 'cerrado' ? '🔒 Oficial Cerrado' : '🟢 Periodo Abierto'}
                 </span>
               </div>
             </div>
 
             {/* Summary Table Preview */}
-            <div className="border border-slate-200 rounded-lg overflow-hidden text-xs">
+            <div className="border border-slate-200 dark:border-slate-800 rounded-lg overflow-hidden text-xs">
               <table className="w-full text-left">
                 <thead className="bg-slate-900 text-white font-bold text-[11px]">
                   <tr>
@@ -225,7 +225,7 @@ export function ExecutivePDFModal({
                     <th className="p-2 text-right">Total</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100 font-mono text-[11px]">
+                <tbody className="divide-y divide-slate-100 dark:divide-slate-800 font-mono text-[11px]">
                   {rows.slice(0, 6).map((r: any, idx: number) => {
                     let rTot = 0;
                     columns.forEach((c: any) => {
@@ -234,17 +234,17 @@ export function ExecutivePDFModal({
                       if ((c.nombre || '').toLowerCase().includes('total')) rTot = Math.max(rTot, amt);
                     });
                     return (
-                      <tr key={r.iglesia_id} className={idx % 2 === 0 ? 'bg-white' : 'bg-slate-50'}>
+                      <tr key={r.iglesia_id} className={idx % 2 === 0 ? 'bg-white dark:bg-slate-900' : 'bg-slate-50 dark:bg-slate-850'}>
                         <td className="p-2 text-slate-400">{idx + 1}</td>
-                        <td className="p-2 font-sans font-semibold text-slate-800">{r.iglesia_nombre}</td>
+                        <td className="p-2 font-sans font-semibold text-slate-800 dark:text-slate-200">{r.iglesia_nombre}</td>
                         {columns.slice(0, 3).map((col: any) => {
                           const val = r.valores?.find((v: any) => v.campo_id === col.id);
                           const amt = val?.modo_calculo === 'calculado' ? (val?.valor_calculado || 0) : (val?.valor_manual || 0);
                           return (
-                            <td key={col.id} className="p-2 text-right text-slate-600">{formatCOP(amt)}</td>
+                            <td key={col.id} className="p-2 text-right text-slate-600 dark:text-slate-400">{formatCOP(amt)}</td>
                           );
                         })}
-                        <td className="p-2 text-right font-bold text-slate-900">{formatCOP(rTot)}</td>
+                        <td className="p-2 text-right font-bold text-slate-900 dark:text-white">{formatCOP(rTot)}</td>
                       </tr>
                     );
                   })}
@@ -260,17 +260,17 @@ export function ExecutivePDFModal({
             </div>
 
             {/* Signatures preview */}
-            <div className="pt-8 grid grid-cols-3 gap-6 text-center text-xs text-slate-500">
+            <div className="pt-8 grid grid-cols-3 gap-6 text-center text-xs text-slate-500 dark:text-slate-400">
               <div>
-                <div className="border-t border-slate-300 pt-1.5 font-bold text-slate-700">Tesorero General</div>
+                <div className="border-t border-slate-300 dark:border-slate-700 pt-1.5 font-bold text-slate-700 dark:text-slate-300">Tesorero General</div>
                 <div className="text-[10px] text-slate-400">{user?.nombre_completo}</div>
               </div>
               <div>
-                <div className="border-t border-slate-300 pt-1.5 font-bold text-slate-700">Revisor Fiscal</div>
+                <div className="border-t border-slate-300 dark:border-slate-700 pt-1.5 font-bold text-slate-700 dark:text-slate-300">Revisor Fiscal</div>
                 <div className="text-[10px] text-slate-400">Certificación Oficial</div>
               </div>
               <div>
-                <div className="border-t border-slate-300 pt-1.5 font-bold text-slate-700">Pastor Presidente</div>
+                <div className="border-t border-slate-300 dark:border-slate-700 pt-1.5 font-bold text-slate-700 dark:text-slate-300">Pastor Presidente</div>
                 <div className="text-[10px] text-slate-400">Junta Directiva</div>
               </div>
             </div>
@@ -278,14 +278,14 @@ export function ExecutivePDFModal({
         </div>
 
         {/* Actions Footer */}
-        <div className="p-4 bg-white border-t border-slate-200 flex items-center justify-between shrink-0">
+        <div className="p-4 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between shrink-0">
           <span className="text-xs text-slate-400">
             Formato A4 Horizontal • Compatible con impresoras y visores PDF
           </span>
           <div className="flex items-center gap-2">
             <button
               onClick={onClose}
-              className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition cursor-pointer"
+              className="px-4 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl text-xs font-bold transition cursor-pointer"
             >
               Cancelar
             </button>

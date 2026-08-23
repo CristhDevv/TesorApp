@@ -71,21 +71,21 @@ const GridRow = React.memo(function GridRow({
   const columnsMap = React.useMemo(() => new Map(columns.map((c) => [c.id, c])), [columns]);
 
   return (
-    <tr className="group hover:bg-indigo-50/30 transition-colors duration-75">
+    <tr className="group hover:bg-indigo-50/30 dark:hover:bg-indigo-950/20 transition-colors duration-75">
       {/* Row number */}
-      <td className="sticky left-0 z-10 bg-slate-50 border-r border-b border-slate-200 px-2 py-0 h-8 text-center font-mono text-[9px] text-slate-500 w-8">
+      <td className="sticky left-0 z-10 bg-slate-50 dark:bg-slate-900 border-r border-b border-slate-200 dark:border-slate-800 px-2 py-0 h-8 text-center font-mono text-[9px] text-slate-500 dark:text-slate-400 w-8">
         {rowIdx + 1}
       </td>
 
       {/* Church name — sticky */}
-      <td className="sticky left-8 z-10 bg-white border-r-2 border-b border-slate-300 px-2 h-8 text-slate-900 font-bold text-[11px] min-w-[240px] shadow-[2px_0_6px_rgba(0,0,0,0.05)]">
+      <td className="sticky left-8 z-10 bg-white dark:bg-slate-900 border-r-2 border-b border-slate-300 dark:border-slate-800 px-2 h-8 text-slate-900 dark:text-white font-bold text-[11px] min-w-[240px] shadow-[2px_0_6px_rgba(0,0,0,0.05)]">
         <div className="flex items-center justify-between gap-1.5 h-full">
           <div className="flex items-center gap-1.5 min-w-0">
             <span className="truncate" title={fila.iglesia_nombre}>
               {fila.iglesia_nombre}
             </span>
             {fila.codigo && (
-              <span className="text-[9px] font-mono text-slate-400 shrink-0">
+              <span className="text-[9px] font-mono text-slate-400 dark:text-slate-500 shrink-0">
                 {fila.codigo}
               </span>
             )}
@@ -100,23 +100,23 @@ const GridRow = React.memo(function GridRow({
               title="Ver/Modificar estado de aprobación del informe"
             >
               {fila.estado_informe === 'enviado' ? (
-                <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[9px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200">
+                <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[9px] font-bold bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800">
                   <Send className="w-2.5 h-2.5" /> Enviado
                 </span>
               ) : fila.estado_informe === 'en_revision' ? (
-                <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[9px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
+                <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[9px] font-bold bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800">
                   <Clock className="w-2.5 h-2.5" /> En Revisión
                 </span>
               ) : fila.estado_informe === 'aprobado' ? (
-                <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[9px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[9px] font-bold bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
                   <CheckCircle2 className="w-2.5 h-2.5" /> Aprobado
                 </span>
               ) : fila.estado_informe === 'consolidado' ? (
-                <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[9px] font-bold bg-purple-50 text-purple-700 border border-purple-200">
+                <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[9px] font-bold bg-purple-50 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800">
                   <ShieldCheck className="w-2.5 h-2.5" /> Consolidado
                 </span>
               ) : (
-                <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[9px] font-medium bg-slate-100 text-slate-500 border border-slate-200">
+                <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[9px] font-medium bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-700">
                   Borrador
                 </span>
               )}
@@ -126,7 +126,7 @@ const GridRow = React.memo(function GridRow({
               <button
                 type="button"
                 onClick={() => onOpenReceipts(fila.iglesia_id, fila.iglesia_nombre)}
-                className="shrink-0 p-0.5 text-indigo-500 hover:text-indigo-700 hover:bg-indigo-50 rounded transition opacity-0 group-hover:opacity-100 cursor-pointer"
+                className="shrink-0 p-0.5 text-indigo-500 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 hover:bg-indigo-50 dark:hover:bg-slate-800 rounded transition opacity-0 group-hover:opacity-100 cursor-pointer"
                 title="Ver/Adjuntar Comprobantes Bancarios"
               >
                 <Paperclip className="w-3.5 h-3.5" />
@@ -136,7 +136,7 @@ const GridRow = React.memo(function GridRow({
               <button
                 type="button"
                 onClick={() => onOpenPaperModal(fila)}
-                className="shrink-0 p-0.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded transition opacity-0 group-hover:opacity-100 cursor-pointer"
+                className="shrink-0 p-0.5 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded transition opacity-0 group-hover:opacity-100 cursor-pointer"
                 title="Digitar informe en papel"
               >
                 <FileText className="w-3.5 h-3.5" />
@@ -230,31 +230,31 @@ export const SpreadsheetGrid = React.memo(function SpreadsheetGrid({
 }: SpreadsheetGridProps) {
   if (rows.length === 0) {
     return (
-      <div className="flex-1 flex items-center justify-center text-slate-500 text-xs bg-white">
+      <div className="flex-1 flex items-center justify-center text-slate-500 dark:text-slate-400 text-xs bg-white dark:bg-slate-950">
         No hay iglesias asignadas o la tabla está vacía.
       </div>
     );
   }
 
   return (
-    <div className="flex-1 min-h-0 flex flex-col bg-white">
-      <div className="flex-1 min-h-0 overflow-auto border-b border-slate-200">
+    <div className="flex-1 min-h-0 flex flex-col bg-white dark:bg-slate-950">
+      <div className="flex-1 min-h-0 overflow-auto border-b border-slate-200 dark:border-slate-800">
         <table className="w-full border-separate border-spacing-0 text-left">
-          {/* ── STICKY HEADER (Light Theme) ── */}
+          {/* ── STICKY HEADER (Light/Dark Theme) ── */}
           <thead className="sticky top-0 z-20">
             <tr>
               {/* Row number col */}
-              <th className="sticky left-0 z-30 bg-slate-100 border-b border-r border-slate-300 w-8 h-8 text-center text-[9px] font-bold text-slate-600 uppercase">
+              <th className="sticky left-0 z-30 bg-slate-100 dark:bg-slate-800 border-b border-r border-slate-300 dark:border-slate-700 w-8 h-8 text-center text-[9px] font-bold text-slate-600 dark:text-slate-300 uppercase">
                 #
               </th>
 
               {/* Church col */}
               <th
                 onClick={() => onSortChange('iglesia_nombre')}
-                className="sticky left-8 z-30 bg-slate-100 border-b border-r-2 border-slate-300 px-3 h-8 min-w-[200px] cursor-pointer hover:bg-slate-200 transition select-none group shadow-[2px_0_6px_rgba(0,0,0,0.05)]"
+                className="sticky left-8 z-30 bg-slate-100 dark:bg-slate-800 border-b border-r-2 border-slate-300 dark:border-slate-700 px-3 h-8 min-w-[200px] cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-700/80 transition select-none group shadow-[2px_0_6px_rgba(0,0,0,0.05)]"
               >
                 <div className="flex items-center justify-between gap-1">
-                  <span className="text-[10px] font-extrabold text-slate-700 uppercase tracking-wider">
+                  <span className="text-[10px] font-extrabold text-slate-700 dark:text-slate-200 uppercase tracking-wider">
                     Congregación
                   </span>
                   <SortIcon colKey="iglesia_nombre" sort={gridSort} />
@@ -269,12 +269,12 @@ export const SpreadsheetGrid = React.memo(function SpreadsheetGrid({
                   <th
                     key={col.id}
                     onClick={() => onSortChange(col.id)}
-                    className="border-b border-r border-slate-300 px-3 h-8 min-w-[120px] bg-slate-100 select-none group text-right cursor-pointer hover:bg-slate-200 transition"
+                    className="border-b border-r border-slate-300 dark:border-slate-700 px-3 h-8 min-w-[120px] bg-slate-100 dark:bg-slate-800 select-none group text-right cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-700/80 transition"
                   >
                     <div className="flex items-center justify-end gap-1.5">
                       <span
                         className={`text-[11px] font-bold truncate ${
-                          isCalc ? 'text-blue-700' : 'text-slate-800'
+                          isCalc ? 'text-blue-700 dark:text-blue-300' : 'text-slate-800 dark:text-slate-200'
                         }`}
                       >
                         {col.nombre}
@@ -288,7 +288,7 @@ export const SpreadsheetGrid = React.memo(function SpreadsheetGrid({
           </thead>
 
           {/* ── ROWS ── */}
-          <tbody className="divide-y divide-slate-200">
+          <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
             {rows.map((fila, rowIdx) => (
               <GridRow
                 key={fila.iglesia_id}
@@ -314,11 +314,11 @@ export const SpreadsheetGrid = React.memo(function SpreadsheetGrid({
 
           {/* ── STICKY TOTALS FOOTER ── */}
           <tfoot className="sticky bottom-0 z-20">
-            <tr className="border-t-2 border-slate-300">
-              <td className="sticky left-0 z-30 bg-slate-100 border-r border-slate-300 px-2 h-8 text-center text-[11px] font-extrabold text-slate-700">
+            <tr className="border-t-2 border-slate-300 dark:border-slate-700">
+              <td className="sticky left-0 z-30 bg-slate-100 dark:bg-slate-800 border-r border-slate-300 dark:border-slate-700 px-2 h-8 text-center text-[11px] font-extrabold text-slate-700 dark:text-slate-300">
                 Σ
               </td>
-              <td className="sticky left-8 z-30 bg-slate-100 border-r-2 border-slate-300 px-3 h-8 text-[10px] font-extrabold text-slate-800 uppercase tracking-wider shadow-[2px_0_6px_rgba(0,0,0,0.05)]">
+              <td className="sticky left-8 z-30 bg-slate-100 dark:bg-slate-800 border-r-2 border-slate-300 dark:border-slate-700 px-3 h-8 text-[10px] font-extrabold text-slate-800 dark:text-slate-200 uppercase tracking-wider shadow-[2px_0_6px_rgba(0,0,0,0.05)]">
                 TOTAL ({rows.length} iglesias)
               </td>
               {columns.map((col) => {
@@ -326,10 +326,10 @@ export const SpreadsheetGrid = React.memo(function SpreadsheetGrid({
                 return (
                   <td
                     key={col.id}
-                    className={`border-r border-slate-300 px-2 h-8 text-right font-mono text-[11px] font-extrabold tabular-nums ${
+                    className={`border-r border-slate-300 dark:border-slate-700 px-2 h-8 text-right font-mono text-[11px] font-extrabold tabular-nums ${
                       isCalc
-                        ? 'text-blue-800 bg-blue-50/80'
-                        : 'text-slate-900 bg-slate-100'
+                        ? 'text-blue-800 dark:text-blue-300 bg-blue-50/80 dark:bg-blue-950/40'
+                        : 'text-slate-900 dark:text-slate-100 bg-slate-100 dark:bg-slate-800'
                     }`}
                   >
                     {formatCOP(columnTotals[col.id] ?? 0)}
@@ -341,21 +341,21 @@ export const SpreadsheetGrid = React.memo(function SpreadsheetGrid({
         </table>
       </div>
 
-      {/* ── FIXED COLOR LEGEND AT BOTTOM (Light Theme) ── */}
-      <div className="h-6 bg-slate-50 border-t border-slate-200 px-3 flex items-center justify-between text-[10px] text-slate-600 shrink-0 select-none">
+      {/* ── FIXED COLOR LEGEND AT BOTTOM ── */}
+      <div className="h-6 bg-slate-50 dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 px-3 flex items-center justify-between text-[10px] text-slate-600 dark:text-slate-400 shrink-0 select-none">
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-1.5">
-            <span className="w-2.5 h-2.5 rounded-xs bg-blue-100 border border-blue-400" />
-            <span className="text-blue-900 font-semibold">Calculado por fórmula</span>
+            <span className="w-2.5 h-2.5 rounded-xs bg-blue-100 dark:bg-blue-950 border border-blue-400" />
+            <span className="text-blue-900 dark:text-blue-300 font-semibold">Calculado por fórmula</span>
           </div>
           <div className="flex items-center gap-1.5">
-            <span className="w-2.5 h-2.5 rounded-xs bg-amber-100 border border-amber-400" />
-            <span className="text-amber-900 font-semibold">Sobrescrito manualmente</span>
+            <span className="w-2.5 h-2.5 rounded-xs bg-amber-100 dark:bg-amber-950 border border-amber-400" />
+            <span className="text-amber-900 dark:text-amber-300 font-semibold">Sobrescrito manualmente</span>
           </div>
         </div>
 
-        <div className="flex items-center gap-2 text-slate-500 font-mono text-[9px]">
-          <span>Atajo buscar: <kbd className="text-slate-700 font-bold bg-white px-1 py-0.2 rounded border border-slate-300 shadow-2xs">Ctrl+K</kbd></span>
+        <div className="flex items-center gap-2 text-slate-500 dark:text-slate-400 font-mono text-[9px]">
+          <span>Atajo buscar: <kbd className="text-slate-700 dark:text-slate-300 font-bold bg-white dark:bg-slate-800 px-1 py-0.2 rounded border border-slate-300 dark:border-slate-700 shadow-2xs">Ctrl+K</kbd></span>
         </div>
       </div>
     </div>

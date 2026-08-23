@@ -149,24 +149,24 @@ export function GastosPanel({
   const countAcumulables = resumen.filter((r) => r.es_acumulable).length;
 
   return (
-    <div className="flex flex-col h-full bg-slate-50">
+    <div className="flex flex-col h-full bg-slate-50 dark:bg-slate-950">
       {/* Top bar */}
-      <div className="bg-white border-b border-slate-200 px-6 py-4 flex flex-wrap items-center justify-between gap-4">
+      <div className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 px-6 py-4 flex flex-wrap items-center justify-between gap-4">
         <div className="flex items-center gap-3">
-          <div className="p-2.5 bg-rose-100 rounded-xl">
-            <TrendingDown className="w-6 h-6 text-rose-600" />
+          <div className="p-2.5 bg-rose-100 dark:bg-rose-950/60 rounded-xl">
+            <TrendingDown className="w-6 h-6 text-rose-600 dark:text-rose-400" />
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h1 className="text-lg font-bold text-slate-900">Gastos y Control de Fondos</h1>
-              <span className="px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-wider bg-indigo-100 text-indigo-800 rounded-full border border-indigo-200">
+              <h1 className="text-lg font-bold text-slate-900 dark:text-white">Gastos y Control de Fondos</h1>
+              <span className="px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-wider bg-indigo-100 dark:bg-indigo-900/50 text-indigo-800 dark:text-indigo-300 rounded-full border border-indigo-200 dark:border-indigo-800">
                 Tesorería Zona 52
               </span>
             </div>
-            <p className="text-xs text-slate-500 mt-0.5">
-              Período activo: <span className="font-semibold text-slate-800">{selectedPeriodoNombre}</span>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+              Período activo: <span className="font-semibold text-slate-800 dark:text-slate-200">{selectedPeriodoNombre}</span>
               {!isPeriodOpen && (
-                <span className="ml-2 text-xs font-semibold text-amber-600 bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
+                <span className="ml-2 text-xs font-semibold text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40 px-2 py-0.5 rounded border border-amber-200 dark:border-amber-800">
                   Período cerrado (solo lectura)
                 </span>
               )}
@@ -211,39 +211,39 @@ export function GastosPanel({
           </div>
 
           {/* Card 2: Dineros en Tránsito para Entes Superiores */}
-          <div className="bg-white rounded-2xl p-4 shadow-sm border border-slate-200">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl p-4 shadow-sm border border-slate-200 dark:border-slate-800">
             <div className="flex items-center justify-between">
-              <div className="p-2 bg-amber-100 rounded-xl">
-                <Send className="w-5 h-5 text-amber-700" />
+              <div className="p-2 bg-amber-100 dark:bg-amber-950/60 rounded-xl">
+                <Send className="w-5 h-5 text-amber-700 dark:text-amber-400" />
               </div>
-              <span className="text-[10px] font-extrabold uppercase tracking-widest bg-amber-50 text-amber-800 px-2 py-0.5 rounded-full border border-amber-200">
+              <span className="text-[10px] font-extrabold uppercase tracking-widest bg-amber-50 dark:bg-amber-950/50 text-amber-800 dark:text-amber-300 px-2 py-0.5 rounded-full border border-amber-200 dark:border-amber-800">
                 En Tránsito
               </span>
             </div>
-            <p className="text-xs text-slate-500 font-medium mt-3">Por Girar a Entes Superiores (Nacional)</p>
-            <p className="text-2xl font-black text-amber-700 mt-0.5 tracking-tight">
+            <p className="text-xs text-slate-500 dark:text-slate-400 font-medium mt-3">Por Girar a Entes Superiores (Nacional)</p>
+            <p className="text-2xl font-black text-amber-700 dark:text-amber-400 mt-0.5 tracking-tight">
               {formatCOP(totalPorGirarEntesSuperiores)}
             </p>
-            <p className="text-[11px] text-slate-500 mt-1">
+            <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">
               Recaudado para transferir ({countTransito} concepto{countTransito !== 1 ? 's' : ''})
             </p>
           </div>
 
           {/* Card 3: Gastos del Período Actual */}
-          <div className="bg-white rounded-2xl p-4 shadow-sm border border-slate-200">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl p-4 shadow-sm border border-slate-200 dark:border-slate-800">
             <div className="flex items-center justify-between">
-              <div className="p-2 bg-rose-100 rounded-xl">
-                <TrendingDown className="w-5 h-5 text-rose-600" />
+              <div className="p-2 bg-rose-100 dark:bg-rose-950/60 rounded-xl">
+                <TrendingDown className="w-5 h-5 text-rose-600 dark:text-rose-400" />
               </div>
-              <span className="text-[10px] font-extrabold uppercase tracking-widest bg-rose-50 text-rose-700 px-2 py-0.5 rounded-full border border-rose-200">
+              <span className="text-[10px] font-extrabold uppercase tracking-widest bg-rose-50 dark:bg-rose-950/50 text-rose-700 dark:text-rose-300 px-2 py-0.5 rounded-full border border-rose-200 dark:border-rose-800">
                 {gastos.length} Registro{gastos.length !== 1 ? "s" : ""}
               </span>
             </div>
-            <p className="text-xs text-slate-500 font-medium mt-3">Total Gastos Locales en {selectedPeriodoNombre}</p>
-            <p className="text-2xl font-black text-rose-600 mt-0.5 tracking-tight">
+            <p className="text-xs text-slate-500 dark:text-slate-400 font-medium mt-3">Total Gastos Locales en {selectedPeriodoNombre}</p>
+            <p className="text-2xl font-black text-rose-600 dark:text-rose-400 mt-0.5 tracking-tight">
               −{formatCOP(totalGastosPeriodo)}
             </p>
-            <p className="text-[11px] text-slate-500 mt-1">
+            <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">
               Deducidos automáticamente de sus fondos
             </p>
           </div>
@@ -251,14 +251,14 @@ export function GastosPanel({
 
         {/* Section Header with Tabs and Search */}
         <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
-          <div className="flex items-center gap-1 bg-slate-200/80 p-1 rounded-xl">
+          <div className="flex items-center gap-1 bg-slate-200/80 dark:bg-slate-800 p-1 rounded-xl">
             <button
               type="button"
               onClick={() => setFilterType("all")}
               className={`px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer ${
                 filterType === "all"
-                  ? "bg-white text-slate-900 shadow-xs"
-                  : "text-slate-600 hover:text-slate-900"
+                  ? "bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-xs"
+                  : "text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white"
               }`}
             >
               Todos ({resumen.length})
@@ -269,7 +269,7 @@ export function GastosPanel({
               className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition cursor-pointer ${
                 filterType === "propios"
                   ? "bg-indigo-600 text-white shadow-xs"
-                  : "text-slate-600 hover:text-slate-900"
+                  : "text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white"
               }`}
             >
               <Building2 className="w-3.5 h-3.5" />
@@ -281,7 +281,7 @@ export function GastosPanel({
               className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition cursor-pointer ${
                 filterType === "transito"
                   ? "bg-amber-600 text-white shadow-xs"
-                  : "text-slate-600 hover:text-slate-900"
+                  : "text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white"
               }`}
             >
               <Send className="w-3.5 h-3.5" />
@@ -293,7 +293,7 @@ export function GastosPanel({
               className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition cursor-pointer ${
                 filterType === "acumulable"
                   ? "bg-indigo-600 text-white shadow-xs"
-                  : "text-slate-600 hover:text-slate-900"
+                  : "text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white"
               }`}
             >
               <Coins className="w-3.5 h-3.5" />
@@ -308,7 +308,7 @@ export function GastosPanel({
               placeholder="Buscar fondo o ente superior..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-8 pr-3 py-1.5 bg-white border border-slate-300 rounded-lg text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-indigo-600 w-56"
+              className="pl-8 pr-3 py-1.5 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg text-xs text-slate-900 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:border-indigo-600 w-56"
             />
           </div>
         </div>
@@ -337,12 +337,12 @@ export function GastosPanel({
               return (
                 <div
                   key={r.campo_fondo_id}
-                  className={`bg-white rounded-2xl border p-4 shadow-sm hover:shadow-md transition flex flex-col justify-between ${
+                  className={`bg-white dark:bg-slate-900 rounded-2xl border p-4 shadow-sm hover:shadow-md transition flex flex-col justify-between ${
                     r.es_transito
-                      ? "border-amber-300 bg-amber-50/20 ring-1 ring-amber-500/10"
+                      ? "border-amber-300 dark:border-amber-700/60 bg-amber-50/20 dark:bg-amber-950/20 ring-1 ring-amber-500/10"
                       : isAcumulable
-                      ? "border-indigo-200 ring-1 ring-indigo-500/10"
-                      : "border-slate-200"
+                      ? "border-indigo-200 dark:border-indigo-800/60 ring-1 ring-indigo-500/10"
+                      : "border-slate-200 dark:border-slate-800"
                   }`}
                 >
                   <div>
@@ -351,97 +351,97 @@ export function GastosPanel({
                       <div className="min-w-0">
                         <div className="flex items-center gap-1.5 mb-1 flex-wrap">
                           {r.es_transito ? (
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-black uppercase tracking-wider bg-amber-100 text-amber-900 border border-amber-300">
-                              <Send className="w-3 h-3 text-amber-700" /> En Tránsito
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-black uppercase tracking-wider bg-amber-100 dark:bg-amber-900/60 text-amber-900 dark:text-amber-200 border border-amber-300 dark:border-amber-700">
+                              <Send className="w-3 h-3 text-amber-700 dark:text-amber-400" /> En Tránsito
                             </span>
                           ) : isAcumulable ? (
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-black uppercase tracking-wider bg-indigo-50 text-indigo-700 border border-indigo-200">
-                              <Coins className="w-3 h-3 text-indigo-600" /> Fondo Acumulativo
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-black uppercase tracking-wider bg-indigo-50 dark:bg-indigo-900/60 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800">
+                              <Coins className="w-3 h-3 text-indigo-600 dark:text-indigo-400" /> Fondo Acumulativo
                             </span>
                           ) : (
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-black uppercase tracking-wider bg-slate-100 text-slate-600 border border-slate-200">
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-black uppercase tracking-wider bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
                               ⚡ Fondo de Período
                             </span>
                           )}
                           {r.ente_superior_nombre && (
-                            <span className="text-[10px] font-bold text-amber-800 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200">
+                            <span className="text-[10px] font-bold text-amber-800 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/60 px-1.5 py-0.5 rounded border border-amber-200 dark:border-amber-800">
                               Destino: {r.ente_superior_nombre}
                             </span>
                           )}
                           {r.seccion && (
-                            <span className="text-[10px] font-semibold text-slate-400">
+                            <span className="text-[10px] font-semibold text-slate-400 dark:text-slate-500">
                               {r.seccion}
                             </span>
                           )}
                         </div>
-                        <h3 className="text-sm font-bold text-slate-900 truncate" title={r.campo_fondo_nombre}>
+                        <h3 className="text-sm font-bold text-slate-900 dark:text-white truncate" title={r.campo_fondo_nombre}>
                           {r.campo_fondo_nombre}
                         </h3>
                       </div>
                       <div className={`p-2 rounded-xl flex-shrink-0 ${
                         r.es_transito
-                          ? "bg-amber-100 text-amber-700"
+                          ? "bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-400"
                           : isAcumulable
-                          ? "bg-indigo-50 text-indigo-600"
-                          : "bg-slate-100 text-slate-600"
+                          ? "bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400"
+                          : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300"
                       }`}>
                         {r.es_transito ? <Send className="w-4 h-4" /> : <Wallet className="w-4 h-4" />}
                       </div>
                     </div>
 
                     {/* Breakdown */}
-                    <div className="space-y-2 text-xs bg-slate-50 p-3 rounded-xl border border-slate-100">
+                    <div className="space-y-2 text-xs bg-slate-50 dark:bg-slate-800/60 p-3 rounded-xl border border-slate-100 dark:border-slate-800">
                       {isAcumulable ? (
                         <>
-                          <div className="flex justify-between items-center text-slate-600">
+                          <div className="flex justify-between items-center text-slate-600 dark:text-slate-400">
                             <span className="flex items-center gap-1 font-medium">
-                              <History className="w-3 h-3 text-indigo-500" /> Recaudo acumulado total
+                              <History className="w-3 h-3 text-indigo-500 dark:text-indigo-400" /> Recaudo acumulado total
                             </span>
-                            <span className="font-bold text-slate-800">{formatCOP(r.fondo_acumulado)}</span>
+                            <span className="font-bold text-slate-800 dark:text-slate-200">{formatCOP(r.fondo_acumulado)}</span>
                           </div>
-                          <div className="flex justify-between items-center text-rose-600">
+                          <div className="flex justify-between items-center text-rose-600 dark:text-rose-400">
                             <span className="flex items-center gap-1 font-medium">
                               <ArrowDownRight className="w-3 h-3" /> Egresos / Giros acumulados
                             </span>
                             <span className="font-bold">−{formatCOP(r.gastos_acumulados)}</span>
                           </div>
-                          <div className="h-px bg-slate-200/80 my-1" />
+                          <div className="h-px bg-slate-200/80 dark:bg-slate-700 my-1" />
                           <div className="flex justify-between items-center pt-0.5">
-                            <span className="font-black text-slate-800 text-[11px] uppercase tracking-wide">
+                            <span className="font-black text-slate-800 dark:text-slate-200 text-[11px] uppercase tracking-wide">
                               {r.es_transito ? "Por Transferir / Girar" : "Saldo Real en Caja"}
                             </span>
-                            <span className={`font-black text-sm ${displaySaldo < 0 ? "text-rose-600" : r.es_transito ? "text-amber-800" : "text-indigo-700"}`}>
+                            <span className={`font-black text-sm ${displaySaldo < 0 ? "text-rose-600 dark:text-rose-400" : r.es_transito ? "text-amber-800 dark:text-amber-300" : "text-indigo-700 dark:text-indigo-400"}`}>
                               {formatCOP(displaySaldo)}
                             </span>
                           </div>
                           {/* Period info pill */}
-                          <div className="mt-2 pt-2 border-t border-slate-200/60 flex justify-between text-[11px] text-slate-500 font-medium">
+                          <div className="mt-2 pt-2 border-t border-slate-200/60 dark:border-slate-700 flex justify-between text-[11px] text-slate-500 dark:text-slate-400 font-medium">
                             <span>Movimiento del mes:</span>
                             <span>
-                              +{formatCOP(r.fondo_periodo)} / <span className="text-rose-600 font-semibold">−{formatCOP(r.gastos_periodo)}</span>
+                              +{formatCOP(r.fondo_periodo)} / <span className="text-rose-600 dark:text-rose-400 font-semibold">−{formatCOP(r.gastos_periodo)}</span>
                             </span>
                           </div>
                         </>
                       ) : (
                         <>
-                          <div className="flex justify-between items-center text-slate-600">
+                          <div className="flex justify-between items-center text-slate-600 dark:text-slate-400">
                             <span className="flex items-center gap-1 font-medium">
-                              <ArrowUpRight className="w-3 h-3 text-emerald-500" /> Recaudo del período
+                              <ArrowUpRight className="w-3 h-3 text-emerald-500 dark:text-emerald-400" /> Recaudo del período
                             </span>
-                            <span className="font-bold text-slate-800">{formatCOP(r.fondo_periodo)}</span>
+                            <span className="font-bold text-slate-800 dark:text-slate-200">{formatCOP(r.fondo_periodo)}</span>
                           </div>
-                          <div className="flex justify-between items-center text-rose-600">
+                          <div className="flex justify-between items-center text-rose-600 dark:text-rose-400">
                             <span className="flex items-center gap-1 font-medium">
                               <ArrowDownRight className="w-3 h-3" /> Egresos / Giros del período
                             </span>
                             <span className="font-bold">−{formatCOP(r.gastos_periodo)}</span>
                           </div>
-                          <div className="h-px bg-slate-200/80 my-1" />
+                          <div className="h-px bg-slate-200/80 dark:bg-slate-700 my-1" />
                           <div className="flex justify-between items-center pt-0.5">
-                            <span className="font-black text-slate-800 text-[11px] uppercase tracking-wide">
+                            <span className="font-black text-slate-800 dark:text-slate-200 text-[11px] uppercase tracking-wide">
                               {r.es_transito ? "Por Girar (Mes)" : "Saldo del período"}
                             </span>
-                            <span className={`font-black text-sm ${displaySaldo < 0 ? "text-rose-600" : r.es_transito ? "text-amber-800" : "text-emerald-700"}`}>
+                            <span className={`font-black text-sm ${displaySaldo < 0 ? "text-rose-600 dark:text-rose-400" : r.es_transito ? "text-amber-800 dark:text-amber-300" : "text-emerald-700 dark:text-emerald-400"}`}>
                               {formatCOP(displaySaldo)}
                             </span>
                           </div>
@@ -452,14 +452,14 @@ export function GastosPanel({
 
                   {/* Progress & Badge */}
                   <div className="mt-3 pt-2">
-                    <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                    <div className="h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
                       <div
                         className={`h-full rounded-full transition-all ${barColor}`}
                         style={{ width: `${Math.min(pct, 100)}%` }}
                       />
                     </div>
                     <div className="flex justify-between items-center mt-1.5">
-                      <span className="text-[10px] text-slate-400 font-medium">{pct}% egresado</span>
+                      <span className="text-[10px] text-slate-400 dark:text-slate-500 font-medium">{pct}% egresado</span>
                       <SaldoBadge saldo={displaySaldo} total={displayTotalFondo} />
                     </div>
                   </div>
@@ -468,16 +468,16 @@ export function GastosPanel({
             })}
           </div>
         ) : (
-          <div className="p-10 text-center bg-white rounded-2xl border border-slate-200 shadow-xs flex flex-col items-center justify-center">
-            <div className="p-3 bg-indigo-50 text-indigo-600 rounded-2xl mb-3">
+          <div className="p-10 text-center bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs flex flex-col items-center justify-center">
+            <div className="p-3 bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 rounded-2xl mb-3">
               <Wallet className="w-6 h-6" />
             </div>
-            <p className="text-sm font-bold text-slate-800">
+            <p className="text-sm font-bold text-slate-800 dark:text-slate-200">
               {resumen.length === 0
                 ? "No hay columnas configuradas como Fondos de Tesorería"
                 : "No se encontraron fondos con el filtro de búsqueda"}
             </p>
-            <p className="text-xs text-slate-500 mt-1 max-w-md leading-relaxed">
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 max-w-md leading-relaxed">
               {resumen.length === 0
                 ? "Para designar qué columnas funcionarán como fondos para registrar gastos y controlar saldos, dirígete al menú «Columnas & Fórmulas», abre la columna que desees y activa la opción «Habilitar como Fondo de Tesorería»."
                 : "Intenta cambiar el filtro o el término de búsqueda para ver otros fondos."}
@@ -489,8 +489,8 @@ export function GastosPanel({
         <div className="pt-4">
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h2 className="text-sm font-bold text-slate-900">Historial de Gastos del Período ({selectedPeriodoNombre})</h2>
-              <p className="text-xs text-slate-500">Salidas de dinero registradas contra fondos de tesorería</p>
+              <h2 className="text-sm font-bold text-slate-900 dark:text-white">Historial de Gastos del Período ({selectedPeriodoNombre})</h2>
+              <p className="text-xs text-slate-500 dark:text-slate-400">Salidas de dinero registradas contra fondos de tesorería</p>
             </div>
           </div>
 
@@ -499,12 +499,12 @@ export function GastosPanel({
               <div className="w-8 h-8 border-2 border-indigo-200 border-t-indigo-600 rounded-full animate-spin" />
             </div>
           ) : gastos.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-16 bg-white border border-slate-200 rounded-2xl text-center">
-              <div className="p-4 bg-slate-50 rounded-2xl mb-3 border border-slate-100">
-                <TrendingDown className="w-8 h-8 text-slate-400" />
+            <div className="flex flex-col items-center justify-center py-16 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl text-center">
+              <div className="p-4 bg-slate-50 dark:bg-slate-800 rounded-2xl mb-3 border border-slate-100 dark:border-slate-700">
+                <TrendingDown className="w-8 h-8 text-slate-400 dark:text-slate-500" />
               </div>
-              <p className="text-sm font-bold text-slate-700">Sin gastos registrados en este período</p>
-              <p className="text-xs text-slate-400 mt-1 max-w-sm">
+              <p className="text-sm font-bold text-slate-700 dark:text-slate-300">Sin gastos registrados en este período</p>
+              <p className="text-xs text-slate-400 dark:text-slate-500 mt-1 max-w-sm">
                 {isPeriodOpen
                   ? "Haz clic en «Registrar Gasto» para descontar fondos de cualquier columna de tesorería."
                   : "Este período está cerrado."}
@@ -519,32 +519,32 @@ export function GastosPanel({
                 const totalFondoGastos = gList.reduce((sum, g) => sum + Number(g.monto), 0);
 
                 return (
-                  <div key={fondoId} className="bg-white border border-slate-200 rounded-2xl p-4 shadow-xs">
+                  <div key={fondoId} className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-xs">
                     {/* Header for group */}
-                    <div className="flex items-center justify-between pb-3 mb-3 border-b border-slate-100">
+                    <div className="flex items-center justify-between pb-3 mb-3 border-b border-slate-100 dark:border-slate-800">
                       <div className="flex items-center gap-2">
                         {isAcum ? (
-                          <span className="p-1 bg-indigo-50 text-indigo-600 rounded-lg">
+                          <span className="p-1 bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 rounded-lg">
                             <Coins className="w-4 h-4" />
                           </span>
                         ) : (
-                          <span className="p-1 bg-slate-100 text-slate-600 rounded-lg">
+                          <span className="p-1 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded-lg">
                             <Wallet className="w-4 h-4" />
                           </span>
                         )}
                         <div>
-                          <span className="text-xs font-black text-slate-800 uppercase tracking-wider">
+                          <span className="text-xs font-black text-slate-800 dark:text-slate-200 uppercase tracking-wider">
                             {fondoNombre}
                           </span>
                           {isAcum && (
-                            <span className="ml-2 text-[10px] font-bold text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded">
+                            <span className="ml-2 text-[10px] font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/60 px-1.5 py-0.5 rounded">
                               Fondo Acumulativo
                             </span>
                           )}
                         </div>
                       </div>
                       <div className="text-right">
-                        <span className="text-xs font-bold text-rose-600">
+                        <span className="text-xs font-bold text-rose-600 dark:text-rose-400">
                           Total egresos: −{formatCOP(totalFondoGastos)}
                         </span>
                       </div>
@@ -555,14 +555,14 @@ export function GastosPanel({
                       {gList.map((g) => (
                         <div
                           key={g.id}
-                          className="flex items-center gap-4 bg-slate-50/70 border border-slate-200/70 rounded-xl px-4 py-2.5 hover:bg-slate-50 transition group"
+                          className="flex items-center gap-4 bg-slate-50/70 dark:bg-slate-800/40 border border-slate-200/70 dark:border-slate-800 rounded-xl px-4 py-2.5 hover:bg-slate-50 dark:hover:bg-slate-800 transition group"
                         >
-                          <div className="p-2 bg-rose-100/70 text-rose-600 rounded-lg flex-shrink-0">
+                          <div className="p-2 bg-rose-100/70 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400 rounded-lg flex-shrink-0">
                             <ArrowDownRight className="w-4 h-4" />
                           </div>
                           <div className="flex-1 min-w-0">
-                            <p className="text-xs font-bold text-slate-900 truncate">{g.descripcion}</p>
-                            <p className="text-[11px] text-slate-500 mt-0.5">
+                            <p className="text-xs font-bold text-slate-900 dark:text-white truncate">{g.descripcion}</p>
+                            <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
                               {new Date(g.fecha).toLocaleDateString("es-CO", {
                                 day: "2-digit",
                                 month: "short",
@@ -572,13 +572,13 @@ export function GastosPanel({
                             </p>
                           </div>
                           <div className="text-right flex-shrink-0">
-                            <p className="text-sm font-black text-rose-600">−{formatCOP(Number(g.monto))}</p>
+                            <p className="text-sm font-black text-rose-600 dark:text-rose-400">−{formatCOP(Number(g.monto))}</p>
                           </div>
                           <div className="flex items-center gap-1">
                             <button
                               type="button"
                               onClick={() => onOpenVoucher && onOpenVoucher(g)}
-                              className="px-2.5 py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-lg text-xs font-bold transition flex items-center gap-1 cursor-pointer border border-indigo-200 shadow-2xs"
+                              className="px-2.5 py-1 bg-indigo-50 dark:bg-indigo-950/60 hover:bg-indigo-100 dark:hover:bg-indigo-900/60 text-indigo-700 dark:text-indigo-300 rounded-lg text-xs font-bold transition flex items-center gap-1 cursor-pointer border border-indigo-200 dark:border-indigo-800 shadow-2xs"
                               title="Ver Comprobante de Egreso / Enviar por WhatsApp / Imprimir PDF"
                             >
                               <FileText className="w-3.5 h-3.5" />
@@ -589,7 +589,7 @@ export function GastosPanel({
                                 <button
                                   type="button"
                                   onClick={() => onEdit(g)}
-                                  className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition cursor-pointer"
+                                  className="p-1.5 text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-950/40 rounded-lg transition cursor-pointer"
                                   title="Editar"
                                 >
                                   <Pencil className="w-3.5 h-3.5" />
@@ -597,7 +597,7 @@ export function GastosPanel({
                                 <button
                                   type="button"
                                   onClick={() => onDelete(g)}
-                                  className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition cursor-pointer"
+                                  className="p-1.5 text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-lg transition cursor-pointer"
                                   title="Eliminar"
                                 >
                                   <Trash2 className="w-3.5 h-3.5" />

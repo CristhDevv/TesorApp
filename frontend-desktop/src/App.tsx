@@ -1742,7 +1742,7 @@ export default function App() {
 
           {/* TAB 1: SHEET */}
           {activeTab === 'sheet' && (
-            <div className="flex-1 flex flex-col min-h-0 overflow-hidden relative bg-white">
+            <div className="flex-1 flex flex-col min-h-0 overflow-hidden relative bg-white dark:bg-slate-950">
           {/* Toolbar (Tesorero only) */}
           {isTesorero ? (
             <TableFilterToolbar
@@ -1830,15 +1830,15 @@ export default function App() {
 
               {/* Analytics Drawer */}
               {showAnalyticsDrawer && (
-                <div className="absolute right-0 top-[72px] bottom-0 w-[420px] bg-white border-l border-slate-200 shadow-2xl z-40 flex flex-col p-4">
-                  <div className="flex items-center justify-between border-b border-slate-200 pb-2 mb-3">
-                    <div className="flex items-center gap-1.5 font-bold text-slate-900 text-xs">
-                      <TrendingUp className="w-4 h-4 text-indigo-600" />
+                <div className="absolute right-0 top-[72px] bottom-0 w-[420px] bg-white dark:bg-slate-900 border-l border-slate-200 dark:border-slate-800 shadow-2xl z-40 flex flex-col p-4">
+                  <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-2 mb-3">
+                    <div className="flex items-center gap-1.5 font-bold text-slate-900 dark:text-white text-xs">
+                      <TrendingUp className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
                       <span>Análisis Comparativo ({gridData?.tabla_nombre})</span>
                     </div>
                     <button
                       onClick={() => setShowAnalyticsDrawer(false)}
-                      className="p-1 text-slate-400 hover:text-slate-700 rounded"
+                      className="p-1 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 rounded cursor-pointer"
                     >
                       <X className="w-4 h-4" />
                     </button>
@@ -1854,17 +1854,17 @@ export default function App() {
                             plugins: {
                               legend: {
                                 position: 'top',
-                                labels: { boxWidth: 10, font: { size: 10 }, color: '#475569' },
+                                labels: { boxWidth: 10, font: { size: 10 }, color: '#94a3b8' },
                               },
                               title: { display: false },
                             },
                             scales: {
                               y: {
-                                ticks: { font: { size: 9 }, color: '#64748b', callback: (val) => formatCOP(val as number) },
-                                grid: { color: '#f1f5f9' },
+                                ticks: { font: { size: 9 }, color: '#94a3b8', callback: (val) => formatCOP(val as number) },
+                                grid: { color: 'rgba(148, 163, 184, 0.1)' },
                               },
                               x: {
-                                ticks: { font: { size: 9 }, color: '#64748b', maxRotation: 45, minRotation: 45 },
+                                ticks: { font: { size: 9 }, color: '#94a3b8', maxRotation: 45, minRotation: 45 },
                                 grid: { display: false },
                               },
                             },
@@ -1872,7 +1872,7 @@ export default function App() {
                         />
                       </div>
                     ) : (
-                      <div className="text-center text-slate-500 text-xs">
+                      <div className="text-center text-slate-500 dark:text-slate-400 text-xs">
                         No se encontraron las columnas 'total_ingresos' y 'saldo_neto'.
                       </div>
                     )}
@@ -1893,7 +1893,7 @@ export default function App() {
                 onSendMonthlyReport={handleSendMonthlyReport}
               />
             ) : (
-              <div className="flex-1 flex items-center justify-center text-slate-500 text-xs bg-slate-50">
+              <div className="flex-1 flex items-center justify-center text-slate-500 dark:text-slate-400 text-xs bg-slate-50 dark:bg-slate-950">
                 No hay datos disponibles para este período.
               </div>
             )
@@ -1976,10 +1976,10 @@ export default function App() {
 
       {/* ── TAB 2: IGLESIAS ── */}
       {activeTab === 'iglesias' && (
-        <div className="flex-1 flex flex-col min-h-0 overflow-hidden bg-white">
-          <div className="h-[42px] px-3 bg-slate-50 border-b border-slate-200 flex items-center justify-between shrink-0">
+        <div className="flex-1 flex flex-col min-h-0 overflow-hidden bg-white dark:bg-slate-950">
+          <div className="h-[42px] px-3 bg-slate-50 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between shrink-0">
             <div className="flex items-center gap-2">
-              <h2 className="font-bold text-slate-900 text-xs">Directorio de Iglesias ({iglesias.length})</h2>
+              <h2 className="font-bold text-slate-900 dark:text-white text-xs">Directorio de Iglesias ({iglesias.length})</h2>
               <div className="relative">
                 <Search className="w-3.5 h-3.5 absolute left-2 top-2.5 text-slate-400 pointer-events-none" />
                 <input
@@ -1987,7 +1987,7 @@ export default function App() {
                   placeholder="Buscar iglesia o pastor..."
                   value={churchSearch}
                   onChange={(e) => setChurchSearch(e.target.value)}
-                  className="w-56 pl-7 pr-2 py-1 bg-white border border-slate-300 rounded text-slate-900 text-xs placeholder-slate-400 focus:outline-none focus:border-indigo-600"
+                  className="w-56 pl-7 pr-2 py-1 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded text-slate-900 dark:text-slate-100 text-xs placeholder-slate-400 focus:outline-none focus:border-indigo-600"
                 />
               </div>
             </div>
@@ -2006,15 +2006,15 @@ export default function App() {
                 });
                 setShowChurchModal(true);
               }}
-              className="px-2.5 py-1 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded text-xs flex items-center gap-1 shadow-xs"
+              className="px-2.5 py-1 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded text-xs flex items-center gap-1 shadow-xs cursor-pointer"
             >
               <Plus className="w-3 h-3" /> Registrar Iglesia
             </button>
           </div>
           <div className="flex-1 min-h-0 overflow-auto">
             <table className="w-full border-collapse text-left text-xs">
-              <thead className="sticky top-0 bg-slate-100 border-b border-slate-300 z-10 select-none">
-                <tr className="text-[10px] font-extrabold text-slate-600 uppercase tracking-wider">
+              <thead className="sticky top-0 bg-slate-100 dark:bg-slate-800 border-b border-slate-300 dark:border-slate-700 z-10 select-none">
+                <tr className="text-[10px] font-extrabold text-slate-600 dark:text-slate-300 uppercase tracking-wider">
                   {[
                     ['nombre', 'Nombre'],
                     ['codigo', 'Código'],
@@ -2026,15 +2026,15 @@ export default function App() {
                     <th
                       key={key}
                       onClick={() => toggleChurchSort(key)}
-                      className="px-3 py-2 border-r border-slate-200 cursor-pointer hover:bg-slate-200 transition group"
+                      className="px-3 py-2 border-r border-slate-200 dark:border-slate-700 cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-700 transition group"
                     >
                       <div className="flex items-center justify-between gap-1">
                         <span>{label}</span>
                         {churchSort.colKey === key ? (
                           churchSort.direction === 'asc' ? (
-                            <ArrowUp className="w-3 h-3 text-indigo-600" />
+                            <ArrowUp className="w-3 h-3 text-indigo-600 dark:text-indigo-400" />
                           ) : (
-                            <ArrowDown className="w-3 h-3 text-indigo-600" />
+                            <ArrowDown className="w-3 h-3 text-indigo-600 dark:text-indigo-400" />
                           )
                         ) : (
                           <ArrowUpDown className="w-3 h-3 text-slate-400 opacity-0 group-hover:opacity-100 transition" />
@@ -2042,38 +2042,38 @@ export default function App() {
                       </div>
                     </th>
                   ))}
-                  <th className="px-2.5 py-2 border-r border-slate-200">Tabla</th>
-                  <th className="px-2.5 py-2 border-r border-slate-200 text-center">Estado</th>
+                  <th className="px-2.5 py-2 border-r border-slate-200 dark:border-slate-700">Tabla</th>
+                  <th className="px-2.5 py-2 border-r border-slate-200 dark:border-slate-700 text-center">Estado</th>
                   <th className="px-3 py-2 text-right">Acciones</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-200">
+              <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
                 {sortedIglesias.map((ig) => {
                   const matchedTable = tablas.find((t) => t.iglesias.some((i: any) => i.id === ig.id));
                   return (
-                    <tr key={ig.id} className="hover:bg-slate-50 transition">
-                      <td className="px-3 py-2 font-bold text-slate-900 border-r border-slate-200">{ig.nombre}</td>
-                      <td className="px-2.5 py-2 text-slate-500 font-mono text-[11px] border-r border-slate-200">
+                    <tr key={ig.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition">
+                      <td className="px-3 py-2 font-bold text-slate-900 dark:text-white border-r border-slate-200 dark:border-slate-800">{ig.nombre}</td>
+                      <td className="px-2.5 py-2 text-slate-500 dark:text-slate-400 font-mono text-[11px] border-r border-slate-200 dark:border-slate-800">
                         {ig.codigo || '-'}
                       </td>
-                      <td className="px-2.5 py-2 text-slate-700 border-r border-slate-200">{ig.nombre_pastor || '-'}</td>
-                      <td className="px-2.5 py-2 text-slate-600 font-mono text-[11px] border-r border-slate-200">
+                      <td className="px-2.5 py-2 text-slate-700 dark:text-slate-300 border-r border-slate-200 dark:border-slate-800">{ig.nombre_pastor || '-'}</td>
+                      <td className="px-2.5 py-2 text-slate-600 dark:text-slate-400 font-mono text-[11px] border-r border-slate-200 dark:border-slate-800">
                         {ig.telefono || '-'}
                       </td>
-                      <td className="px-2.5 py-2 text-slate-600 border-r border-slate-200">{ig.correo || '-'}</td>
-                      <td className="px-2.5 py-2 text-slate-500 text-[11px] truncate max-w-[150px] border-r border-slate-200">
+                      <td className="px-2.5 py-2 text-slate-600 dark:text-slate-400 border-r border-slate-200 dark:border-slate-800">{ig.correo || '-'}</td>
+                      <td className="px-2.5 py-2 text-slate-500 dark:text-slate-400 text-[11px] truncate max-w-[150px] border-r border-slate-200 dark:border-slate-800">
                         {ig.direccion || '-'}
                       </td>
-                      <td className="px-2.5 py-2 border-r border-slate-200">
+                      <td className="px-2.5 py-2 border-r border-slate-200 dark:border-slate-800">
                         {matchedTable ? (
-                          <span className="px-1.5 py-0.5 bg-slate-100 text-slate-800 rounded text-[10px] font-bold border border-slate-200">
+                          <span className="px-1.5 py-0.5 bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 rounded text-[10px] font-bold border border-slate-200 dark:border-slate-700">
                             {matchedTable.nombre}
                           </span>
                         ) : (
-                          <span className="text-slate-400 text-[10px]">Sin asignar</span>
+                          <span className="text-slate-400 dark:text-slate-500 text-[10px]">Sin asignar</span>
                         )}
                       </td>
-                      <td className="px-2.5 py-2 text-center border-r border-slate-200">
+                      <td className="px-2.5 py-2 text-center border-r border-slate-200 dark:border-slate-800">
                         <BadgeStatus variant={ig.estado} label={ig.estado} />
                       </td>
                       <td className="px-3 py-2 text-right space-x-1">
@@ -2090,7 +2090,7 @@ export default function App() {
                             });
                             setShowUserModal(true);
                           }}
-                          className="px-2 py-1 text-[11px] bg-slate-50 hover:bg-slate-100 text-slate-700 rounded font-semibold inline-flex items-center gap-1 border border-slate-300"
+                          className="px-2 py-1 text-[11px] bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded font-semibold inline-flex items-center gap-1 border border-slate-300 dark:border-slate-700 cursor-pointer"
                         >
                           <UserPlus className="w-3 h-3" /> + Usuario
                         </button>
@@ -2109,19 +2109,19 @@ export default function App() {
                             });
                             setShowChurchModal(true);
                           }}
-                          className="px-2 py-1 text-[11px] border border-slate-300 rounded hover:bg-slate-100 text-slate-700 font-semibold"
+                          className="px-2 py-1 text-[11px] border border-slate-300 dark:border-slate-700 rounded hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 font-semibold cursor-pointer"
                         >
                           Editar
                         </button>
                         <button
                           onClick={() => toggleChurchStatus(ig.id, ig.estado)}
-                          className="px-2 py-1 text-[11px] border border-slate-300 rounded hover:bg-slate-100 text-slate-600 font-semibold"
+                          className="px-2 py-1 text-[11px] border border-slate-300 dark:border-slate-700 rounded hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 font-semibold cursor-pointer"
                         >
                           {ig.estado === 'activa' ? 'Desactivar' : 'Activar'}
                         </button>
                         <button
                           onClick={() => deleteChurch(ig.id, ig.nombre)}
-                          className="px-2 py-1 text-[11px] border border-rose-200 rounded hover:bg-rose-50 text-rose-600 font-semibold"
+                          className="px-2 py-1 text-[11px] border border-rose-200 dark:border-rose-800 rounded hover:bg-rose-50 dark:hover:bg-rose-950/40 text-rose-600 dark:text-rose-400 font-semibold cursor-pointer"
                         >
                           Eliminar
                         </button>
@@ -2137,10 +2137,10 @@ export default function App() {
 
       {/* ── TAB 3: CAMPOS ── */}
       {activeTab === 'campos' && (
-        <div className="flex-1 flex flex-col min-h-0 overflow-hidden bg-white">
-          <div className="h-[42px] px-3 bg-slate-50 border-b border-slate-200 flex items-center justify-between shrink-0">
+        <div className="flex-1 flex flex-col min-h-0 overflow-hidden bg-white dark:bg-slate-950">
+          <div className="h-[42px] px-3 bg-slate-50 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between shrink-0">
             <div className="flex items-center gap-2">
-              <h2 className="font-bold text-slate-900 text-xs">Definición de Columnas ({campos.length})</h2>
+              <h2 className="font-bold text-slate-900 dark:text-white text-xs">Definición de Columnas ({campos.length})</h2>
               <div className="relative">
                 <Search className="w-3.5 h-3.5 absolute left-2 top-2.5 text-slate-400 pointer-events-none" />
                 <input
@@ -2148,21 +2148,21 @@ export default function App() {
                   placeholder="Buscar columna o slug..."
                   value={fieldSearch}
                   onChange={(e) => setFieldSearch(e.target.value)}
-                  className="w-56 pl-7 pr-2 py-1 bg-white border border-slate-300 rounded text-slate-900 text-xs placeholder-slate-400 focus:outline-none focus:border-indigo-600"
+                  className="w-56 pl-7 pr-2 py-1 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded text-slate-900 dark:text-slate-100 text-xs placeholder-slate-400 focus:outline-none focus:border-indigo-600"
                 />
               </div>
             </div>
             <button
               onClick={openFieldModalForNew}
-              className="px-2.5 py-1 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded text-xs flex items-center gap-1 shadow-xs"
+              className="px-2.5 py-1 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded text-xs flex items-center gap-1 shadow-xs cursor-pointer"
             >
               <Plus className="w-3 h-3" /> Crear Columna
             </button>
           </div>
           <div className="flex-1 min-h-0 overflow-auto">
             <table className="w-full border-collapse text-left text-xs">
-              <thead className="sticky top-0 bg-slate-100 border-b border-slate-300 z-10 select-none">
-                <tr className="text-[10px] font-extrabold text-slate-600 uppercase tracking-wider">
+              <thead className="sticky top-0 bg-slate-100 dark:bg-slate-800 border-b border-slate-300 dark:border-slate-700 z-10 select-none">
+                <tr className="text-[10px] font-extrabold text-slate-600 dark:text-slate-300 uppercase tracking-wider">
                   {[
                     ['nombre', 'Nombre'],
                     ['slug', 'Slug'],
@@ -2175,15 +2175,15 @@ export default function App() {
                     <th
                       key={key}
                       onClick={() => toggleFieldSort(key)}
-                      className="px-2.5 py-2 border-r border-slate-200 cursor-pointer hover:bg-slate-200 transition group"
+                      className="px-2.5 py-2 border-r border-slate-200 dark:border-slate-700 cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-700 transition group"
                     >
                       <div className="flex items-center justify-between gap-1">
                         <span>{label}</span>
                         {fieldSort.colKey === key ? (
                           fieldSort.direction === 'asc' ? (
-                            <ArrowUp className="w-3 h-3 text-indigo-600" />
+                            <ArrowUp className="w-3 h-3 text-indigo-600 dark:text-indigo-400" />
                           ) : (
-                            <ArrowDown className="w-3 h-3 text-indigo-600" />
+                            <ArrowDown className="w-3 h-3 text-indigo-600 dark:text-indigo-400" />
                           )
                         ) : (
                           <ArrowUpDown className="w-3 h-3 text-slate-400 opacity-0 group-hover:opacity-100 transition" />
@@ -2191,76 +2191,76 @@ export default function App() {
                       </div>
                     </th>
                   ))}
-                  <th className="px-2.5 py-2 border-r border-slate-200">Visibilidad</th>
+                  <th className="px-2.5 py-2 border-r border-slate-200 dark:border-slate-700">Visibilidad</th>
                   <th className="px-3 py-2 text-right">Acciones</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-200">
+              <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
                 {sortedCampos.map((field) => {
                   const isTesoreroOnly = field.visible_para_tesorero && !field.visible_para_iglesia;
                   const isIglesiaOnly = !field.visible_para_tesorero && field.visible_para_iglesia;
                   return (
-                    <tr key={field.id} className="hover:bg-slate-50 transition">
-                      <td className="px-3 py-2 font-bold text-slate-900 border-r border-slate-200">{field.nombre}</td>
-                      <td className="px-2.5 py-2 font-mono text-[11px] text-slate-500 border-r border-slate-200">{field.slug}</td>
-                      <td className="px-2.5 py-2 border-r border-slate-200">
+                    <tr key={field.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition">
+                      <td className="px-3 py-2 font-bold text-slate-900 dark:text-white border-r border-slate-200 dark:border-slate-800">{field.nombre}</td>
+                      <td className="px-2.5 py-2 font-mono text-[11px] text-slate-500 dark:text-slate-400 border-r border-slate-200 dark:border-slate-800">{field.slug}</td>
+                      <td className="px-2.5 py-2 border-r border-slate-200 dark:border-slate-800">
                         {field.es_temporal ? (
-                          <span className="px-1.5 py-0.5 bg-amber-50 text-amber-800 border border-amber-200 rounded text-[10px] font-bold">
+                          <span className="px-1.5 py-0.5 bg-amber-50 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800 rounded text-[10px] font-bold">
                             ⏱ {field.periodo?.nombre || 'Temporal'}
                           </span>
                         ) : (
-                          <span className="px-1.5 py-0.5 bg-slate-100 text-slate-600 border border-slate-200 rounded text-[10px] font-medium">
+                          <span className="px-1.5 py-0.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 rounded text-[10px] font-medium">
                             Permanente
                           </span>
                         )}
                       </td>
-                      <td className="px-2.5 py-2 border-r border-slate-200">
+                      <td className="px-2.5 py-2 border-r border-slate-200 dark:border-slate-800">
                         {field.seccion_iglesia && field.seccion_tesorero && field.seccion_iglesia !== field.seccion_tesorero ? (
-                          <span className="px-1.5 py-0.5 bg-slate-100 text-amber-800 border border-amber-300 rounded text-[10px] font-bold">
+                          <span className="px-1.5 py-0.5 bg-slate-100 dark:bg-slate-800 text-amber-800 dark:text-amber-300 border border-amber-300 dark:border-amber-700 rounded text-[10px] font-bold">
                             {field.seccion_iglesia} → {field.seccion_tesorero}
                           </span>
                         ) : (
                           <BadgeStatus variant={field.seccion?.toLowerCase()} label={field.seccion} />
                         )}
                       </td>
-                      <td className="px-2.5 py-2 capitalize text-slate-600 border-r border-slate-200">{field.tipo}</td>
-                      <td className="px-2.5 py-2 border-r border-slate-200">
+                      <td className="px-2.5 py-2 capitalize text-slate-600 dark:text-slate-300 border-r border-slate-200 dark:border-slate-800">{field.tipo}</td>
+                      <td className="px-2.5 py-2 border-r border-slate-200 dark:border-slate-800">
                         {field.modo_calculo === 'calculado' ? (
-                          <span className="font-mono text-[11px] text-blue-700 font-bold truncate max-w-[200px] inline-block" title={field.formula}>
+                          <span className="font-mono text-[11px] text-blue-700 dark:text-blue-300 font-bold truncate max-w-[200px] inline-block" title={field.formula}>
                             {field.formula}
                           </span>
                         ) : (
-                          <span className="px-1.5 py-0.5 bg-slate-100 text-slate-600 rounded text-[9px] font-semibold border border-slate-200">
+                          <span className="px-1.5 py-0.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded text-[9px] font-semibold border border-slate-200 dark:border-slate-700">
                             Manual
                           </span>
                         )}
                       </td>
-                      <td className="px-2.5 py-2 text-center border-r border-slate-200">
+                      <td className="px-2.5 py-2 text-center border-r border-slate-200 dark:border-slate-800">
                         <span
                           className={`px-1.5 py-0.5 rounded text-[10px] font-bold border ${
                             field.es_acumulable
-                              ? 'bg-blue-50 text-blue-700 border-blue-200'
-                              : 'bg-slate-100 text-slate-500 border-slate-200'
+                              ? 'bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800'
+                              : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border-slate-200 dark:border-slate-700'
                           }`}
                         >
                           {field.es_acumulable ? 'Sí' : 'No'}
                         </span>
                       </td>
-                      <td className="px-2.5 py-2 border-r border-slate-200">
-                        <span className="px-1.5 py-0.5 bg-slate-100 text-slate-700 rounded text-[10px] font-semibold border border-slate-200">
+                      <td className="px-2.5 py-2 border-r border-slate-200 dark:border-slate-800">
+                        <span className="px-1.5 py-0.5 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded text-[10px] font-semibold border border-slate-200 dark:border-slate-700">
                           {isTesoreroOnly ? 'Solo Tesorero' : isIglesiaOnly ? 'Solo Iglesia' : 'Ambos'}
                         </span>
                       </td>
                       <td className="px-3 py-2 text-right space-x-1">
                         <button
                           onClick={() => openFieldModalForEdit(field)}
-                          className="px-2 py-1 text-[11px] border border-slate-300 rounded hover:bg-slate-100 text-slate-700 font-semibold"
+                          className="px-2 py-1 text-[11px] border border-slate-300 dark:border-slate-700 rounded hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 font-semibold cursor-pointer"
                         >
                           Editar
                         </button>
                         <button
                           onClick={() => deleteField(field.id)}
-                          className="px-2 py-1 text-[11px] border border-rose-200 rounded hover:bg-rose-50 text-rose-600 font-semibold"
+                          className="px-2 py-1 text-[11px] border border-rose-200 dark:border-rose-800 rounded hover:bg-rose-50 dark:hover:bg-rose-950/40 text-rose-600 dark:text-rose-400 font-semibold cursor-pointer"
                         >
                           Eliminar
                         </button>
@@ -2312,10 +2312,10 @@ export default function App() {
 
       {/* ── TAB 5: USUARIOS ── */}
       {activeTab === 'usuarios' && isTesorero && (
-        <div className="flex-1 flex flex-col min-h-0 overflow-hidden bg-white">
-          <div className="h-[42px] px-3 bg-slate-50 border-b border-slate-200 flex items-center justify-between shrink-0">
+        <div className="flex-1 flex flex-col min-h-0 overflow-hidden bg-white dark:bg-slate-950">
+          <div className="h-[42px] px-3 bg-slate-50 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between shrink-0">
             <div className="flex items-center gap-2">
-              <h2 className="font-bold text-slate-900 text-xs">Cuentas Autorizadas ({usuarios.length})</h2>
+              <h2 className="font-bold text-slate-900 dark:text-white text-xs">Cuentas Autorizadas ({usuarios.length})</h2>
               <div className="relative">
                 <Search className="w-3.5 h-3.5 absolute left-2 top-2.5 text-slate-400 pointer-events-none" />
                 <input
@@ -2323,7 +2323,7 @@ export default function App() {
                   placeholder="Buscar usuario o correo..."
                   value={userSearch}
                   onChange={(e) => setUserSearch(e.target.value)}
-                  className="w-56 pl-7 pr-2 py-1 bg-white border border-slate-300 rounded text-slate-900 text-xs placeholder-slate-400 focus:outline-none focus:border-indigo-600"
+                  className="w-56 pl-7 pr-2 py-1 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded text-slate-900 dark:text-slate-100 text-xs placeholder-slate-400 focus:outline-none focus:border-indigo-600"
                 />
               </div>
             </div>
@@ -2340,15 +2340,15 @@ export default function App() {
                 });
                 setShowUserModal(true);
               }}
-              className="px-2.5 py-1 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded text-xs flex items-center gap-1 shadow-xs"
+              className="px-2.5 py-1 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded text-xs flex items-center gap-1 shadow-xs cursor-pointer"
             >
               <UserPlus className="w-3 h-3" /> Registrar Usuario
             </button>
           </div>
           <div className="flex-1 min-h-0 overflow-auto">
             <table className="w-full border-collapse text-left text-xs">
-              <thead className="sticky top-0 bg-slate-100 border-b border-slate-300 z-10 select-none">
-                <tr className="text-[10px] font-extrabold text-slate-600 uppercase tracking-wider">
+              <thead className="sticky top-0 bg-slate-100 dark:bg-slate-800 border-b border-slate-300 dark:border-slate-700 z-10 select-none">
+                <tr className="text-[10px] font-extrabold text-slate-600 dark:text-slate-300 uppercase tracking-wider">
                   {[
                     ['nombre_completo', 'Nombre'],
                     ['correo', 'Correo'],
@@ -2358,15 +2358,15 @@ export default function App() {
                     <th
                       key={key}
                       onClick={() => toggleUserSort(key)}
-                      className="px-3 py-2 border-r border-slate-200 cursor-pointer hover:bg-slate-200 transition group"
+                      className="px-3 py-2 border-r border-slate-200 dark:border-slate-700 cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-700 transition group"
                     >
                       <div className="flex items-center justify-between gap-1">
                         <span>{label}</span>
                         {userSort.colKey === key ? (
                           userSort.direction === 'asc' ? (
-                            <ArrowUp className="w-3 h-3 text-indigo-600" />
+                            <ArrowUp className="w-3 h-3 text-indigo-600 dark:text-indigo-400" />
                           ) : (
-                            <ArrowDown className="w-3 h-3 text-indigo-600" />
+                            <ArrowDown className="w-3 h-3 text-indigo-600 dark:text-indigo-400" />
                           )
                         ) : (
                           <ArrowUpDown className="w-3 h-3 text-slate-400 opacity-0 group-hover:opacity-100 transition" />
@@ -2377,19 +2377,19 @@ export default function App() {
                   <th className="px-3 py-2 text-right">Acciones</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-200">
+              <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
                 {sortedUsuarios.map((usr) => (
-                  <tr key={usr.id} className="hover:bg-slate-50 transition">
-                    <td className="px-3 py-2 font-bold text-slate-900 border-r border-slate-200">{usr.nombre_completo}</td>
-                    <td className="px-2.5 py-2 text-slate-600 font-mono text-[11px] border-r border-slate-200">{usr.correo}</td>
-                    <td className="px-2.5 py-2 border-r border-slate-200">
+                  <tr key={usr.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition">
+                    <td className="px-3 py-2 font-bold text-slate-900 dark:text-white border-r border-slate-200 dark:border-slate-800">{usr.nombre_completo}</td>
+                    <td className="px-2.5 py-2 text-slate-600 dark:text-slate-400 font-mono text-[11px] border-r border-slate-200 dark:border-slate-800">{usr.correo}</td>
+                    <td className="px-2.5 py-2 border-r border-slate-200 dark:border-slate-800">
                       <BadgeStatus variant={usr.rol} label={usr.rol} />
                     </td>
-                    <td className="px-2.5 py-2 border-r border-slate-200">
+                    <td className="px-2.5 py-2 border-r border-slate-200 dark:border-slate-800">
                       {usr.iglesia ? (
-                        <span className="font-bold text-slate-800">{usr.iglesia.nombre}</span>
+                        <span className="font-bold text-slate-800 dark:text-slate-200">{usr.iglesia.nombre}</span>
                       ) : (
-                        <span className="text-slate-400 text-[10px]">Acceso Global</span>
+                        <span className="text-slate-400 dark:text-slate-500 text-[10px]">Acceso Global</span>
                       )}
                     </td>
                     <td className="px-3 py-2 text-right space-x-1">
@@ -2406,13 +2406,13 @@ export default function App() {
                           });
                           setShowUserModal(true);
                         }}
-                        className="px-2 py-1 text-[11px] border border-slate-300 rounded hover:bg-slate-100 text-slate-700 font-semibold"
+                        className="px-2 py-1 text-[11px] border border-slate-300 dark:border-slate-700 rounded hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 font-semibold cursor-pointer"
                       >
                         Editar
                       </button>
                       <button
                         onClick={() => deleteUser(usr.id, usr.nombre_completo)}
-                        className="px-2 py-1 text-[11px] border border-rose-200 rounded hover:bg-rose-50 text-rose-600 font-semibold"
+                        className="px-2 py-1 text-[11px] border border-rose-200 dark:border-rose-800 rounded hover:bg-rose-50 dark:hover:bg-rose-950/40 text-rose-600 dark:text-rose-400 font-semibold cursor-pointer"
                       >
                         Eliminar
                       </button>
@@ -2427,10 +2427,10 @@ export default function App() {
 
       {/* ── TAB 6: HISTORIAL ── */}
       {activeTab === 'historial' && (
-        <div className="flex-1 flex flex-col min-h-0 overflow-hidden bg-white">
-          <div className="h-[42px] px-3 bg-slate-50 border-b border-slate-200 flex items-center justify-between shrink-0">
+        <div className="flex-1 flex flex-col min-h-0 overflow-hidden bg-white dark:bg-slate-950">
+          <div className="h-[42px] px-3 bg-slate-50 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between shrink-0">
             <div className="flex items-center gap-2">
-              <h2 className="font-bold text-slate-900 text-xs">Bitácora de Auditoría ({auditorias.length} eventos)</h2>
+              <h2 className="font-bold text-slate-900 dark:text-white text-xs">Bitácora de Auditoría ({auditorias.length} eventos)</h2>
               <div className="relative">
                 <Search className="w-3.5 h-3.5 absolute left-2 top-2.5 text-slate-400 pointer-events-none" />
                 <input
@@ -2438,16 +2438,16 @@ export default function App() {
                   placeholder="Filtrar por usuario o entidad..."
                   value={auditSearch}
                   onChange={(e) => setAuditSearch(e.target.value)}
-                  className="w-56 pl-7 pr-2 py-1 bg-white border border-slate-300 rounded text-slate-900 text-xs placeholder-slate-400 focus:outline-none focus:border-indigo-600"
+                  className="w-56 pl-7 pr-2 py-1 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded text-slate-900 dark:text-slate-100 text-xs placeholder-slate-400 focus:outline-none focus:border-indigo-600"
                 />
               </div>
             </div>
-            <span className="text-[11px] text-slate-500">Registro inalterable con transacciones de base de datos</span>
+            <span className="text-[11px] text-slate-500 dark:text-slate-400">Registro inalterable con transacciones de base de datos</span>
           </div>
           <div className="flex-1 min-h-0 overflow-auto">
             <table className="w-full border-collapse text-left text-xs">
-              <thead className="sticky top-0 bg-slate-100 border-b border-slate-300 z-10 select-none">
-                <tr className="text-[10px] font-extrabold text-slate-600 uppercase tracking-wider">
+              <thead className="sticky top-0 bg-slate-100 dark:bg-slate-800 border-b border-slate-300 dark:border-slate-700 z-10 select-none">
+                <tr className="text-[10px] font-extrabold text-slate-600 dark:text-slate-300 uppercase tracking-wider">
                   {[
                     ['realizado_en', 'Fecha y Hora'],
                     ['usuario', 'Usuario'],
@@ -2457,15 +2457,15 @@ export default function App() {
                     <th
                       key={key}
                       onClick={() => toggleAuditSort(key)}
-                      className="px-3 py-2 border-r border-slate-200 cursor-pointer hover:bg-slate-200 transition group"
+                      className="px-3 py-2 border-r border-slate-200 dark:border-slate-700 cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-700 transition group"
                     >
                       <div className="flex items-center justify-between gap-1">
                         <span>{label}</span>
                         {auditSort.colKey === key ? (
                           auditSort.direction === 'asc' ? (
-                            <ArrowUp className="w-3 h-3 text-indigo-600" />
+                            <ArrowUp className="w-3 h-3 text-indigo-600 dark:text-indigo-400" />
                           ) : (
-                            <ArrowDown className="w-3 h-3 text-indigo-600" />
+                            <ArrowDown className="w-3 h-3 text-indigo-600 dark:text-indigo-400" />
                           )
                         ) : (
                           <ArrowUpDown className="w-3 h-3 text-slate-400 opacity-0 group-hover:opacity-100 transition" />
@@ -2473,39 +2473,39 @@ export default function App() {
                       </div>
                     </th>
                   ))}
-                  <th className="px-3 py-2">Detalle</th>
+                  <th className="px-3 py-2 text-right">Detalle</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-200">
+              <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
                 {sortedAuditorias.map((log) => (
-                  <tr key={log.id} className="hover:bg-slate-50 transition">
-                    <td className="px-3 py-2 font-mono text-[11px] text-slate-500 border-r border-slate-200">
+                  <tr key={log.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition">
+                    <td className="px-3 py-2 font-mono text-[11px] text-slate-500 dark:text-slate-400 border-r border-slate-200 dark:border-slate-800">
                       {new Date(log.realizado_en).toLocaleString('es-CO')}
                     </td>
-                    <td className="px-2.5 py-2 font-bold text-slate-900 border-r border-slate-200">
+                    <td className="px-2.5 py-2 font-bold text-slate-900 dark:text-white border-r border-slate-200 dark:border-slate-800">
                       {log.usuario?.nombre_completo || 'Sistema'}
                     </td>
-                    <td className="px-2.5 py-2 border-r border-slate-200">
-                      <span className="px-1.5 py-0.5 rounded text-[10px] font-bold uppercase bg-slate-100 text-slate-800 border border-slate-200">
+                    <td className="px-2.5 py-2 border-r border-slate-200 dark:border-slate-800">
+                      <span className="px-1.5 py-0.5 rounded text-[10px] font-bold uppercase bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-slate-700">
                         {log.accion}
                       </span>
                     </td>
-                    <td className="px-2.5 py-2 font-mono text-[11px] capitalize text-slate-600 border-r border-slate-200">
+                    <td className="px-2.5 py-2 font-mono text-[11px] capitalize text-slate-600 dark:text-slate-400 border-r border-slate-200 dark:border-slate-800">
                       {log.entidad}
                     </td>
-                    <td className="px-3 py-2 font-mono text-[11px]">
+                    <td className="px-3 py-2 font-mono text-[11px] text-right">
                       {log.accion === 'actualizacion' && log.valor_anterior && log.valor_nuevo ? (
-                        <div className="flex items-center gap-1.5 text-slate-600">
-                          <span className="bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200">
+                        <div className="flex items-center justify-end gap-1.5 text-slate-600 dark:text-slate-400">
+                          <span className="bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded border border-slate-200 dark:border-slate-700">
                             {formatCOP(log.valor_anterior.valor_manual || log.valor_anterior.valor_calculado)}
                           </span>
                           <ArrowRight className="w-3 h-3 text-slate-400" />
-                          <span className="bg-amber-50 text-amber-900 px-1.5 py-0.5 rounded border border-amber-200 font-bold">
+                          <span className="bg-amber-50 dark:bg-amber-950/60 text-amber-900 dark:text-amber-300 px-1.5 py-0.5 rounded border border-amber-200 dark:border-amber-800 font-bold">
                             {formatCOP(log.valor_nuevo.valor_manual || log.valor_nuevo.valor_calculado)}
                           </span>
                         </div>
                       ) : (
-                        <span className="text-slate-400">Operación exitosa</span>
+                        <span className="text-slate-400 dark:text-slate-500">Operación exitosa</span>
                       )}
                     </td>
                   </tr>
@@ -2593,30 +2593,30 @@ export default function App() {
       {/* ── MODAL: TABLAS (ZONAS) ── */}
       {showTableModal && (
         <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-2xs flex items-center justify-center p-3 z-50">
-          <div className="bg-white border border-slate-300 rounded-xl shadow-2xl max-w-lg w-full p-5 space-y-3">
-            <div className="flex items-center justify-between border-b border-slate-200 pb-2">
-              <h3 className="text-sm font-bold text-slate-900">{tableModalData.id ? 'Modificar Tabla' : 'Nueva Tabla'}</h3>
-              <button onClick={() => setShowTableModal(false)} className="text-slate-400 hover:text-slate-700">
+          <div className="bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-xl shadow-2xl max-w-lg w-full p-5 space-y-3">
+            <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-2">
+              <h3 className="text-sm font-bold text-slate-900 dark:text-white">{tableModalData.id ? 'Modificar Tabla' : 'Nueva Tabla'}</h3>
+              <button onClick={() => setShowTableModal(false)} className="text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 cursor-pointer">
                 <X className="w-4 h-4" />
               </button>
             </div>
             <form onSubmit={saveTable} className="space-y-3 text-xs">
               <div>
-                <label className="block font-bold text-slate-600 text-[10px] uppercase mb-1">Nombre</label>
+                <label className="block font-bold text-slate-600 dark:text-slate-400 text-[10px] uppercase mb-1">Nombre</label>
                 <input
                   type="text"
                   required
-                  className="w-full px-3 py-1.5 bg-white border border-slate-300 rounded text-slate-900 focus:outline-none focus:border-indigo-600 text-xs font-semibold"
+                  className="w-full px-3 py-1.5 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded text-slate-900 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:border-indigo-600 text-xs font-semibold"
                   placeholder="ej. Circuito Central 2026"
                   value={tableModalData.nombre}
                   onChange={(e) => setTableModalData({ ...tableModalData, nombre: e.target.value })}
                 />
               </div>
               <div>
-                <label className="block font-bold text-slate-600 text-[10px] uppercase mb-1">Iglesias Asociadas</label>
-                <div className="max-h-36 overflow-y-auto border border-slate-300 rounded-lg p-2 space-y-1 bg-slate-50">
+                <label className="block font-bold text-slate-600 dark:text-slate-400 text-[10px] uppercase mb-1">Iglesias Asociadas</label>
+                <div className="max-h-36 overflow-y-auto border border-slate-300 dark:border-slate-700 rounded-lg p-2 space-y-1 bg-slate-50 dark:bg-slate-800/50">
                   {iglesias.map((ig) => (
-                    <label key={ig.id} className="flex items-center gap-2 cursor-pointer py-0.5 hover:bg-slate-100 px-1 rounded">
+                    <label key={ig.id} className="flex items-center gap-2 cursor-pointer py-0.5 hover:bg-slate-100 dark:hover:bg-slate-700/50 px-1 rounded">
                       <input
                         type="checkbox"
                         checked={tableModalData.iglesia_ids.includes(ig.id)}
@@ -2628,19 +2628,19 @@ export default function App() {
                         }}
                         className="accent-indigo-600"
                       />
-                      <span className="text-slate-800 font-semibold">{ig.nombre}</span>
+                      <span className="text-slate-800 dark:text-slate-200 font-semibold">{ig.nombre}</span>
                     </label>
                   ))}
                 </div>
               </div>
               <div>
-                <label className="block font-bold text-slate-600 text-[10px] uppercase mb-1">Columnas y Orden</label>
-                <div className="max-h-36 overflow-y-auto border border-slate-300 rounded-lg p-2 space-y-1 bg-slate-50">
+                <label className="block font-bold text-slate-600 dark:text-slate-400 text-[10px] uppercase mb-1">Columnas y Orden</label>
+                <div className="max-h-36 overflow-y-auto border border-slate-300 dark:border-slate-700 rounded-lg p-2 space-y-1 bg-slate-50 dark:bg-slate-800/50">
                   {campos.map((f) => {
                     const isChecked = tableModalData.campo_ids.includes(f.id);
                     const position = tableModalData.campo_ids.indexOf(f.id);
                     return (
-                      <label key={f.id} className="flex items-center justify-between cursor-pointer py-0.5 hover:bg-slate-100 px-1 rounded">
+                      <label key={f.id} className="flex items-center justify-between cursor-pointer py-0.5 hover:bg-slate-100 dark:hover:bg-slate-700/50 px-1 rounded">
                         <div className="flex items-center gap-2">
                           <input
                             type="checkbox"
@@ -2653,12 +2653,12 @@ export default function App() {
                             }}
                             className="accent-indigo-600"
                           />
-                          <span className="text-slate-800 font-semibold">
+                          <span className="text-slate-800 dark:text-slate-200 font-semibold">
                             {f.nombre} ({f.seccion})
                           </span>
                         </div>
                         {isChecked && (
-                          <span className="px-1.5 py-0.5 bg-indigo-50 text-indigo-700 rounded text-[9px] font-bold border border-indigo-200">
+                          <span className="px-1.5 py-0.5 bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 rounded text-[9px] font-bold border border-indigo-200 dark:border-indigo-800">
                             Col #{position + 1}
                           </span>
                         )}
@@ -2667,7 +2667,7 @@ export default function App() {
                   })}
                 </div>
               </div>
-              <div className="flex justify-between items-center pt-2 border-t border-slate-200">
+              <div className="flex justify-between items-center pt-2 border-t border-slate-200 dark:border-slate-800">
                 {tableModalData.id ? (
                   <button
                     type="button"
@@ -2677,7 +2677,7 @@ export default function App() {
                         setShowTableModal(false);
                       }
                     }}
-                    className="px-2.5 py-1.5 border border-rose-200 hover:bg-rose-50 text-rose-600 rounded font-semibold text-xs flex items-center gap-1"
+                    className="px-2.5 py-1.5 border border-rose-200 dark:border-rose-800 hover:bg-rose-50 dark:hover:bg-rose-950/40 text-rose-600 dark:text-rose-400 rounded font-semibold text-xs flex items-center gap-1 cursor-pointer"
                   >
                     <Trash2 className="w-3.5 h-3.5" />
                     Eliminar Tabla
@@ -2689,14 +2689,14 @@ export default function App() {
                   <button
                     type="button"
                     onClick={() => setShowTableModal(false)}
-                    className="px-3 py-1.5 border border-slate-300 rounded font-semibold text-slate-600 hover:text-slate-900 hover:bg-slate-100 text-xs"
+                    className="px-3 py-1.5 border border-slate-300 dark:border-slate-700 rounded font-semibold text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 text-xs cursor-pointer"
                   >
                     Cancelar
                   </button>
                   <button
                     type="submit"
                     disabled={savingTable}
-                    className="px-4 py-1.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white rounded-lg font-bold shadow-xs text-xs"
+                    className="px-4 py-1.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white rounded-lg font-bold shadow-xs text-xs cursor-pointer"
                   >
                     {savingTable ? 'Guardando...' : 'Guardar Tabla'}
                   </button>
@@ -2710,10 +2710,10 @@ export default function App() {
       {/* ── MODAL: IGLESIA ── */}
       {showChurchModal && (
         <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-2xs flex items-center justify-center p-3 z-50">
-          <div className="bg-white border border-slate-300 rounded-xl shadow-2xl max-w-lg w-full p-5 space-y-3">
-            <div className="flex items-center justify-between border-b border-slate-200 pb-2">
-              <h3 className="text-sm font-bold text-slate-900">{churchModalData.id ? 'Editar Iglesia' : 'Registrar Nueva Iglesia'}</h3>
-              <button onClick={() => setShowChurchModal(false)} className="text-slate-400 hover:text-slate-700">
+          <div className="bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-xl shadow-2xl max-w-lg w-full p-5 space-y-3">
+            <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-2">
+              <h3 className="text-sm font-bold text-slate-900 dark:text-white">{churchModalData.id ? 'Editar Iglesia' : 'Registrar Nueva Iglesia'}</h3>
+              <button onClick={() => setShowChurchModal(false)} className="text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 cursor-pointer">
                 <X className="w-4 h-4" />
               </button>
             </div>
@@ -2727,29 +2727,29 @@ export default function App() {
                 { label: 'Dirección', key: 'direccion', span: 2, type: 'text', placeholder: 'Calle 12 # 34-56' },
               ].map((f) => (
                 <div key={f.key} className={f.span === 2 ? 'col-span-2' : ''}>
-                  <label className="block font-bold text-slate-600 text-[10px] uppercase mb-1">{f.label}</label>
+                  <label className="block font-bold text-slate-600 dark:text-slate-400 text-[10px] uppercase mb-1">{f.label}</label>
                   <input
                     type={f.type}
                     required={f.required}
-                    className="w-full px-3 py-1.5 bg-white border border-slate-300 rounded text-slate-900 focus:outline-none focus:border-indigo-600 text-xs font-semibold"
+                    className="w-full px-3 py-1.5 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded text-slate-900 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:border-indigo-600 text-xs font-semibold"
                     placeholder={f.placeholder}
                     value={(churchModalData as any)[f.key] || ''}
                     onChange={(e) => setChurchModalData({ ...churchModalData, [f.key]: e.target.value })}
                   />
                 </div>
               ))}
-              <div className="col-span-2 flex justify-end gap-2 pt-2 border-t border-slate-200">
+              <div className="col-span-2 flex justify-end gap-2 pt-2 border-t border-slate-200 dark:border-slate-800">
                 <button
                   type="button"
                   onClick={() => setShowChurchModal(false)}
-                  className="px-3 py-1.5 border border-slate-300 rounded font-semibold text-slate-600 hover:text-slate-900 hover:bg-slate-100 text-xs"
+                  className="px-3 py-1.5 border border-slate-300 dark:border-slate-700 rounded font-semibold text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 text-xs cursor-pointer"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
                   disabled={savingChurch}
-                  className="px-4 py-1.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white rounded-lg font-bold shadow-xs text-xs"
+                  className="px-4 py-1.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white rounded-lg font-bold shadow-xs text-xs cursor-pointer"
                 >
                   {savingChurch ? 'Guardando...' : 'Guardar Iglesia'}
                 </button>
@@ -2762,15 +2762,15 @@ export default function App() {
       {/* ── MODAL: USUARIO ── */}
       {showUserModal && (
         <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-2xs flex items-center justify-center p-3 z-50">
-          <div className="bg-white border border-slate-300 rounded-xl shadow-2xl max-w-md w-full p-5 space-y-3">
-            <div className="flex items-center justify-between border-b border-slate-200 pb-2">
-              <h3 className="text-sm font-bold text-slate-900">{userModalData.id ? 'Editar Usuario' : 'Registrar Nuevo Usuario'}</h3>
-              <button onClick={() => setShowUserModal(false)} className="text-slate-400 hover:text-slate-700">
+          <div className="bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-xl shadow-2xl max-w-md w-full p-5 space-y-3">
+            <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-2">
+              <h3 className="text-sm font-bold text-slate-900 dark:text-white">{userModalData.id ? 'Editar Usuario' : 'Registrar Nuevo Usuario'}</h3>
+              <button onClick={() => setShowUserModal(false)} className="text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 cursor-pointer">
                 <X className="w-4 h-4" />
               </button>
             </div>
-            <div className="bg-indigo-50 border border-indigo-200 rounded-lg p-2 text-indigo-950 text-[11px] flex items-start gap-1.5 font-medium">
-              <span className="text-indigo-600 font-bold">✓</span>
+            <div className="bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-200 dark:border-indigo-800 rounded-lg p-2 text-indigo-950 dark:text-indigo-200 text-[11px] flex items-start gap-1.5 font-medium">
+              <span className="text-indigo-600 dark:text-indigo-400 font-bold">✓</span>
               <span>
                 <strong>Acceso directo:</strong> Esta cuenta no requiere verificación de correo. El representante podrá iniciar sesión inmediatamente.
               </span>
@@ -2778,9 +2778,9 @@ export default function App() {
             <form onSubmit={saveUser} className="space-y-3 text-xs">
               <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <label className="block font-bold text-slate-600 text-[10px] uppercase mb-1">Rol</label>
+                  <label className="block font-bold text-slate-600 dark:text-slate-400 text-[10px] uppercase mb-1">Rol</label>
                   <select
-                    className="w-full px-3 py-1.5 bg-white border border-slate-300 rounded text-slate-900 focus:outline-none focus:border-indigo-600 text-xs font-semibold"
+                    className="w-full px-3 py-1.5 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded text-slate-900 dark:text-slate-100 focus:outline-none focus:border-indigo-600 text-xs font-semibold cursor-pointer"
                     value={userModalData.rol}
                     onChange={(e) => setUserModalData({ ...userModalData, rol: e.target.value as any })}
                   >
@@ -2790,10 +2790,10 @@ export default function App() {
                 </div>
                 {userModalData.rol === 'iglesia' && (
                   <div>
-                    <label className="block font-bold text-slate-600 text-[10px] uppercase mb-1">Iglesia Asignada</label>
+                    <label className="block font-bold text-slate-600 dark:text-slate-400 text-[10px] uppercase mb-1">Iglesia Asignada</label>
                     <select
                       required={userModalData.rol === 'iglesia'}
-                      className="w-full px-3 py-1.5 bg-white border border-slate-300 rounded text-slate-900 focus:outline-none focus:border-indigo-600 text-xs font-semibold"
+                      className="w-full px-3 py-1.5 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded text-slate-900 dark:text-slate-100 focus:outline-none focus:border-indigo-600 text-xs font-semibold cursor-pointer"
                       value={userModalData.iglesia_id}
                       onChange={(e) => {
                         const igId = e.target.value;
@@ -2819,22 +2819,22 @@ export default function App() {
                 )}
               </div>
               <div>
-                <label className="block font-bold text-slate-600 text-[10px] uppercase mb-1">Nombre Completo</label>
+                <label className="block font-bold text-slate-600 dark:text-slate-400 text-[10px] uppercase mb-1">Nombre Completo</label>
                 <input
                   type="text"
                   required
-                  className="w-full px-3 py-1.5 bg-white border border-slate-300 rounded text-slate-900 focus:outline-none focus:border-indigo-600 text-xs font-semibold"
+                  className="w-full px-3 py-1.5 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded text-slate-900 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:border-indigo-600 text-xs font-semibold"
                   placeholder="ej. Pastor Juan Pérez"
                   value={userModalData.nombre_completo}
                   onChange={(e) => setUserModalData({ ...userModalData, nombre_completo: e.target.value })}
                 />
               </div>
               <div>
-                <label className="block font-bold text-slate-600 text-[10px] uppercase mb-1">Correo Electrónico</label>
+                <label className="block font-bold text-slate-600 dark:text-slate-400 text-[10px] uppercase mb-1">Correo Electrónico</label>
                 <input
                   type="email"
                   required
-                  className="w-full px-3 py-1.5 bg-white border border-slate-300 rounded text-slate-900 focus:outline-none focus:border-indigo-600 text-xs font-mono font-semibold"
+                  className="w-full px-3 py-1.5 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded text-slate-900 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:border-indigo-600 text-xs font-mono font-semibold"
                   placeholder="iglesia@tesorapp.com"
                   value={userModalData.correo}
                   onChange={(e) => setUserModalData({ ...userModalData, correo: e.target.value })}
@@ -2842,7 +2842,7 @@ export default function App() {
               </div>
               <div>
                 <div className="flex items-center justify-between mb-1">
-                  <label className="block font-bold text-slate-600 text-[10px] uppercase">
+                  <label className="block font-bold text-slate-600 dark:text-slate-400 text-[10px] uppercase">
                     Contraseña {userModalData.id && '(dejar en blanco para no cambiar)'}
                   </label>
                   <button
@@ -2851,7 +2851,7 @@ export default function App() {
                       const randomPass = 'Tesorero' + Math.floor(1000 + Math.random() * 9000) + '!';
                       setUserModalData({ ...userModalData, contrasena: randomPass });
                     }}
-                    className="text-[10px] text-indigo-600 hover:underline font-bold"
+                    className="text-[10px] text-indigo-600 dark:text-indigo-400 hover:underline font-bold cursor-pointer"
                   >
                     Generar Clave Aleatoria
                   </button>
@@ -2859,24 +2859,24 @@ export default function App() {
                 <input
                   type="password"
                   required={!userModalData.id}
-                  className="w-full px-3 py-1.5 bg-white border border-slate-300 rounded text-slate-900 focus:outline-none focus:border-indigo-600 text-xs font-mono font-semibold"
+                  className="w-full px-3 py-1.5 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded text-slate-900 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:border-indigo-600 text-xs font-mono font-semibold"
                   placeholder="••••••••"
                   value={userModalData.contrasena}
                   onChange={(e) => setUserModalData({ ...userModalData, contrasena: e.target.value })}
                 />
               </div>
-              <div className="flex justify-end gap-2 pt-2 border-t border-slate-200">
+              <div className="flex justify-end gap-2 pt-2 border-t border-slate-200 dark:border-slate-800">
                 <button
                   type="button"
                   onClick={() => setShowUserModal(false)}
-                  className="px-3 py-1.5 border border-slate-300 rounded font-semibold text-slate-600 hover:text-slate-900 hover:bg-slate-100 text-xs"
+                  className="px-3 py-1.5 border border-slate-300 dark:border-slate-700 rounded font-semibold text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 text-xs cursor-pointer"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
                   disabled={savingUser}
-                  className="px-4 py-1.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white rounded-lg font-bold shadow-xs text-xs"
+                  className="px-4 py-1.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white rounded-lg font-bold shadow-xs text-xs cursor-pointer"
                 >
                   {savingUser ? 'Guardando...' : 'Guardar Usuario'}
                 </button>
@@ -2889,25 +2889,25 @@ export default function App() {
       {/* ── MODAL: INFORME EN PAPEL ── */}
       {showPaperModal && paperChurch && (
         <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-2xs flex items-center justify-center p-3 z-50">
-          <div className="bg-white border border-slate-300 rounded-xl shadow-2xl max-w-md w-full p-5 space-y-4 max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between border-b border-slate-200 pb-2">
+          <div className="bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-xl shadow-2xl max-w-md w-full p-5 space-y-4 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-2">
               <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-lg bg-indigo-50 flex items-center justify-center text-indigo-600">
+                <div className="w-8 h-8 rounded-lg bg-indigo-50 dark:bg-indigo-950/60 flex items-center justify-center text-indigo-600 dark:text-indigo-400">
                   <FileText className="w-4 h-4" />
                 </div>
                 <div>
-                  <h3 className="text-sm font-bold text-slate-900">Digitar Informe en Papel</h3>
-                  <p className="text-[11px] text-slate-500 font-semibold">
+                  <h3 className="text-sm font-bold text-slate-900 dark:text-white">Digitar Informe en Papel</h3>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400 font-semibold">
                     {paperChurch.iglesia_nombre} ({selectedPeriodObj?.nombre})
                   </p>
                 </div>
               </div>
-              <button onClick={() => setShowPaperModal(false)} className="text-slate-400 hover:text-slate-700">
+              <button onClick={() => setShowPaperModal(false)} className="text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 cursor-pointer">
                 <X className="w-4 h-4" />
               </button>
             </div>
             <form onSubmit={savePaperBatch} className="space-y-3 text-xs">
-              <p className="text-[11px] text-slate-600 bg-slate-50 p-2.5 rounded-lg border border-slate-200">
+              <p className="text-[11px] text-slate-600 dark:text-slate-300 bg-slate-50 dark:bg-slate-800/50 p-2.5 rounded-lg border border-slate-200 dark:border-slate-700">
                 Ingresa los montos reportados en físico por la iglesia. Los porcentajes y totales se calcularán automáticamente.
               </p>
               <div className="space-y-2">
@@ -2916,18 +2916,18 @@ export default function App() {
                   .map((f) => (
                     <div
                       key={f.campo_id}
-                      className="flex items-center justify-between gap-2 p-2 bg-slate-50 rounded-lg border border-slate-200"
+                      className="flex items-center justify-between gap-2 p-2 bg-slate-50 dark:bg-slate-800/40 rounded-lg border border-slate-200 dark:border-slate-700"
                     >
                       <div>
-                        <label className="font-bold text-slate-800 text-xs block">{f.nombre}</label>
-                        <span className="text-[10px] text-slate-500 font-mono capitalize">{f.seccion}</span>
+                        <label className="font-bold text-slate-800 dark:text-slate-200 text-xs block">{f.nombre}</label>
+                        <span className="text-[10px] text-slate-500 dark:text-slate-400 font-mono capitalize">{f.seccion}</span>
                       </div>
                       <div className="relative w-44">
                         <span className="absolute left-2.5 top-1.5 font-bold text-slate-400 text-xs">$</span>
                         <input
                           type="number"
                           step="any"
-                          className="w-full pl-6 pr-2 py-1 bg-white border border-slate-300 rounded font-mono font-bold text-right text-xs text-slate-900 focus:outline-none focus:border-indigo-600"
+                          className="w-full pl-6 pr-2 py-1 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded font-mono font-bold text-right text-xs text-slate-900 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:border-indigo-600"
                           placeholder="0"
                           value={paperValues[f.campo_id] || ''}
                           onChange={(e) =>
@@ -2941,18 +2941,18 @@ export default function App() {
                     </div>
                   ))}
               </div>
-              <div className="flex justify-end gap-2 pt-2 border-t border-slate-200">
+              <div className="flex justify-end gap-2 pt-2 border-t border-slate-200 dark:border-slate-800">
                 <button
                   type="button"
                   onClick={() => setShowPaperModal(false)}
-                  className="px-3 py-1.5 border border-slate-300 rounded font-semibold text-slate-600 hover:text-slate-900 hover:bg-slate-100 text-xs"
+                  className="px-3 py-1.5 border border-slate-300 dark:border-slate-700 rounded font-semibold text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 text-xs cursor-pointer"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
                   disabled={savingPaper}
-                  className="px-4 py-1.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white rounded-lg font-bold shadow-xs text-xs flex items-center gap-1.5"
+                  className="px-4 py-1.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white rounded-lg font-bold shadow-xs text-xs flex items-center gap-1.5 cursor-pointer"
                 >
                   <CheckCircle2 className="w-3.5 h-3.5" />
                   {savingPaper ? 'Guardando y Recalculando...' : 'Guardar Informe'}
