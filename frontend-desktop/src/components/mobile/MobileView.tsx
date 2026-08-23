@@ -28,12 +28,14 @@ import {
   Moon,
   HelpCircle,
   Coins,
+  Sparkles,
 } from 'lucide-react';
 import { OfflineBanner } from './OfflineBanner';
 import { ChurchSearchModal } from './ChurchSearchModal';
 import { formatCOP } from '../../utils/formatters';
 import { generateVoucherPDFBlob } from '../../utils/voucherPdfGenerator';
 import { HelpModal } from '../common/HelpModal';
+import { AICopilotDrawer } from '../ai/AICopilotDrawer';
 
 interface MobileViewProps {
   token: string | null;
@@ -73,6 +75,7 @@ export function MobileView({
   
   // Modals state
   const [showHelpModal, setShowHelpModal] = useState(false);
+  const [showCopilot, setShowCopilot] = useState(false);
   const [showChurchSearch, setShowChurchSearch] = useState(false);
   const [showSendConfirmModal, setShowSendConfirmModal] = useState(false);
   const [showReviewModal, setShowReviewModal] = useState(false);
@@ -1488,6 +1491,42 @@ export function MobileView({
       <HelpModal
         isOpen={showHelpModal}
         onClose={() => setShowHelpModal(false)}
+      />
+
+      {/* ── Floating AI Copilot Bubble (Mobile FAB) ── */}
+      <button
+        type="button"
+        onClick={() => setShowCopilot(true)}
+        className="fixed bottom-20 right-4 z-40 flex items-center gap-2 pl-3 pr-3.5 py-2.5 bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-700 hover:from-indigo-500 hover:to-purple-700 text-white rounded-full shadow-2xl hover:shadow-indigo-500/50 hover:scale-105 active:scale-95 transition-all duration-200 cursor-pointer border-2 border-white/40 dark:border-slate-700/80 backdrop-blur-md group"
+        title="Abrir Asistente Contable Copilot IA"
+        aria-label="Abrir Asistente Contable Copilot IA"
+      >
+        <div className="relative flex items-center justify-center">
+          <Sparkles className="w-4 h-4 text-amber-300 animate-pulse" />
+          <span className="absolute -top-1 -right-1 flex h-2 w-2">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+            <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-amber-400"></span>
+          </span>
+        </div>
+        <span className="text-xs font-black tracking-tight drop-shadow-xs">
+          Copilot IA
+        </span>
+      </button>
+
+      {/* ── AI Copilot Drawer (Mobile) ── */}
+      <AICopilotDrawer
+        isOpen={showCopilot}
+        onClose={() => setShowCopilot(false)}
+        gridData={gridData}
+        currentPeriod={periodos.find((p) => p.id === selectedPeriodo)}
+        iglesias={iglesias}
+        onNavigate={(tab) => {
+          if (tab === 'sheet' || tab === 'capture') setActiveScreen('capture');
+          else if (tab === 'gastos') setActiveScreen('gastos');
+          else if (tab === 'history') setActiveScreen('history');
+          else if (tab === 'dashboard' || tab === 'summary') setActiveScreen('summary');
+          setShowCopilot(false);
+        }}
       />
     </div>
   );
