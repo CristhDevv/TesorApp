@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+﻿import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   CheckCircle2,
   Loader2,
@@ -7,6 +7,10 @@ import {
   Building2,
   Calendar,
   Layers,
+  AlertCircle,
+  Clock,
+  ShieldCheck,
+  MessageSquare,
 } from 'lucide-react';
 import type { FilaGrid, ColumnaGrid, Periodo } from '../../types/contabilidad';
 
@@ -17,7 +21,7 @@ interface ChurchReportFormProps {
   isPeriodOpen: boolean;
   onSaveCell: (churchId: string, fieldId: string, value: string) => Promise<void> | void;
   onBatchSave: (churchId: string, values: Record<string, number>) => Promise<void>;
-  onSendMonthlyReport?: (churchId: string, periodoId: string) => void;
+  onSendMonthlyReport?: (churchId: string, periodoId: string) => Promise<void> | void;
 }
 
 type SaveStatus = 'saved' | 'saving' | 'dirty' | 'error';
@@ -62,10 +66,14 @@ export const ChurchReportForm = React.memo(function ChurchReportForm({
   });
 
   const [saveStatus, setSaveStatus] = useState<SaveStatus>('saved');
-  const [reportSubmitted, setReportSubmitted] = useState(false);
+  const [sendingReport, setSendingReport] = useState(false);
   const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const latestValuesRef = useRef<Record<string, number>>(localValues);
   latestValuesRef.current = localValues;
+
+  const currentEstado = row.estado_informe || 'borrador';
+  const isReportLocked = currentEstado !== 'borrador';
+  const isFormBlocked = !isPeriodOpen || isReportLocked;
 
   // Sync with incoming server state when church, period or row values update
   useEffect(() => {
@@ -77,13 +85,12 @@ export const ChurchReportForm = React.memo(function ChurchReportForm({
     }
     setLocalValues(next);
     setSaveStatus('saved');
-    setReportSubmitted(false);
   }, [row.iglesia_id, periodo?.id, row.valores.length, getServerVal, columns]);
 
   // Debounced auto-save function (800ms)
   const triggerAutoSave = useCallback(
     (newValues: Record<string, number>) => {
-      if (!isPeriodOpen) return;
+      if (isFormBlocked) return;
 
       if (debounceTimerRef.current) {
         clearTimeout(debounceTimerRef.current);
@@ -101,28 +108,32 @@ export const ChurchReportForm = React.memo(function ChurchReportForm({
         }
       }, 800);
     },
-    [isPeriodOpen, onBatchSave, row.iglesia_id]
+    [isFormBlocked, onBatchSave, row.iglesia_id]
   );
 
   const handleInputChange = (colId: string, valStr: string) => {
+    if (isFormBlocked) return;
     const num = parseFloat(valStr) || 0;
     const updated = { ...localValues, [colId]: num };
     setLocalValues(updated);
     triggerAutoSave(updated);
   };
 
-  const handleSendReport = () => {
-    if (!periodo) return;
-    setReportSubmitted(true);
-    if (onSendMonthlyReport) {
-      onSendMonthlyReport(row.iglesia_id, periodo.id);
+  const handleSendReport = async () => {
+    if (!periodo || isFormBlocked || sendingReport) return;
+    setSendingReport(true);
+    try {
+      if (onSendMonthlyReport) {
+        await onSendMonthlyReport(row.iglesia_id, periodo.id);
+      }
+    } catch (err) {
+      console.error('Error enviando informe', err);
+    } finally {
+      setSendingReport(false);
     }
   };
 
-  // Group columns into the 3 strict sections defined in the technical specification:
-  // 1. Ingresos (seccion_iglesia === 'Ingresos')
-  // 2. Egresos (seccion_iglesia === 'Egresos')
-  // 3. Cálculos (modo_calculo === 'calculado' o Informativo)
+  // Group columns into the 3 strict sections defined in the technical specification
   const ingresosCols = columns.filter(
     (c) => (c.seccion_iglesia || c.seccion) === 'Ingresos' && c.modo_calculo === 'manual'
   );
@@ -141,7 +152,7 @@ export const ChurchReportForm = React.memo(function ChurchReportForm({
       {/* 400-480px centered mobile-first container */}
       <div className="w-full max-w-[480px] space-y-4 pb-12">
         {/* HEADER SIMPLE (Light Theme) */}
-        <div className="bg-white border border-slate-200 rounded-lg p-4 shadow-sm space-y-2">
+        <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-xs space-y-2">
           <div className="flex items-start justify-between">
             <div>
               <div className="flex items-center gap-1.5 text-slate-900 font-bold text-base">
@@ -190,21 +201,104 @@ export const ChurchReportForm = React.memo(function ChurchReportForm({
           </div>
         </div>
 
+        {/* WORKFLOW STATUS BANNERS */}
+        {currentEstado === 'enviado' && (
+          <div className="bg-indigo-50 border border-indigo-200 rounded-xl p-3.5 text-xs text-indigo-900 flex items-start gap-2.5 shadow-2xs">
+            <Send className="w-4 h-4 text-indigo-600 shrink-0 mt-0.5" />
+            <div>
+              <p className="font-bold">Informe Enviado a Tesorería</p>
+              <p className="text-indigo-800/80 mt-0.5 text-[11px]">
+                Tu informe mensual fue recibido por tesorería y se encuentra en cola de revisión. La edición ha sido bloqueada automáticamente para proteger los datos.
+              </p>
+              {row.informe_meta?.enviado_en && (
+                <p className="text-[10px] text-indigo-600 font-mono mt-1">
+                  Enviado el {new Date(row.informe_meta.enviado_en).toLocaleString('es-CO')}
+                </p>
+              )}
+            </div>
+          </div>
+        )}
+
+        {currentEstado === 'en_revision' && (
+          <div className="bg-amber-50 border border-amber-200 rounded-xl p-3.5 text-xs text-amber-900 flex items-start gap-2.5 shadow-2xs">
+            <Clock className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+            <div>
+              <p className="font-bold">Informe en Revisión por Tesorería</p>
+              <p className="text-amber-800 mt-0.5 text-[11px]">
+                El tesorero está verificando los soportes y cálculos de este informe.
+              </p>
+              {row.informe_meta?.observaciones && (
+                <div className="mt-2 p-2 bg-white/80 border border-amber-200 rounded-lg text-amber-950 font-medium">
+                  <span className="font-bold flex items-center gap-1">
+                    <MessageSquare className="w-3 h-3 text-amber-700" /> Nota del tesorero:
+                  </span>
+                  <p className="mt-0.5">{row.informe_meta.observaciones}</p>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {currentEstado === 'aprobado' && (
+          <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-3.5 text-xs text-emerald-900 flex items-start gap-2.5 shadow-2xs">
+            <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+            <div>
+              <p className="font-bold">Informe Aprobado Formalmente</p>
+              <p className="text-emerald-800 mt-0.5 text-[11px]">
+                ¡Excelente! Las cifras de tu congregación han sido aprobadas por tesorería y quedan registradas oficialmente.
+              </p>
+              {row.informe_meta?.aprobado_en && (
+                <p className="text-[10px] text-emerald-700 font-mono mt-1">
+                  Aprobado el {new Date(row.informe_meta.aprobado_en).toLocaleString('es-CO')}
+                </p>
+              )}
+            </div>
+          </div>
+        )}
+
+        {currentEstado === 'consolidado' && (
+          <div className="bg-purple-50 border border-purple-200 rounded-xl p-3.5 text-xs text-purple-900 flex items-start gap-2.5 shadow-2xs">
+            <ShieldCheck className="w-4 h-4 text-purple-600 shrink-0 mt-0.5" />
+            <div>
+              <p className="font-bold">Informe Consolidado</p>
+              <p className="text-purple-800 mt-0.5 text-[11px]">
+                Este informe forma parte del balance contable consolidado del período.
+              </p>
+            </div>
+          </div>
+        )}
+
+        {currentEstado === 'borrador' && row.informe_meta?.observaciones && (
+          <div className="bg-rose-50 border border-rose-200 rounded-xl p-3.5 text-xs text-rose-900 flex items-start gap-2.5 shadow-2xs">
+            <AlertCircle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
+            <div>
+              <p className="font-bold">Informe Devuelto para Corrección</p>
+              <p className="text-rose-800 mt-0.5 text-[11px]">
+                El tesorero ha desbloqueado tu informe para que realices los ajustes necesarios:
+              </p>
+              <div className="mt-2 p-2 bg-white/80 border border-rose-200 rounded-lg text-rose-950 font-medium">
+                <span className="font-bold">Observación:</span>
+                <p className="mt-0.5">{row.informe_meta.observaciones}</p>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* PERIOD CLOSED BANNER */}
         {!isPeriodOpen && (
-          <div className="bg-amber-50 border border-amber-200 rounded-lg p-3.5 text-xs text-amber-900 flex items-start gap-2.5 shadow-xs">
+          <div className="bg-amber-50 border border-amber-200 rounded-xl p-3.5 text-xs text-amber-900 flex items-start gap-2.5 shadow-xs">
             <Lock className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
             <div>
               <p className="font-bold">Período Cerrado por Tesorería</p>
               <p className="text-amber-800 mt-0.5 text-[11px]">
-                Este período mensual se encuentra cerrado para edición. Los valores mostrados son definitivos y en modo solo lectura.
+                Este período mensual se encuentra cerrado. Los valores mostrados son definitivos y en modo solo lectura.
               </p>
             </div>
           </div>
         )}
 
         {/* TARJETA 1: INGRESOS */}
-        <div className="bg-white border border-slate-200 rounded-lg p-4 shadow-sm space-y-3">
+        <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-xs space-y-3">
           <div className="flex items-center justify-between border-b border-slate-100 pb-2">
             <h2 className="text-xs font-bold uppercase tracking-wider text-emerald-700 flex items-center gap-1.5">
               <span className="w-2 h-2 rounded-full bg-emerald-600" />
@@ -220,13 +314,13 @@ export const ChurchReportForm = React.memo(function ChurchReportForm({
             </span>
           </div>
 
-          <div className="space-y-2.5">
+          <div className="space-y-3">
             {ingresosCols.length === 0 ? (
-              <p className="text-slate-500 text-xs py-2">No hay campos de ingreso configurados.</p>
+              <p className="text-xs text-slate-400 italic">No hay campos de ingresos configurados.</p>
             ) : (
               ingresosCols.map((col) => {
                 const cell = row.valores.find((v) => v.campo_id === col.id);
-                const isBlocked = cell?.editable === false || !isPeriodOpen;
+                const isBlocked = isFormBlocked || cell?.editable === false;
 
                 return (
                   <div key={col.id} className="space-y-1">
@@ -236,8 +330,8 @@ export const ChurchReportForm = React.memo(function ChurchReportForm({
                         className="font-semibold text-slate-700 flex items-center gap-1"
                       >
                         <span>{col.nombre}</span>
-                        {cell?.editable === false && (
-                          <span title="Campo bloqueado para la iglesia (solo tesorero)">
+                        {isBlocked && (
+                          <span title="Campo bloqueado para edición">
                             <Lock className="w-3 h-3 text-slate-400 inline" />
                           </span>
                         )}
@@ -257,7 +351,7 @@ export const ChurchReportForm = React.memo(function ChurchReportForm({
                         value={localValues[col.id] === 0 ? '' : localValues[col.id] ?? ''}
                         placeholder="0"
                         onChange={(e) => handleInputChange(col.id, e.target.value)}
-                        className={`w-full pl-7 pr-3 py-2 bg-white border rounded text-right font-mono font-bold text-sm text-slate-900 transition-colors focus:outline-none ${
+                        className={`w-full pl-7 pr-3 py-2 bg-white border rounded-lg text-right font-mono font-bold text-sm text-slate-900 transition-colors focus:outline-none ${
                           isBlocked
                             ? 'border-slate-200 bg-slate-50 text-slate-400 cursor-not-allowed'
                             : 'border-slate-300 focus:border-indigo-600 focus:ring-1 focus:ring-indigo-600/30'
@@ -271,12 +365,12 @@ export const ChurchReportForm = React.memo(function ChurchReportForm({
           </div>
         </div>
 
-        {/* TARJETA 2: EGRESOS */}
-        <div className="bg-white border border-slate-200 rounded-lg p-4 shadow-sm space-y-3">
+        {/* TARJETA 2: EGRESOS / RETENCIONES */}
+        <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-xs space-y-3">
           <div className="flex items-center justify-between border-b border-slate-100 pb-2">
             <h2 className="text-xs font-bold uppercase tracking-wider text-rose-700 flex items-center gap-1.5">
               <span className="w-2 h-2 rounded-full bg-rose-600" />
-              2. Egresos
+              2. Egresos y Retenciones
             </h2>
             <span className="font-mono text-rose-700 text-xs font-bold">
               {formatCOP(
@@ -288,13 +382,13 @@ export const ChurchReportForm = React.memo(function ChurchReportForm({
             </span>
           </div>
 
-          <div className="space-y-2.5">
+          <div className="space-y-3">
             {egresosCols.length === 0 ? (
-              <p className="text-slate-500 text-xs py-2">No hay campos de egreso configurados.</p>
+              <p className="text-xs text-slate-400 italic">No hay campos de egresos configurados.</p>
             ) : (
               egresosCols.map((col) => {
                 const cell = row.valores.find((v) => v.campo_id === col.id);
-                const isBlocked = cell?.editable === false || !isPeriodOpen;
+                const isBlocked = isFormBlocked || cell?.editable === false;
 
                 return (
                   <div key={col.id} className="space-y-1">
@@ -304,8 +398,8 @@ export const ChurchReportForm = React.memo(function ChurchReportForm({
                         className="font-semibold text-slate-700 flex items-center gap-1"
                       >
                         <span>{col.nombre}</span>
-                        {cell?.editable === false && (
-                          <span title="Campo bloqueado para la iglesia">
+                        {isBlocked && (
+                          <span title="Campo bloqueado para edición">
                             <Lock className="w-3 h-3 text-slate-400 inline" />
                           </span>
                         )}
@@ -325,7 +419,7 @@ export const ChurchReportForm = React.memo(function ChurchReportForm({
                         value={localValues[col.id] === 0 ? '' : localValues[col.id] ?? ''}
                         placeholder="0"
                         onChange={(e) => handleInputChange(col.id, e.target.value)}
-                        className={`w-full pl-7 pr-3 py-2 bg-white border rounded text-right font-mono font-bold text-sm text-slate-900 transition-colors focus:outline-none ${
+                        className={`w-full pl-7 pr-3 py-2 bg-white border rounded-lg text-right font-mono font-bold text-sm text-slate-900 transition-colors focus:outline-none ${
                           isBlocked
                             ? 'border-slate-200 bg-slate-50 text-slate-400 cursor-not-allowed'
                             : 'border-slate-300 focus:border-indigo-600 focus:ring-1 focus:ring-indigo-600/30'
@@ -339,8 +433,8 @@ export const ChurchReportForm = React.memo(function ChurchReportForm({
           </div>
         </div>
 
-        {/* TARJETA 3: CÁLCULOS (SOLO LECTURA, TIPOGRAFÍA DIFERENCIADA) */}
-        <div className="bg-white border border-slate-200 rounded-lg p-4 shadow-sm space-y-3">
+        {/* TARJETA 3: CÁLCULOS (SOLO LECTURA) */}
+        <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-xs space-y-3">
           <div className="flex items-center justify-between border-b border-slate-100 pb-2">
             <h2 className="text-xs font-bold uppercase tracking-wider text-blue-700 flex items-center gap-1.5">
               <Layers className="w-3.5 h-3.5 text-blue-600" />
@@ -375,31 +469,28 @@ export const ChurchReportForm = React.memo(function ChurchReportForm({
         </div>
 
         {/* BOTÓN ENVIAR REPORTE DEL MES */}
-        {isPeriodOpen && (
+        {isPeriodOpen && currentEstado === 'borrador' && (
           <div className="pt-2">
             <button
               type="button"
               onClick={handleSendReport}
-              className={`w-full py-3 px-4 rounded-lg font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-md transition-all ${
-                reportSubmitted
-                  ? 'bg-emerald-600 text-white cursor-default'
-                  : 'bg-indigo-600 hover:bg-indigo-700 text-white active:scale-[0.99]'
-              }`}
+              disabled={sendingReport}
+              className="w-full py-3 px-4 rounded-xl font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-md transition-all bg-indigo-600 hover:bg-indigo-700 active:scale-[0.99] text-white cursor-pointer disabled:opacity-50"
             >
-              {reportSubmitted ? (
+              {sendingReport ? (
                 <>
-                  <CheckCircle2 className="w-4 h-4 text-emerald-100" />
-                  Reporte del Mes Enviado
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Enviando a Tesorería...
                 </>
               ) : (
                 <>
                   <Send className="w-4 h-4" />
-                  Enviar Reporte del Mes
+                  Enviar Informe a Tesorería
                 </>
               )}
             </button>
             <p className="text-[10px] text-slate-500 text-center mt-1.5">
-              Tus datos se autoguardan constantemente. Este botón confirma tu envío a tesorería.
+              Al enviar tu informe, se notificará a tesorería para su revisión formal y el formulario quedará protegido.
             </p>
           </div>
         )}

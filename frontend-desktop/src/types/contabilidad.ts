@@ -7,7 +7,19 @@ export type TipoRedondeo = 'ninguno' | 'arriba' | 'abajo' | 'estandar';
 export type RolUsuario = 'tesorero' | 'iglesia';
 export type EstadoPeriodo = 'abierto' | 'cerrado';
 export type EstadoIglesia = 'activa' | 'inactiva';
+export type EstadoInforme = 'borrador' | 'enviado' | 'en_revision' | 'aprobado' | 'consolidado';
 export type SeccionCampo = 'Ingresos' | 'Egresos' | 'Informativo' | 'Totales' | 'Resumen';
+
+export interface InformeMeta {
+  id?: string;
+  enviado_en?: string | null;
+  enviado_por?: string | null;
+  revisado_en?: string | null;
+  revisado_por?: string | null;
+  aprobado_en?: string | null;
+  aprobado_por?: string | null;
+  observaciones?: string | null;
+}
 
 export interface Campo {
   id: string;
@@ -79,6 +91,9 @@ export interface FilaGrid {
   iglesia_id: string;
   iglesia_nombre: string;
   codigo: string | null;
+  nombre_pastor?: string | null;
+  estado_informe?: EstadoInforme;
+  informe_meta?: InformeMeta | null;
   valores: ValorCelda[];
 }
 

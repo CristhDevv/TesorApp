@@ -36,6 +36,14 @@ enum EstadoPeriodo {
   cerrado
 }
 
+enum EstadoInforme {
+  borrador
+  enviado
+  en_revision
+  aprobado
+  consolidado
+}
+
 enum EntidadAuditoria {
   valor
   periodo
@@ -45,6 +53,7 @@ enum EntidadAuditoria {
   tabla
   usuario
   gasto
+  informe_periodo
 }
 
 enum AccionAuditoria {
@@ -71,6 +80,9 @@ model Usuario {
   periodos_reabiertos Periodo[] @relation("ReabiertoPor")
   auditorias      HistorialCambios[]
   gastos_creados  Gasto[]
+  informes_enviados  InformePeriodo[] @relation("InformeEnviadoPor")
+  informes_revisados InformePeriodo[] @relation("InformeRevisadoPor")
+  informes_aprobados InformePeriodo[] @relation("InformeAprobadoPor")
 
   @@map("usuarios")
 }
@@ -96,6 +108,7 @@ model Iglesia {
   permisos_edicion    PermisoEdicion[]
   valores             Valor[]
   tabla               Tabla?        @relation(fields: [tabla_id], references: [id], onDelete: SetNull)
+  informes_periodo    InformePeriodo[]
 
   @@map("iglesias")
 }
@@ -182,6 +195,7 @@ model Periodo {
   valores        Valor[]
   campos_temporales CampoPlantilla[] @relation("CamposTemporales")
   gastos         Gasto[]
+  informes_periodo InformePeriodo[]
 
   @@index([fecha_inicio, fecha_fin])
   @@map("periodos")
@@ -271,4 +285,35 @@ model Gasto {
 
   @@index([periodo_id, campo_fondo_id])
   @@map("gastos")
+}
+
+model InformePeriodo {
+  id              String         @id @default(uuid()) @db.Uuid
+  iglesia_id      String         @db.Uuid
+  periodo_id      String         @db.Uuid
+  estado          EstadoInforme  @default(borrador)
+
+  enviado_por_id  String?        @db.Uuid
+  enviado_en      DateTime?
+
+  revisado_por_id String?        @db.Uuid
+  revisado_en     DateTime?
+
+  aprobado_por_id String?        @db.Uuid
+  aprobado_en     DateTime?
+
+  observaciones   String?
+
+  creado_en       DateTime       @default(now())
+  actualizado_en  DateTime       @updatedAt
+
+  iglesia         Iglesia        @relation(fields: [iglesia_id], references: [id], onDelete: Cascade)
+  periodo         Periodo        @relation(fields: [periodo_id], references: [id], onDelete: Cascade)
+  enviado_por     Usuario?       @relation("InformeEnviadoPor", fields: [enviado_por_id], references: [id])
+  revisado_por    Usuario?       @relation("InformeRevisadoPor", fields: [revisado_por_id], references: [id])
+  aprobado_por    Usuario?       @relation("InformeAprobadoPor", fields: [aprobado_por_id], references: [id])
+
+  @@unique([iglesia_id, periodo_id])
+  @@index([periodo_id, estado])
+  @@map("informes_periodo")
 }

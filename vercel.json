@@ -46,6 +46,10 @@
       "destination": "https://backend-zeta-rouge-39.vercel.app/gastos/:path*"
     },
     {
+      "source": "/informes/:path*",
+      "destination": "https://backend-zeta-rouge-39.vercel.app/informes/:path*"
+    },
+    {
       "source": "/(.*)",
       "destination": "/index.html"
     }

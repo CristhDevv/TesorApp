@@ -1,5 +1,5 @@
 import React from 'react';
-import { FileText, ArrowUp, ArrowDown, ArrowUpDown, Paperclip } from 'lucide-react';
+import { FileText, ArrowUp, ArrowDown, ArrowUpDown, Paperclip, CheckCircle2, Clock, Send, ShieldCheck } from 'lucide-react';
 import type { FilaGrid, ColumnaGrid, EditingCell, SortState } from '../../types/contabilidad';
 import { EditableCell } from '../common/EditableCell';
 
@@ -22,6 +22,7 @@ interface SpreadsheetGridProps {
   onOpenPaperModal: (row: FilaGrid) => void;
   onOpenFormulaModal?: (col: ColumnaGrid) => void;
   onOpenReceipts?: (churchId: string, churchName: string) => void;
+  onOpenWorkflow?: (row: FilaGrid) => void;
   isTesorero: boolean;
   isPeriodOpen: boolean;
   gridSort: SortState | null;
@@ -42,6 +43,7 @@ interface GridRowProps {
   onCancelEdit: () => void;
   onOpenPaperModal: (row: FilaGrid) => void;
   onOpenReceipts?: (churchId: string, churchName: string) => void;
+  onOpenWorkflow?: (row: FilaGrid) => void;
   isTesorero: boolean;
   isPeriodOpen: boolean;
   activeCell: EditingCell | null;
@@ -60,6 +62,7 @@ const GridRow = React.memo(function GridRow({
   onCancelEdit,
   onOpenPaperModal,
   onOpenReceipts,
+  onOpenWorkflow,
   isTesorero,
   isPeriodOpen,
   activeCell,
@@ -75,17 +78,50 @@ const GridRow = React.memo(function GridRow({
       </td>
 
       {/* Church name — sticky */}
-      <td className="sticky left-8 z-10 bg-white border-r-2 border-b border-slate-300 px-2 h-8 text-slate-900 font-bold text-[11px] min-w-[200px] shadow-[2px_0_6px_rgba(0,0,0,0.05)]">
+      <td className="sticky left-8 z-10 bg-white border-r-2 border-b border-slate-300 px-2 h-8 text-slate-900 font-bold text-[11px] min-w-[240px] shadow-[2px_0_6px_rgba(0,0,0,0.05)]">
         <div className="flex items-center justify-between gap-1.5 h-full">
-          <span className="truncate" title={fila.iglesia_nombre}>
-            {fila.iglesia_nombre}
-          </span>
-          {fila.codigo && (
-            <span className="text-[9px] font-mono text-slate-500 shrink-0">
-              {fila.codigo}
+          <div className="flex items-center gap-1.5 min-w-0">
+            <span className="truncate" title={fila.iglesia_nombre}>
+              {fila.iglesia_nombre}
             </span>
-          )}
-          <div className="flex items-center gap-1 shrink-0">
+            {fila.codigo && (
+              <span className="text-[9px] font-mono text-slate-400 shrink-0">
+                {fila.codigo}
+              </span>
+            )}
+          </div>
+
+          <div className="flex items-center gap-1.5 shrink-0">
+            {/* Status badge */}
+            <button
+              type="button"
+              onClick={() => onOpenWorkflow && onOpenWorkflow(fila)}
+              className="shrink-0 cursor-pointer hover:opacity-80 transition"
+              title="Ver/Modificar estado de aprobación del informe"
+            >
+              {fila.estado_informe === 'enviado' ? (
+                <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[9px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200">
+                  <Send className="w-2.5 h-2.5" /> Enviado
+                </span>
+              ) : fila.estado_informe === 'en_revision' ? (
+                <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[9px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
+                  <Clock className="w-2.5 h-2.5" /> En Revisión
+                </span>
+              ) : fila.estado_informe === 'aprobado' ? (
+                <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[9px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                  <CheckCircle2 className="w-2.5 h-2.5" /> Aprobado
+                </span>
+              ) : fila.estado_informe === 'consolidado' ? (
+                <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[9px] font-bold bg-purple-50 text-purple-700 border border-purple-200">
+                  <ShieldCheck className="w-2.5 h-2.5" /> Consolidado
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[9px] font-medium bg-slate-100 text-slate-500 border border-slate-200">
+                  Borrador
+                </span>
+              )}
+            </button>
+
             {onOpenReceipts && (
               <button
                 type="button"
@@ -184,6 +220,7 @@ export const SpreadsheetGrid = React.memo(function SpreadsheetGrid({
   onCancelEdit,
   onOpenPaperModal,
   onOpenReceipts,
+  onOpenWorkflow,
   isTesorero,
   isPeriodOpen,
   gridSort,
@@ -266,6 +303,7 @@ export const SpreadsheetGrid = React.memo(function SpreadsheetGrid({
                 onCancelEdit={onCancelEdit}
                 onOpenPaperModal={onOpenPaperModal}
                 onOpenReceipts={onOpenReceipts}
+                onOpenWorkflow={onOpenWorkflow}
                 isTesorero={isTesorero}
                 isPeriodOpen={isPeriodOpen}
                 activeCell={activeCell}

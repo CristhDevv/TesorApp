@@ -47,6 +47,10 @@
     {
       "source": "/((?!assets/).*)",
       "destination": "/index.html"
+    },
+    {
+      "source": "/informes/:path*",
+      "destination": "https://backend-zeta-rouge-39.vercel.app/informes/:path*"
     }
   ]
 }

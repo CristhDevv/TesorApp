@@ -2,7 +2,7 @@ import { Injectable, NotFoundException, BadRequestException, ForbiddenException 
 import { PrismaService } from '../prisma/prisma.service';
 import { FormulasService } from '../formulas/formulas.service';
 import { HistorialService } from '../historial/historial.service';
-import { EstadoPeriodo, ModoCalculo } from '@prisma/client';
+import { EstadoPeriodo, ModoCalculo, EstadoInforme } from '@prisma/client';
 
 @Injectable()
 export class ValoresService {
@@ -135,6 +135,15 @@ export class ValoresService {
 
     // Check permission if user is iglesia
     if (userRol === 'iglesia') {
+      const informe = await this.prisma.informePeriodo.findUnique({
+        where: { iglesia_id_periodo_id: { iglesia_id: iglesiaId, periodo_id: periodoId } },
+      });
+      if (informe && informe.estado !== EstadoInforme.borrador) {
+        throw new ForbiddenException(
+          'El informe de este período ya fue enviado a tesorería y se encuentra bloqueado para edición.',
+        );
+      }
+
       const blockedPerms = await this.prisma.permisoEdicion.findMany({
         where: {
           iglesia_id: iglesiaId,
@@ -586,8 +595,25 @@ export class ValoresService {
       return true;
     });
 
-    // 4. Construct matrix
+    // 4. Fetch all reports status for these churches and period
+    const informes = await this.prisma.informePeriodo.findMany({
+      where: {
+        iglesia_id: { in: churchIds },
+        periodo_id: periodoId,
+      },
+      include: {
+        enviado_por: { select: { id: true, nombre_completo: true } },
+        revisado_por: { select: { id: true, nombre_completo: true } },
+        aprobado_por: { select: { id: true, nombre_completo: true } },
+      },
+    });
+    const informeMap = new Map(informes.map((inf) => [inf.iglesia_id, inf]));
+
+    // 5. Construct matrix
     const rows = activeChurches.map((church) => {
+      const inf = informeMap.get(church.id);
+      const isReportLockedForChurch = userRol === 'iglesia' && inf && inf.estado !== EstadoInforme.borrador;
+
       const rowValues = fields.map((f) => {
         const key = `${church.id}_${f.id}`;
         const valRec = valuesMap.get(key);
@@ -599,6 +625,7 @@ export class ValoresService {
         const isEditable =
           f.modo_calculo === ModoCalculo.manual &&
           isPeriodOpen &&
+          !isReportLockedForChurch &&
           (userRol === 'tesorero' || hasPerm);
 
         return {
@@ -616,6 +643,21 @@ export class ValoresService {
         iglesia_id: church.id,
         iglesia_nombre: church.nombre,
         identificador_interno: church.identificador_interno,
+        codigo: (church as any).codigo || null,
+        nombre_pastor: (church as any).nombre_pastor || null,
+        estado_informe: inf?.estado || EstadoInforme.borrador,
+        informe_meta: inf
+          ? {
+              id: inf.id,
+              enviado_en: inf.enviado_en,
+              enviado_por: inf.enviado_por?.nombre_completo || null,
+              revisado_en: inf.revisado_en,
+              revisado_por: inf.revisado_por?.nombre_completo || null,
+              aprobado_en: inf.aprobado_en,
+              aprobado_por: inf.aprobado_por?.nombre_completo || null,
+              observaciones: inf.observaciones || null,
+            }
+          : null,
         valores: rowValues,
       };
     });

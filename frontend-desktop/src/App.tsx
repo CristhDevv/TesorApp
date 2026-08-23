@@ -52,9 +52,10 @@ import { ChurchReportForm } from './components/iglesia/ChurchReportForm';
 import { QuickSearchModal } from './components/tesorero/QuickSearchModal';
 import { AuditDrawer } from './components/tesorero/AuditDrawer';
 import { FormulaModal } from './components/tesorero/FormulaModal';
+import { WorkflowModal } from './components/tesorero/WorkflowModal';
 import { BadgeStatus } from './components/common/BadgeStatus';
 import { useGridKeyboardNav } from './hooks/useGridKeyboardNav';
-import type { SortState, EditingCell, GridData, ColumnaGrid } from './types/contabilidad';
+import type { SortState, EditingCell, GridData, ColumnaGrid, FilaGrid, EstadoInforme } from './types/contabilidad';
 
 ChartJS.register(
   CategoryScale,
@@ -306,6 +307,7 @@ export default function App() {
   });
 
   const [showPeriodCreateModal, setShowPeriodCreateModal] = useState(false);
+  const [workflowRow, setWorkflowRow] = useState<FilaGrid | null>(null);
 
   // Sort states
   const [gridSort, setGridSort] = useState<SortState | null>(null);
@@ -632,6 +634,41 @@ export default function App() {
       triggerToast('Guardado y recalculado');
     } catch (err: any) {
       triggerToast(err.response?.data?.message || 'Error al guardar', 'error');
+    }
+  };
+
+  const handleSendMonthlyReport = async (churchId: string, periodoId: string) => {
+    try {
+      await axios.post(`${API_BASE}/informes/enviar`, {
+        iglesia_id: churchId,
+        periodo_id: periodoId,
+      });
+      triggerToast('¡Informe mensual enviado a tesorería con éxito!');
+      fetchGridValues();
+    } catch (err: any) {
+      console.error('Error enviando informe:', err);
+      triggerToast(err.response?.data?.message || 'Error al enviar informe.', 'error');
+    }
+  };
+
+  const handleChangeWorkflowStatus = async (
+    iglesiaId: string,
+    periodoId: string,
+    estado: EstadoInforme,
+    observaciones?: string,
+  ) => {
+    try {
+      await axios.put(`${API_BASE}/informes/estado`, {
+        iglesia_id: iglesiaId,
+        periodo_id: periodoId,
+        estado,
+        observaciones,
+      });
+      triggerToast(`Estado del informe actualizado a "${estado}".`);
+      fetchGridValues();
+    } catch (err: any) {
+      console.error('Error actualizando estado del informe:', err);
+      triggerToast(err.response?.data?.message || 'Error al actualizar estado del informe.', 'error');
     }
   };
 
@@ -1686,6 +1723,7 @@ export default function App() {
                 onOpenReceipts={(churchId, churchName) =>
                   setReceiptVaultState({ open: true, churchId, churchName })
                 }
+                onOpenWorkflow={(row) => setWorkflowRow(row)}
                 isTesorero={isTesorero}
                 isPeriodOpen={isPeriodOpen ?? false}
                 gridSort={gridSort}
@@ -1756,9 +1794,7 @@ export default function App() {
                 isPeriodOpen={isPeriodOpen ?? false}
                 onSaveCell={saveCell}
                 onBatchSave={handleBatchSave}
-                onSendMonthlyReport={() => {
-                  triggerToast('¡Reporte mensual enviado a tesorería con éxito!');
-                }}
+                onSendMonthlyReport={handleSendMonthlyReport}
               />
             ) : (
               <div className="flex-1 flex items-center justify-center text-slate-500 text-xs bg-slate-50">
@@ -2988,6 +3024,15 @@ export default function App() {
         iglesias={iglesias}
         currentPeriod={periodos.find((p) => p.id === selectedPeriodoId)}
         user={user}
+      />
+
+      {/* ── WORKFLOW & APPROVALS MODAL ── */}
+      <WorkflowModal
+        isOpen={!!workflowRow}
+        onClose={() => setWorkflowRow(null)}
+        row={workflowRow}
+        periodo={selectedPeriodObj}
+        onChangeStatus={handleChangeWorkflowStatus}
       />
     </div>
   );

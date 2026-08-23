@@ -16,6 +16,7 @@ import { UsuariosModule } from './usuarios/usuarios.module';
 import { TablasModule } from './tablas/tablas.module';
 import { AiModule } from './ai/ai.module';
 import { GastosModule } from './gastos/gastos.module';
+import { InformesModule } from './informes/informes.module';
 
 @Controller()
 export class AppController {
@@ -72,6 +73,7 @@ export class AppController {
     TablasModule,
     AiModule,
     GastosModule,
+    InformesModule,
   ],
   controllers: [AppController],
 })
