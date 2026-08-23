@@ -35,8 +35,8 @@ interface GastoModalProps {
 }
 
 const INPUT_CLS =
-  "w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-slate-900 focus:outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100 text-sm";
-const LABEL_CLS = "block text-xs font-bold text-slate-600 uppercase tracking-wider mb-1.5";
+  "w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-xl text-slate-900 focus:outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100 text-xs font-medium";
+const LABEL_CLS = "block text-[11px] font-extrabold text-slate-600 uppercase tracking-wider mb-1.5";
 
 export function GastoModal({
   isOpen,
@@ -72,10 +72,10 @@ export function GastoModal({
   const isOverdrawn = selectedResumen && numMonto > 0 && numMonto > saldoFondo;
 
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fade-in">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
-        {/* Header */}
-        <div className="flex items-center justify-between p-5 border-b border-slate-100 bg-slate-50/50">
+    <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-3 sm:p-4 overflow-y-auto animate-fade-in">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md my-auto max-h-[92vh] flex flex-col overflow-hidden border border-slate-200">
+        {/* Header (Never pushed offscreen) */}
+        <div className="flex items-center justify-between p-4 sm:p-5 border-b border-slate-100 bg-slate-50/70 shrink-0">
           <div className="flex items-center gap-3">
             <div className="p-2.5 bg-rose-100 text-rose-600 rounded-xl">
               <DollarSign className="w-5 h-5" />
@@ -96,7 +96,8 @@ export function GastoModal({
           </button>
         </div>
 
-        <form onSubmit={onSave} className="p-5 space-y-4">
+        {/* Scrollable Form Body */}
+        <form onSubmit={onSave} className="p-4 sm:p-5 space-y-4 overflow-y-auto flex-1">
           {/* Fondo selection */}
           <div>
             <label className={LABEL_CLS}>Fondo (Columna a deducir)</label>
@@ -155,8 +156,8 @@ export function GastoModal({
                 </div>
                 <p className="text-[11px] text-slate-600 leading-relaxed">
                   {isAcumulable
-                    ? `Este fondo acumula saldos a través de todos los períodos. Recaudo histórico total: ${formatCOP(selectedResumen?.fondo_acumulado ?? 0)}.`
-                    : `Este fondo opera con el recaudo del período actual: ${formatCOP(selectedResumen?.fondo_periodo ?? 0)}.`}
+                    ? `Este fondo acumula saldos a través de todos los períodos. Recaudo histórico total: ${formatCOP(selectedResumen?.fondo_acumulado ?? selectedResumen?.total_fondo ?? saldoFondo)}.`
+                    : `Este fondo opera con el recaudo del período actual: ${formatCOP(selectedResumen?.fondo_periodo ?? selectedResumen?.total_fondo ?? saldoFondo)}.`}
                 </p>
               </div>
             )}
@@ -179,10 +180,10 @@ export function GastoModal({
           <div>
             <label className={LABEL_CLS}>Monto a Deducir</label>
             <div className="relative">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm font-bold">$</span>
+              <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-sm font-bold">$</span>
               <input
                 type="number"
-                className={`${INPUT_CLS} pl-7 font-bold text-slate-900`}
+                className={`${INPUT_CLS} pl-8 font-bold text-slate-900`}
                 placeholder="0"
                 min="1"
                 step="1"
@@ -191,9 +192,9 @@ export function GastoModal({
                 required
               />
             </div>
-            {data.monto && Number(data.monto) > 0 && (
+            {data.monto && Number(data.monto) > 0 ? (
               <p className="mt-1 text-xs font-semibold text-slate-600">{formatCOP(Number(data.monto))}</p>
-            )}
+            ) : null}
 
             {isOverdrawn && (
               <div className="mt-1.5 flex items-center gap-1.5 text-xs font-semibold text-rose-600 bg-rose-50 p-2 rounded-lg border border-rose-200">
@@ -234,7 +235,7 @@ export function GastoModal({
           </div>
 
           {/* Actions */}
-          <div className="flex items-center gap-3 pt-2 border-t border-slate-100">
+          <div className="flex items-center gap-3 pt-3 border-t border-slate-100">
             {data.id && onDelete && (
               <button
                 type="button"
@@ -265,7 +266,7 @@ export function GastoModal({
               ) : data.id ? (
                 "Guardar Cambios"
               ) : (
-                "Registrar Gasto & Generar Voucher"
+                "Registrar Gasto"
               )}
             </button>
           </div>

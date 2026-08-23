@@ -101,7 +101,284 @@ export function GastoVoucherModal({ isOpen, onClose, gasto }: GastoVoucherModalP
   const montoLetras = numeroALetras(gasto.monto);
 
   const handlePrint = () => {
-    window.print();
+    const printWindow = window.open('', '_blank', 'width=850,height=900');
+    if (!printWindow) {
+      window.print();
+      return;
+    }
+
+    const fechaFormateada = new Date(gasto.fecha).toLocaleDateString('es-CO', {
+      day: '2-digit',
+      month: 'long',
+      year: 'numeric',
+    });
+
+    printWindow.document.write(`
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>Comprobante de Egreso ${voucherNumber}</title>
+          <style>
+            * { box-sizing: border-box; margin: 0; padding: 0; }
+            body {
+              font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+              color: #0f172a;
+              background: #ffffff;
+              padding: 40px;
+              line-height: 1.5;
+            }
+            .voucher-card {
+              max-width: 650px;
+              margin: 0 auto;
+              border: 2px solid #0f172a;
+              border-radius: 16px;
+              padding: 32px;
+              background: #ffffff;
+            }
+            .header {
+              border-bottom: 2px solid #0f172a;
+              padding-bottom: 16px;
+              margin-bottom: 20px;
+              display: flex;
+              justify-content: space-between;
+              align-items: center;
+            }
+            .brand-title {
+              font-size: 16px;
+              font-weight: 900;
+              text-transform: uppercase;
+              letter-spacing: 0.5px;
+              color: #0f172a;
+            }
+            .brand-sub {
+              font-size: 11px;
+              font-weight: 700;
+              color: #64748b;
+              text-transform: uppercase;
+              letter-spacing: 0.5px;
+            }
+            .voucher-num-box {
+              background: #f8fafc;
+              border: 1px solid #cbd5e1;
+              padding: 6px 14px;
+              border-radius: 10px;
+              text-align: right;
+            }
+            .voucher-label {
+              font-size: 9px;
+              font-weight: 900;
+              text-transform: uppercase;
+              letter-spacing: 1px;
+              color: #4338ca;
+              display: block;
+            }
+            .voucher-id {
+              font-size: 13px;
+              font-weight: 900;
+              font-family: monospace;
+              color: #0f172a;
+            }
+            .meta-grid {
+              display: grid;
+              grid-template-columns: 1fr 1fr;
+              gap: 12px;
+              margin-bottom: 16px;
+            }
+            .meta-box {
+              background: #f8fafc;
+              border: 1px solid #e2e8f0;
+              border-radius: 10px;
+              padding: 10px 14px;
+            }
+            .meta-label {
+              font-size: 9px;
+              font-weight: 800;
+              text-transform: uppercase;
+              color: #64748b;
+              display: block;
+              margin-bottom: 2px;
+            }
+            .meta-val {
+              font-size: 12px;
+              font-weight: 800;
+              color: #0f172a;
+            }
+            .amount-box {
+              background: #0f172a;
+              color: #ffffff;
+              border-radius: 12px;
+              padding: 16px 20px;
+              display: flex;
+              justify-content: space-between;
+              align-items: center;
+              margin-bottom: 16px;
+            }
+            .amount-label {
+              font-size: 9px;
+              font-weight: 800;
+              text-transform: uppercase;
+              letter-spacing: 1px;
+              color: #c7d2fe;
+              display: block;
+            }
+            .amount-val {
+              font-size: 24px;
+              font-weight: 900;
+              font-family: monospace;
+              color: #ffffff;
+            }
+            .badge-auth {
+              background: rgba(16, 185, 129, 0.2);
+              border: 1px solid rgba(16, 185, 129, 0.4);
+              color: #34d399;
+              padding: 4px 10px;
+              border-radius: 8px;
+              font-size: 10px;
+              font-weight: 800;
+              text-transform: uppercase;
+            }
+            .desc-box {
+              background: #f8fafc;
+              border: 1px solid #e2e8f0;
+              border-radius: 10px;
+              padding: 12px 14px;
+              margin-bottom: 12px;
+            }
+            .desc-title {
+              font-size: 9px;
+              font-weight: 800;
+              text-transform: uppercase;
+              color: #64748b;
+              margin-bottom: 4px;
+              display: block;
+            }
+            .desc-text {
+              font-size: 13px;
+              font-weight: 700;
+              color: #0f172a;
+            }
+            .words-box {
+              background: #f8fafc;
+              border: 1px solid #e2e8f0;
+              border-radius: 10px;
+              padding: 10px 14px;
+              margin-bottom: 24px;
+            }
+            .words-text {
+              font-size: 11px;
+              font-weight: 800;
+              font-family: monospace;
+              color: #1e293b;
+            }
+            .signatures {
+              display: grid;
+              grid-template-columns: 1fr 1fr;
+              gap: 32px;
+              text-align: center;
+              margin-top: 32px;
+              padding-top: 16px;
+            }
+            .sign-line {
+              border-bottom: 1px solid #94a3b8;
+              height: 36px;
+              margin-bottom: 6px;
+            }
+            .sign-name {
+              font-size: 11px;
+              font-weight: 800;
+              color: #0f172a;
+            }
+            .sign-role {
+              font-size: 9px;
+              color: #64748b;
+              text-transform: uppercase;
+            }
+            .footer {
+              margin-top: 24px;
+              border-top: 1px solid #e2e8f0;
+              padding-top: 10px;
+              display: flex;
+              justify-content: space-between;
+              font-size: 9px;
+              color: #94a3b8;
+              font-family: monospace;
+            }
+            @media print {
+              body { padding: 0; }
+              .voucher-card { border: 2px solid #0f172a; }
+              @page { margin: 15mm; size: portrait; }
+            }
+          </style>
+        </head>
+        <body>
+          <div class="voucher-card">
+            <div class="header">
+              <div>
+                <div class="brand-title">TESORAPP — GESTIÓN FINANCIERA</div>
+                <div class="brand-sub">Tesorería &amp; Control de Egresos</div>
+              </div>
+              <div class="voucher-num-box">
+                <span class="voucher-label">COMPROBANTE DE EGRESO</span>
+                <span class="voucher-id">${voucherNumber}</span>
+              </div>
+            </div>
+
+            <div class="meta-grid">
+              <div class="meta-box">
+                <span class="meta-label">Fecha de Emisión</span>
+                <span class="meta-val">${fechaFormateada}</span>
+              </div>
+              <div class="meta-box">
+                <span class="meta-label">Autorizado por</span>
+                <span class="meta-val">${gasto.creado_por_nombre || 'Tesorería'}</span>
+              </div>
+            </div>
+
+            <div class="amount-box">
+              <div>
+                <span class="amount-label">VALOR PAGADO / DEDUCIDO</span>
+                <span class="amount-val">${formatCOP(gasto.monto)}</span>
+              </div>
+              <div class="badge-auth">EGRESO AUTORIZADO</div>
+            </div>
+
+            <div class="desc-box">
+              <span class="desc-title">Concepto / Motivo del Desembolso:</span>
+              <div class="desc-text">${gasto.descripcion}</div>
+            </div>
+
+            <div class="words-box">
+              <span class="desc-title">La suma de (en letras):</span>
+              <div class="words-text">${montoLetras}</div>
+            </div>
+
+            <div class="signatures">
+              <div>
+                <div class="sign-line"></div>
+                <div class="sign-name">${gasto.creado_por_nombre || 'Tesorero Oficial'}</div>
+                <div class="sign-role">Entregué Conforme (Tesorería)</div>
+              </div>
+              <div>
+                <div class="sign-line"></div>
+                <div class="sign-name">Firma Beneficiario / Receptor</div>
+                <div class="sign-role">C.C. / Recibí Conforme</div>
+              </div>
+            </div>
+
+            <div class="footer">
+              <span>TesorApp v2.0 • Comprobante Contable Oficial</span>
+              <span>Generado el ${new Date().toLocaleString('es-CO')}</span>
+            </div>
+          </div>
+          <script>
+            window.onload = function() {
+              window.print();
+            };
+          </script>
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
   };
 
   const handleShareWhatsApp = () => {
