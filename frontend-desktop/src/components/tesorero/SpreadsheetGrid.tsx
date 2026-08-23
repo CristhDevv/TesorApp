@@ -69,18 +69,22 @@ const GridRow = React.memo(function GridRow({
   activeCell,
   setActiveCell,
 }: GridRowProps) {
-  const columnsMap = React.useMemo(() => {
-    return new Map(columns.map((c) => [c.id, c]));
-  }, [columns]);
-
   const rowGrandTotal = React.useMemo(() => {
     let sum = 0;
-    fila.valores.forEach((val) => {
-      const isCalc = val.modo_calculo === 'calculado';
-      const num = Number(isCalc ? (val.valor_calculado || 0) : (val.valor_manual || 0));
-      if (!isNaN(num)) sum += num;
+    const valMap = new Map((fila.valores || []).map((v) => [v.campo_id, v]));
+    columns.forEach((col) => {
+      const val = valMap.get(col.id);
+      if (val) {
+        const isCalc = col.modo_calculo === 'calculado' || val.modo_calculo === 'calculado';
+        const num = Number(isCalc ? (val.valor_calculado || 0) : (val.valor_manual || 0));
+        if (!isNaN(num)) sum += num;
+      }
     });
     return sum;
+  }, [fila.valores, columns]);
+
+  const valoresMap = React.useMemo(() => {
+    return new Map((fila.valores || []).map((v) => [v.campo_id, v]));
   }, [fila.valores]);
 
   return (
@@ -150,32 +154,42 @@ const GridRow = React.memo(function GridRow({
         </div>
       </td>
 
-      {/* Data cells with semantic colors & inline editing */}
-      {fila.valores.map((val) => {
-        const col = columnsMap.get(val.campo_id);
+      {/* Data cells strictly mapped by column definition with semantic colors & inline editing */}
+      {columns.map((col) => {
+        const val = valoresMap.get(col.id) || {
+          campo_id: col.id,
+          valor_manual: 0,
+          valor_calculado: 0,
+          modo_calculo: col.modo_calculo,
+          formula: col.formula,
+          es_acumulable: (col as any).es_acumulable,
+          actualizado_por: null,
+          actualizado_en: null,
+          editable: true,
+        };
         const isEditing =
           editingCell?.churchId === fila.iglesia_id &&
-          editingCell?.fieldId === val.campo_id;
+          editingCell?.fieldId === col.id;
         const isActive =
           activeCell?.churchId === fila.iglesia_id &&
-          activeCell?.fieldId === val.campo_id;
-        const isCalc = val.modo_calculo === 'calculado';
+          activeCell?.fieldId === col.id;
+        const isCalc = col.modo_calculo === 'calculado' || val.modo_calculo === 'calculado';
         const canEdit = isPeriodOpen && (isTesorero || (!isCalc && val.editable !== false));
         const displayVal = isCalc ? val.valor_calculado : val.valor_manual;
         const isOverridden = isCalc && val.valor_manual != null && val.valor_manual !== 0;
 
         return (
           <EditableCell
-            key={val.campo_id}
+            key={col.id}
             churchId={fila.iglesia_id}
-            fieldId={val.campo_id}
-            fieldName={col?.nombre}
-            formula={isCalc ? (col?.formula ?? val.formula) : undefined}
+            fieldId={col.id}
+            fieldName={col.nombre}
+            formula={isCalc ? (col.formula ?? val.formula) : undefined}
             displayValue={displayVal}
             isCalculated={isCalc}
             isOverridden={isOverridden}
-            overrideAuthor={val.actualizado_por}
-            overrideDate={val.actualizado_en}
+            overrideAuthor={val.actualizado_por || undefined}
+            overrideDate={val.actualizado_en ? String(val.actualizado_en) : undefined}
             isPeriodOpen={isPeriodOpen}
             canEdit={canEdit}
             isEditing={isEditing}
@@ -183,22 +197,22 @@ const GridRow = React.memo(function GridRow({
             editValue={editValue}
             onStartEdit={() => {
               const current = String(Number(displayVal ?? 0) || '');
-              onBeginEdit(fila.iglesia_id, val.campo_id, current);
+              onBeginEdit(fila.iglesia_id, col.id, current);
             }}
             onChangeEdit={setEditValue}
-            onCommit={(v) => onSaveCell(fila.iglesia_id, val.campo_id, v)}
+            onCommit={(v) => onSaveCell(fila.iglesia_id, col.id, v)}
             onCancel={onCancelEdit}
             onClick={() =>
-              setActiveCell({ churchId: fila.iglesia_id, fieldId: val.campo_id })
+              setActiveCell({ churchId: fila.iglesia_id, fieldId: col.id })
             }
-            esAcumulable={val.es_acumulable}
+            esAcumulable={val.es_acumulable || (col as any).es_acumulable}
           />
         );
       })}
 
       {/* ── Total General por Fila ── */}
       <td
-        className="sticky right-0 z-10 border-b border-l-2 border-slate-300 dark:border-slate-700 px-2.5 h-8 text-right font-mono text-[11px] font-black tabular-nums bg-emerald-50/70 dark:bg-emerald-950/40 text-emerald-900 dark:text-emerald-300 select-none shadow-[-2px_0_6px_rgba(0,0,0,0.03)]"
+        className="border-b border-r border-l-2 border-slate-300 dark:border-slate-700 px-2.5 h-8 text-right font-mono text-[11px] font-black tabular-nums bg-emerald-50 dark:bg-emerald-950/40 text-emerald-900 dark:text-emerald-200 select-none min-w-[130px]"
         title={`Total general de ${fila.iglesia_nombre}: ${formatCOP(rowGrandTotal)}`}
       >
         {formatCOP(rowGrandTotal)}
@@ -251,15 +265,11 @@ export const SpreadsheetGrid = React.memo(function SpreadsheetGrid({
 
   const grandTotalAllRows = React.useMemo(() => {
     let grandSum = 0;
-    rows.forEach((row) => {
-      row.valores.forEach((val) => {
-        const isCalc = val.modo_calculo === 'calculado';
-        const num = Number(isCalc ? (val.valor_calculado || 0) : (val.valor_manual || 0));
-        if (!isNaN(num)) grandSum += num;
-      });
+    columns.forEach((col) => {
+      grandSum += Number(columnTotals[col.id] || 0);
     });
     return grandSum;
-  }, [rows]);
+  }, [columns, columnTotals]);
 
   return (
     <div className="flex-1 min-h-0 flex flex-col bg-white dark:bg-slate-950">
@@ -269,14 +279,14 @@ export const SpreadsheetGrid = React.memo(function SpreadsheetGrid({
           <thead className="sticky top-0 z-20">
             <tr>
               {/* Row number col */}
-              <th className="sticky left-0 z-30 bg-slate-100 dark:bg-slate-800 border-b border-r border-slate-300 dark:border-slate-700 w-8 h-8 text-center text-[9px] font-bold text-slate-600 dark:text-slate-300 uppercase">
+              <th className="sticky left-0 z-30 bg-slate-100 dark:bg-slate-800 border-b border-r border-slate-300 dark:border-slate-700 w-8 min-w-[32px] max-w-[32px] h-8 text-center text-[9px] font-bold text-slate-600 dark:text-slate-300 uppercase">
                 #
               </th>
 
               {/* Church col */}
               <th
                 onClick={() => onSortChange('iglesia_nombre')}
-                className="sticky left-8 z-30 bg-slate-100 dark:bg-slate-800 border-b border-r-2 border-slate-300 dark:border-slate-700 px-3 h-8 min-w-[200px] cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-700/80 transition select-none group shadow-[2px_0_6px_rgba(0,0,0,0.05)]"
+                className="sticky left-8 z-30 bg-slate-100 dark:bg-slate-800 border-b border-r-2 border-slate-300 dark:border-slate-700 px-3 h-8 w-64 min-w-[250px] max-w-[250px] cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-700/80 transition select-none group shadow-[2px_0_6px_rgba(0,0,0,0.05)]"
               >
                 <div className="flex items-center justify-between gap-1">
                   <span className="text-[10px] font-extrabold text-slate-700 dark:text-slate-200 uppercase tracking-wider">
@@ -313,7 +323,7 @@ export const SpreadsheetGrid = React.memo(function SpreadsheetGrid({
               {/* ── Total General Column Header ── */}
               <th
                 onClick={() => onSortChange('total_general')}
-                className="sticky right-0 z-30 border-b border-l-2 border-slate-300 dark:border-slate-700 px-3 h-8 min-w-[130px] bg-slate-100 dark:bg-slate-800 select-none group text-right cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-700/80 transition shadow-[-2px_0_6px_rgba(0,0,0,0.04)]"
+                className="border-b border-r border-l-2 border-slate-300 dark:border-slate-700 px-3 h-8 min-w-[130px] bg-emerald-50 dark:bg-emerald-950/60 select-none group text-right cursor-pointer hover:bg-emerald-100 dark:hover:bg-emerald-900/60 transition"
                 title="Suma total de todas las columnas de la fila"
               >
                 <div className="flex items-center justify-end gap-1.5">
@@ -354,10 +364,10 @@ export const SpreadsheetGrid = React.memo(function SpreadsheetGrid({
           {/* ── STICKY TOTALS FOOTER ── */}
           <tfoot className="sticky bottom-0 z-20">
             <tr className="border-t-2 border-slate-300 dark:border-slate-700">
-              <td className="sticky left-0 z-30 bg-slate-100 dark:bg-slate-800 border-r border-slate-300 dark:border-slate-700 px-2 h-8 text-center text-[11px] font-extrabold text-slate-700 dark:text-slate-300">
+              <td className="sticky left-0 z-30 bg-slate-100 dark:bg-slate-800 border-r border-slate-300 dark:border-slate-700 px-2 h-8 text-center text-[11px] font-extrabold text-slate-700 dark:text-slate-300 w-8 min-w-[32px] max-w-[32px]">
                 Σ
               </td>
-              <td className="sticky left-8 z-30 bg-slate-100 dark:bg-slate-800 border-r-2 border-slate-300 dark:border-slate-700 px-3 h-8 text-[10px] font-extrabold text-slate-800 dark:text-slate-200 uppercase tracking-wider shadow-[2px_0_6px_rgba(0,0,0,0.05)]">
+              <td className="sticky left-8 z-30 bg-slate-100 dark:bg-slate-800 border-r-2 border-slate-300 dark:border-slate-700 px-3 h-8 text-[10px] font-extrabold text-slate-800 dark:text-slate-200 uppercase tracking-wider shadow-[2px_0_6px_rgba(0,0,0,0.05)] w-64 min-w-[250px] max-w-[250px]">
                 TOTAL ({rows.length} iglesias)
               </td>
               {columns.map((col) => {
@@ -377,7 +387,7 @@ export const SpreadsheetGrid = React.memo(function SpreadsheetGrid({
               })}
 
               {/* ── Gran Total Consolidado Footer ── */}
-              <td className="sticky right-0 z-30 border-t-2 border-l-2 border-slate-300 dark:border-slate-700 px-2.5 h-8 text-right font-mono text-[11px] font-black tabular-nums bg-emerald-100 dark:bg-emerald-900/60 text-emerald-950 dark:text-emerald-100 shadow-[-2px_0_6px_rgba(0,0,0,0.05)]">
+              <td className="border-t-2 border-r border-l-2 border-slate-300 dark:border-slate-700 px-2.5 h-8 text-right font-mono text-[11px] font-black tabular-nums bg-emerald-100 dark:bg-emerald-900/80 text-emerald-950 dark:text-emerald-100 min-w-[130px]">
                 {formatCOP(grandTotalAllRows)}
               </td>
             </tr>

@@ -1344,15 +1344,18 @@ export default function App() {
 
   const chartData = useMemo(() => {
     if (!gridData?.filas || gridData.filas.length === 0) return null;
-    const totalIngresosIdx = gridData.columnas.findIndex((c: any) => c.slug === 'total_ingresos');
-    const saldoNetoIdx = gridData.columnas.findIndex((c: any) => c.slug === 'saldo_neto');
-    if (totalIngresosIdx === -1 && saldoNetoIdx === -1) return null;
+    const totalIngresosCol = gridData.columnas.find((c: any) => c.slug === 'total_ingresos' || c.slug === 'ingreso_total');
+    const saldoNetoCol = gridData.columnas.find((c: any) => c.slug === 'saldo_neto');
+    if (!totalIngresosCol && !saldoNetoCol) return null;
     return {
       labels: gridData.filas.map((f: any) => f.iglesia_nombre),
       datasets: [
         {
           label: 'Total Ingresos',
-          data: gridData.filas.map((f: any) => Number(f.valores[totalIngresosIdx]?.valor_calculado || 0)),
+          data: gridData.filas.map((f: any) => {
+            const v = f.valores?.find((val: any) => val.campo_id === totalIngresosCol?.id);
+            return Number(v ? (v.modo_calculo === 'calculado' ? v.valor_calculado : v.valor_manual) : 0);
+          }),
           backgroundColor: 'rgba(16, 185, 129, 0.8)',
           borderColor: 'rgb(16, 185, 129)',
           borderWidth: 1,
@@ -1360,7 +1363,10 @@ export default function App() {
         },
         {
           label: 'Saldo Neto',
-          data: gridData.filas.map((f: any) => Number(f.valores[saldoNetoIdx]?.valor_calculado || 0)),
+          data: gridData.filas.map((f: any) => {
+            const v = f.valores?.find((val: any) => val.campo_id === saldoNetoCol?.id);
+            return Number(v ? (v.modo_calculo === 'calculado' ? v.valor_calculado : v.valor_manual) : 0);
+          }),
           backgroundColor: 'rgba(99, 102, 241, 0.8)',
           borderColor: 'rgb(99, 102, 241)',
           borderWidth: 1,

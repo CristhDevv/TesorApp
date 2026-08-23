@@ -221,16 +221,15 @@ export function TableFilterToolbar({
               </button>
             </>
           )}
+
+          {totalIngresosPeriodo != null && (
+            <span className="hidden xl:inline-flex items-center gap-1 px-2 py-0.5 rounded bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-300 dark:border-emerald-700/80 text-[10px] font-bold text-emerald-800 dark:text-emerald-300 whitespace-nowrap shadow-2xs">
+              <span>Ingresos Período:</span>
+              <strong className="font-mono text-emerald-900 dark:text-emerald-200">{formatCOP(totalIngresosPeriodo)}</strong>
+            </span>
+          )}
         </div>
       </div>
-
-      {/* ─── CENTER/RIGHT KPI: TOTAL INGRESOS PERÍODO ─── */}
-      {totalIngresosPeriodo != null && (
-        <div className="hidden lg:flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-300 dark:border-emerald-700 text-emerald-900 dark:text-emerald-200 shadow-2xs">
-          <span className="text-[10px] uppercase font-extrabold tracking-wider text-emerald-700 dark:text-emerald-400">Total Ingresos Período:</span>
-          <span className="font-mono font-black text-xs text-emerald-950 dark:text-emerald-100">{formatCOP(totalIngresosPeriodo)}</span>
-        </div>
-      )}
 
       {/* ─── RIGHT SECTION: SEARCH & ACTIONS ─── */}
       <div className="flex items-center gap-2 shrink-0">
