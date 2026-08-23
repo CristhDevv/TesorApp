@@ -3,11 +3,7 @@ import {
   X, 
   Printer, 
   Share2, 
-  CheckCircle2, 
-  Building2, 
-  Calendar, 
-  FileText, 
-  User
+  FileText
 } from 'lucide-react';
 import { formatCOP } from '../../utils/formatters';
 
@@ -99,19 +95,18 @@ export function GastoVoucherModal({ isOpen, onClose, gasto }: GastoVoucherModalP
 
   const voucherNumber = `CE-${new Date(gasto.fecha || Date.now()).getFullYear()}-${(gasto.id || '0000').slice(0, 6).toUpperCase()}`;
   const montoLetras = numeroALetras(gasto.monto);
+  const fechaFormateada = new Date(gasto.fecha).toLocaleDateString('es-CO', {
+    day: '2-digit',
+    month: 'long',
+    year: 'numeric',
+  });
 
   const handlePrint = () => {
-    const printWindow = window.open('', '_blank', 'width=850,height=900');
+    const printWindow = window.open('', '_blank', 'width=850,height=750');
     if (!printWindow) {
       window.print();
       return;
     }
-
-    const fechaFormateada = new Date(gasto.fecha).toLocaleDateString('es-CO', {
-      day: '2-digit',
-      month: 'long',
-      year: 'numeric',
-    });
 
     printWindow.document.write(`
       <!DOCTYPE html>
@@ -122,251 +117,168 @@ export function GastoVoucherModal({ isOpen, onClose, gasto }: GastoVoucherModalP
             * { box-sizing: border-box; margin: 0; padding: 0; }
             body {
               font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-              color: #0f172a;
+              color: #111827;
               background: #ffffff;
               padding: 40px;
-              line-height: 1.5;
+              line-height: 1.4;
             }
-            .voucher-card {
-              max-width: 650px;
+            .voucher-container {
+              max-width: 680px;
               margin: 0 auto;
-              border: 2px solid #0f172a;
-              border-radius: 16px;
-              padding: 32px;
+              border: 1.5px solid #1f2937;
+              padding: 24px 28px;
               background: #ffffff;
             }
-            .header {
-              border-bottom: 2px solid #0f172a;
-              padding-bottom: 16px;
-              margin-bottom: 20px;
-              display: flex;
-              justify-content: space-between;
-              align-items: center;
-            }
-            .brand-title {
-              font-size: 16px;
-              font-weight: 900;
-              text-transform: uppercase;
-              letter-spacing: 0.5px;
-              color: #0f172a;
-            }
-            .brand-sub {
-              font-size: 11px;
-              font-weight: 700;
-              color: #64748b;
-              text-transform: uppercase;
-              letter-spacing: 0.5px;
-            }
-            .voucher-num-box {
-              background: #f8fafc;
-              border: 1px solid #cbd5e1;
-              padding: 6px 14px;
-              border-radius: 10px;
-              text-align: right;
-            }
-            .voucher-label {
-              font-size: 9px;
-              font-weight: 900;
-              text-transform: uppercase;
-              letter-spacing: 1px;
-              color: #4338ca;
-              display: block;
-            }
-            .voucher-id {
-              font-size: 13px;
-              font-weight: 900;
-              font-family: monospace;
-              color: #0f172a;
-            }
-            .meta-grid {
-              display: grid;
-              grid-template-columns: 1fr 1fr;
-              gap: 12px;
+            .header-table {
+              width: 100%;
+              border-bottom: 1.5px solid #1f2937;
+              padding-bottom: 14px;
               margin-bottom: 16px;
             }
-            .meta-box {
-              background: #f8fafc;
-              border: 1px solid #e2e8f0;
-              border-radius: 10px;
-              padding: 10px 14px;
-            }
-            .meta-label {
-              font-size: 9px;
+            .title-main {
+              font-size: 15px;
               font-weight: 800;
               text-transform: uppercase;
-              color: #64748b;
+              letter-spacing: 0.5px;
+              color: #111827;
+            }
+            .title-sub {
+              font-size: 11px;
+              color: #4b5563;
+              font-weight: 600;
+              margin-top: 2px;
+            }
+            .num-box {
+              text-align: right;
+            }
+            .num-title {
+              font-size: 11px;
+              font-weight: 800;
+              text-transform: uppercase;
+              color: #111827;
+            }
+            .num-code {
+              font-size: 14px;
+              font-weight: 800;
+              font-family: monospace;
+              color: #111827;
+              margin-top: 2px;
+            }
+            .grid-table {
+              width: 100%;
+              border-collapse: collapse;
+              margin-bottom: 16px;
+            }
+            .grid-table td {
+              border: 1px solid #d1d5db;
+              padding: 8px 12px;
+              vertical-align: top;
+            }
+            .cell-label {
+              font-size: 9px;
+              font-weight: 700;
+              text-transform: uppercase;
+              color: #6b7280;
               display: block;
               margin-bottom: 2px;
             }
-            .meta-val {
+            .cell-value {
               font-size: 12px;
-              font-weight: 800;
-              color: #0f172a;
-            }
-            .amount-box {
-              background: #0f172a;
-              color: #ffffff;
-              border-radius: 12px;
-              padding: 16px 20px;
-              display: flex;
-              justify-content: space-between;
-              align-items: center;
-              margin-bottom: 16px;
-            }
-            .amount-label {
-              font-size: 9px;
-              font-weight: 800;
-              text-transform: uppercase;
-              letter-spacing: 1px;
-              color: #c7d2fe;
-              display: block;
-            }
-            .amount-val {
-              font-size: 24px;
-              font-weight: 900;
-              font-family: monospace;
-              color: #ffffff;
-            }
-            .badge-auth {
-              background: rgba(16, 185, 129, 0.2);
-              border: 1px solid rgba(16, 185, 129, 0.4);
-              color: #34d399;
-              padding: 4px 10px;
-              border-radius: 8px;
-              font-size: 10px;
-              font-weight: 800;
-              text-transform: uppercase;
-            }
-            .desc-box {
-              background: #f8fafc;
-              border: 1px solid #e2e8f0;
-              border-radius: 10px;
-              padding: 12px 14px;
-              margin-bottom: 12px;
-            }
-            .desc-title {
-              font-size: 9px;
-              font-weight: 800;
-              text-transform: uppercase;
-              color: #64748b;
-              margin-bottom: 4px;
-              display: block;
-            }
-            .desc-text {
-              font-size: 13px;
               font-weight: 700;
-              color: #0f172a;
+              color: #111827;
             }
-            .words-box {
-              background: #f8fafc;
-              border: 1px solid #e2e8f0;
-              border-radius: 10px;
-              padding: 10px 14px;
-              margin-bottom: 24px;
-            }
-            .words-text {
+            .cell-value-mono {
               font-size: 11px;
+              font-weight: 700;
+              font-family: monospace;
+              color: #111827;
+            }
+            .cell-amount {
+              font-size: 16px;
               font-weight: 800;
               font-family: monospace;
-              color: #1e293b;
+              color: #111827;
             }
-            .signatures {
-              display: grid;
-              grid-template-columns: 1fr 1fr;
-              gap: 32px;
-              text-align: center;
-              margin-top: 32px;
-              padding-top: 16px;
+            .auth-box {
+              border: 1px solid #d1d5db;
+              padding: 10px 14px;
+              background: #f9fafb;
+              margin-top: 16px;
             }
-            .sign-line {
-              border-bottom: 1px solid #94a3b8;
-              height: 36px;
-              margin-bottom: 6px;
-            }
-            .sign-name {
-              font-size: 11px;
-              font-weight: 800;
-              color: #0f172a;
-            }
-            .sign-role {
-              font-size: 9px;
-              color: #64748b;
-              text-transform: uppercase;
-            }
-            .footer {
-              margin-top: 24px;
-              border-top: 1px solid #e2e8f0;
-              padding-top: 10px;
+            .footer-info {
+              margin-top: 16px;
               display: flex;
               justify-content: space-between;
               font-size: 9px;
-              color: #94a3b8;
+              color: #9ca3af;
               font-family: monospace;
+              border-top: 1px dashed #e5e7eb;
+              padding-top: 8px;
             }
             @media print {
               body { padding: 0; }
-              .voucher-card { border: 2px solid #0f172a; }
               @page { margin: 15mm; size: portrait; }
             }
           </style>
         </head>
         <body>
-          <div class="voucher-card">
-            <div class="header">
-              <div>
-                <div class="brand-title">TESORAPP — GESTIÓN FINANCIERA</div>
-                <div class="brand-sub">Tesorería &amp; Control de Egresos</div>
+          <div class="voucher-container">
+            <table class="header-table">
+              <tr>
+                <td>
+                  <div class="title-main">TESORAPP — GESTIÓN FINANCIERA</div>
+                  <div class="title-sub">Sistema Contable &amp; Tesorería</div>
+                </td>
+                <td class="num-box">
+                  <div class="num-title">COMPROBANTE DE EGRESO</div>
+                  <div class="num-code">${voucherNumber}</div>
+                </td>
+              </tr>
+            </table>
+
+            <table class="grid-table">
+              <tr>
+                <td style="width: 50%;">
+                  <span class="cell-label">Fecha de Expedición</span>
+                  <span class="cell-value">${fechaFormateada}</span>
+                </td>
+                <td style="width: 50%;">
+                  <span class="cell-label">Período Contable</span>
+                  <span class="cell-value">${gasto.periodo_nombre || 'Período Actual'}</span>
+                </td>
+              </tr>
+              <tr>
+                <td colspan="2">
+                  <span class="cell-label">Valor Pagado / Deducido</span>
+                  <span class="cell-amount">${formatCOP(gasto.monto)} COP</span>
+                </td>
+              </tr>
+              <tr>
+                <td colspan="2">
+                  <span class="cell-label">La suma de (en letras)</span>
+                  <span class="cell-value-mono">${montoLetras}</span>
+                </td>
+              </tr>
+              <tr>
+                <td colspan="2">
+                  <span class="cell-label">Por Concepto de</span>
+                  <span class="cell-value" style="font-size: 13px;">${gasto.descripcion}</span>
+                </td>
+              </tr>
+            </table>
+
+            <div class="auth-box">
+              <span class="cell-label">Autorizado y Expedido por</span>
+              <div class="cell-value" style="font-size: 13px;">
+                ${gasto.creado_por_nombre || 'Tesorero Oficial'}
               </div>
-              <div class="voucher-num-box">
-                <span class="voucher-label">COMPROBANTE DE EGRESO</span>
-                <span class="voucher-id">${voucherNumber}</span>
+              <div style="font-size: 10px; color: #6b7280; margin-top: 2px;">
+                Tesorería Oficial • Registro Aprobado en Sistema
               </div>
             </div>
 
-            <div class="meta-grid">
-              <div class="meta-box">
-                <span class="meta-label">Fecha de Emisión</span>
-                <span class="meta-val">${fechaFormateada}</span>
-              </div>
-              <div class="meta-box">
-                <span class="meta-label">Autorizado por</span>
-                <span class="meta-val">${gasto.creado_por_nombre || 'Tesorería'}</span>
-              </div>
-            </div>
-
-            <div class="amount-box">
-              <div>
-                <span class="amount-label">VALOR PAGADO / DEDUCIDO</span>
-                <span class="amount-val">${formatCOP(gasto.monto)}</span>
-              </div>
-              <div class="badge-auth">EGRESO AUTORIZADO</div>
-            </div>
-
-            <div class="desc-box">
-              <span class="desc-title">Concepto / Motivo del Desembolso:</span>
-              <div class="desc-text">${gasto.descripcion}</div>
-            </div>
-
-            <div class="words-box">
-              <span class="desc-title">La suma de (en letras):</span>
-              <div class="words-text">${montoLetras}</div>
-            </div>
-
-            <div class="signatures">
-              <div>
-                <div class="sign-line"></div>
-                <div class="sign-name">${gasto.creado_por_nombre || 'Tesorero Oficial'}</div>
-                <div class="sign-role">Entregué Conforme (Tesorería)</div>
-              </div>
-              <div>
-                <div class="sign-line"></div>
-                <div class="sign-name">Firma Beneficiario / Receptor</div>
-                <div class="sign-role">C.C. / Recibí Conforme</div>
-              </div>
-            </div>
-
-            <div class="footer">
-              <span>TesorApp v2.0 • Comprobante Contable Oficial</span>
+            <div class="footer-info">
+              <span>TesorApp • Documento Contable Oficial</span>
               <span>Generado el ${new Date().toLocaleString('es-CO')}</span>
             </div>
           </div>
@@ -385,37 +297,32 @@ export function GastoVoucherModal({ isOpen, onClose, gasto }: GastoVoucherModalP
     const text = `🏛️ *COMPROBANTE DE EGRESO - TESORERÍA*\n` +
       `━━━━━━━━━━━━━━━━━━━━━━━━\n` +
       `📄 *No. Comprobante:* ${voucherNumber}\n` +
-      `📅 *Fecha:* ${new Date(gasto.fecha).toLocaleDateString('es-CO', { day: '2-digit', month: 'long', year: 'numeric' })}\n` +
-      `📝 *Concepto / Detalle:* ${gasto.descripcion}\n` +
-      `💰 *Monto Pagado:* ${formatCOP(gasto.monto)}\n` +
+      `📅 *Fecha:* ${fechaFormateada}\n` +
+      `📝 *Concepto:* ${gasto.descripcion}\n` +
+      `💰 *Monto:* ${formatCOP(gasto.monto)} COP\n` +
       `🔤 *Son:* ${montoLetras}\n` +
-      `👤 *Registrado por:* ${gasto.creado_por_nombre || 'Tesorería'}\n` +
+      `👤 *Autorizado por:* ${gasto.creado_por_nombre || 'Tesorería'}\n` +
       `━━━━━━━━━━━━━━━━━━━━━━━━\n` +
-      `_Comprobante oficial generado por el Sistema Financiero TesorApp_`;
+      `_Documento oficial generado por TesorApp_`;
 
     const encoded = encodeURIComponent(text);
     window.open(`https://wa.me/?text=${encoded}`, '_blank');
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/70 backdrop-blur-xs p-4 animate-fade-in print:p-0 print:bg-white print:static">
-      <div className="bg-white w-full max-w-xl rounded-2xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col max-h-[92vh] print:max-h-none print:shadow-none print:border-none print:w-full">
-        {/* Modal Top Bar (Hidden on print) */}
-        <div className="p-4 bg-slate-900 text-white flex items-center justify-between print:hidden">
-          <div className="flex items-center gap-2.5">
-            <div className="p-2 bg-indigo-600 rounded-xl">
-              <FileText className="w-4 h-4 text-white" />
-            </div>
-            <div>
-              <h3 className="font-extrabold text-sm">Voucher / Comprobante de Egreso</h3>
-              <p className="text-[11px] text-slate-300">Recibo oficial de salida de fondos</p>
-            </div>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4 animate-fade-in">
+      <div className="bg-white w-full max-w-xl rounded-xl shadow-2xl border border-slate-300 overflow-hidden flex flex-col max-h-[92vh]">
+        {/* Modal Top Bar */}
+        <div className="px-5 py-3.5 bg-slate-900 text-white flex items-center justify-between shrink-0">
+          <div className="flex items-center gap-2">
+            <FileText className="w-4 h-4 text-slate-300" />
+            <h3 className="font-bold text-xs uppercase tracking-wider">Comprobante de Egreso</h3>
           </div>
 
           <div className="flex items-center gap-2">
             <button
               onClick={handleShareWhatsApp}
-              className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-xs transition cursor-pointer active:scale-95"
+              className="px-3 py-1.5 bg-emerald-700 hover:bg-emerald-800 text-white rounded-lg text-xs font-bold flex items-center gap-1.5 transition cursor-pointer active:scale-95 shadow-2xs"
               title="Compartir por WhatsApp"
             >
               <Share2 className="w-3.5 h-3.5" />
@@ -424,7 +331,7 @@ export function GastoVoucherModal({ isOpen, onClose, gasto }: GastoVoucherModalP
 
             <button
               onClick={handlePrint}
-              className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-xs transition cursor-pointer active:scale-95"
+              className="px-3 py-1.5 bg-slate-700 hover:bg-slate-600 text-white rounded-lg text-xs font-bold flex items-center gap-1.5 transition cursor-pointer active:scale-95 shadow-2xs"
               title="Imprimir o guardar como PDF"
             >
               <Printer className="w-3.5 h-3.5" />
@@ -440,142 +347,121 @@ export function GastoVoucherModal({ isOpen, onClose, gasto }: GastoVoucherModalP
           </div>
         </div>
 
-        {/* Printable Voucher Body */}
+        {/* Professional Monochrome Voucher Display */}
         <div 
           ref={printRef}
-          className="p-6 md:p-8 overflow-y-auto space-y-5 print:p-0 print:overflow-visible print:space-y-4"
+          className="p-6 overflow-y-auto space-y-4 text-slate-900 bg-white"
         >
-          {/* Header */}
-          <div className="border-b-2 border-slate-900 pb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <div className="p-3 bg-slate-900 text-white rounded-2xl print:bg-slate-900 print:text-white">
-                <Building2 className="w-6 h-6" />
-              </div>
+          {/* Formal Outer Frame */}
+          <div className="border border-slate-900 p-5 bg-white space-y-4">
+            {/* Header Table */}
+            <div className="flex items-start justify-between border-b border-slate-900 pb-3">
               <div>
-                <h1 className="text-base font-black uppercase tracking-tight text-slate-900">
+                <h1 className="text-sm font-extrabold uppercase tracking-tight text-slate-900">
                   TESORAPP — GESTIÓN FINANCIERA
                 </h1>
-                <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                  Tesorería &amp; Control de Egresos
+                <p className="text-[11px] font-medium text-slate-600">
+                  Sistema Contable &amp; Tesorería
+                </p>
+              </div>
+
+              <div className="text-right">
+                <span className="text-[10px] font-extrabold uppercase text-slate-900 block tracking-wider">
+                  COMPROBANTE DE EGRESO
+                </span>
+                <span className="text-xs font-mono font-extrabold text-slate-900 block mt-0.5">
+                  {voucherNumber}
+                </span>
+              </div>
+            </div>
+
+            {/* Grid Table */}
+            <div className="border border-slate-300 divide-y divide-slate-300 text-xs">
+              <div className="grid grid-cols-2 divide-x divide-slate-300">
+                <div className="p-2.5 bg-slate-50/50">
+                  <span className="text-[10px] uppercase font-bold text-slate-500 block mb-0.5">
+                    Fecha de Expedición
+                  </span>
+                  <span className="font-bold text-slate-900">{fechaFormateada}</span>
+                </div>
+                <div className="p-2.5 bg-slate-50/50">
+                  <span className="text-[10px] uppercase font-bold text-slate-500 block mb-0.5">
+                    Período Contable
+                  </span>
+                  <span className="font-bold text-slate-900">{gasto.periodo_nombre || 'Período Actual'}</span>
+                </div>
+              </div>
+
+              <div className="p-2.5 bg-slate-100/70">
+                <span className="text-[10px] uppercase font-bold text-slate-600 block mb-0.5">
+                  Valor Pagado / Deducido
+                </span>
+                <span className="text-base font-mono font-extrabold text-slate-900">
+                  {formatCOP(gasto.monto)} COP
+                </span>
+              </div>
+
+              <div className="p-2.5">
+                <span className="text-[10px] uppercase font-bold text-slate-500 block mb-0.5">
+                  La suma de (en letras)
+                </span>
+                <span className="font-mono font-bold text-slate-800 text-[11px]">
+                  {montoLetras}
+                </span>
+              </div>
+
+              <div className="p-2.5">
+                <span className="text-[10px] uppercase font-bold text-slate-500 block mb-0.5">
+                  Por Concepto de
+                </span>
+                <p className="font-bold text-slate-900 text-xs leading-relaxed">
+                  {gasto.descripcion}
                 </p>
               </div>
             </div>
 
-            <div className="text-left sm:text-right bg-slate-50 print:bg-slate-50 p-2.5 rounded-xl border border-slate-200">
-              <span className="text-[10px] font-black uppercase text-indigo-700 block tracking-widest">
-                COMPROBANTE DE EGRESO
+            {/* Authorized By Box (NO signature lines, pure authorization) */}
+            <div className="border border-slate-300 p-3 bg-slate-50/50 text-xs">
+              <span className="text-[10px] uppercase font-bold text-slate-500 block mb-0.5">
+                Autorizado y Expedido por
               </span>
-              <span className="text-sm font-mono font-extrabold text-slate-900 block">
-                {voucherNumber}
-              </span>
-            </div>
-          </div>
-
-          {/* Metadata Row */}
-          <div className="grid grid-cols-2 gap-3 text-xs">
-            <div className="p-2.5 bg-slate-50 rounded-xl border border-slate-200">
-              <span className="text-[10px] uppercase font-bold text-slate-400 flex items-center gap-1">
-                <Calendar className="w-3 h-3 text-indigo-600" /> Fecha de Emisión
-              </span>
-              <span className="font-bold text-slate-800 mt-0.5 block">
-                {new Date(gasto.fecha).toLocaleDateString('es-CO', {
-                  day: '2-digit',
-                  month: 'long',
-                  year: 'numeric',
-                })}
-              </span>
+              <div className="font-bold text-slate-900 text-xs">
+                {gasto.creado_por_nombre || 'Tesorero Oficial'}
+              </div>
+              <div className="text-[10px] text-slate-500 mt-0.5">
+                Tesorería Oficial • Registro Aprobado en Sistema
+              </div>
             </div>
 
-            <div className="p-2.5 bg-slate-50 rounded-xl border border-slate-200">
-              <span className="text-[10px] uppercase font-bold text-slate-400 flex items-center gap-1">
-                <User className="w-3 h-3 text-indigo-600" /> Autorizado por
-              </span>
-              <span className="font-bold text-slate-800 mt-0.5 block truncate">
-                {gasto.creado_por_nombre || 'Tesorería'}
-              </span>
+            {/* Document Footer */}
+            <div className="pt-2 border-t border-slate-200 flex items-center justify-between text-[9px] text-slate-400 font-mono">
+              <span>TesorApp • Documento Contable Oficial</span>
+              <span>Generado el {new Date().toLocaleString('es-CO')}</span>
             </div>
-          </div>
-
-          {/* Amount Box */}
-          <div className="p-4 bg-gradient-to-r from-slate-900 to-indigo-950 text-white rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-sm print:bg-slate-900 print:text-white">
-            <div>
-              <span className="text-[10px] font-extrabold uppercase tracking-widest text-indigo-200 block">
-                VALOR PAGADO / DEDUCIDO
-              </span>
-              <span className="text-2xl sm:text-3xl font-mono font-black text-white tracking-tight">
-                {formatCOP(gasto.monto)}
-              </span>
-            </div>
-            <div className="p-2 bg-emerald-500/20 text-emerald-300 rounded-xl border border-emerald-400/30 flex items-center gap-1.5 text-xs font-bold">
-              <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-              <span>EGRESO AUTORIZADO</span>
-            </div>
-          </div>
-
-          {/* Description & Words */}
-          <div className="space-y-3">
-            <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 text-xs">
-              <span className="text-[10px] uppercase font-bold text-slate-400 block mb-1">
-                Concepto / Motivo del Desembolso:
-              </span>
-              <p className="font-bold text-slate-900 text-sm leading-relaxed">
-                {gasto.descripcion}
-              </p>
-            </div>
-
-            <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 text-xs">
-              <span className="text-[10px] uppercase font-bold text-slate-400 block mb-0.5">
-                La suma de (en letras):
-              </span>
-              <p className="font-mono font-bold text-slate-800 text-[11px]">
-                {montoLetras}
-              </p>
-            </div>
-          </div>
-
-          {/* Signatures Area */}
-          <div className="pt-6 grid grid-cols-2 gap-8 text-center text-xs">
-            <div className="space-y-1">
-              <div className="border-b border-slate-400 h-10 w-full mb-1"></div>
-              <p className="font-bold text-slate-900">{gasto.creado_por_nombre || 'Tesorero Oficial'}</p>
-              <p className="text-[10px] text-slate-500 uppercase tracking-wider">Entregué Conforme (Tesorería)</p>
-            </div>
-
-            <div className="space-y-1">
-              <div className="border-b border-slate-400 h-10 w-full mb-1"></div>
-              <p className="font-bold text-slate-900">Firma Beneficiario / Receptor</p>
-              <p className="text-[10px] text-slate-500 uppercase tracking-wider">C.C. / Recibí Conforme</p>
-            </div>
-          </div>
-
-          {/* Footer note */}
-          <div className="pt-3 border-t border-slate-100 flex items-center justify-between text-[9px] text-slate-400 font-mono">
-            <span>TesorApp v2.0 • Comprobante Contable Oficial</span>
-            <span>Generado el {new Date().toLocaleString('es-CO')}</span>
           </div>
         </div>
 
-        {/* Modal Bottom Actions (Hidden on print) */}
-        <div className="p-4 bg-slate-50 border-t border-slate-200 flex items-center justify-end gap-2.5 print:hidden">
+        {/* Modal Bottom Actions */}
+        <div className="px-5 py-3 bg-slate-50 border-t border-slate-200 flex items-center justify-end gap-2 shrink-0">
           <button
             onClick={onClose}
-            className="px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-xl text-xs font-bold transition cursor-pointer"
+            className="px-4 py-1.5 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-lg text-xs font-bold transition cursor-pointer"
           >
             Cerrar
           </button>
           <button
             onClick={handleShareWhatsApp}
-            className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-xs transition cursor-pointer active:scale-95"
+            className="px-4 py-1.5 bg-emerald-700 hover:bg-emerald-800 text-white rounded-lg text-xs font-bold flex items-center gap-1.5 transition cursor-pointer active:scale-95"
           >
             <Share2 className="w-3.5 h-3.5" />
             <span>Enviar por WhatsApp</span>
           </button>
           <button
             onClick={handlePrint}
-            className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-xs transition cursor-pointer active:scale-95"
+            className="px-4 py-1.5 bg-slate-900 hover:bg-slate-800 text-white rounded-lg text-xs font-bold flex items-center gap-1.5 transition cursor-pointer active:scale-95"
           >
             <Printer className="w-3.5 h-3.5" />
-            <span>Imprimir Voucher (PDF)</span>
+            <span>Imprimir / Guardar PDF</span>
           </button>
         </div>
       </div>
