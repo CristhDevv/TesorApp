@@ -1,5 +1,4 @@
-﻿{
-  "buildCommand": "cd frontend-desktop && npm install && npm run build",
+{
   "outputDirectory": "frontend-desktop/dist",
   "rewrites": [
     {
@@ -47,7 +46,7 @@
       "destination": "https://backend-zeta-rouge-39.vercel.app/gastos/:path*"
     },
     {
-      "source": "/((?!assets/).*)",
+      "source": "/(.*)",
       "destination": "/index.html"
     }
   ]
