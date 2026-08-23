@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import axios from 'axios';
 import { 
   Building2, 
@@ -6,12 +6,24 @@ import {
   FileSpreadsheet, 
   LogOut, 
   TrendingUp, 
-  Calculator, 
-  ChevronRight,
-  User,
-  Calendar,
-  Search,
-  Monitor
+  TrendingDown,
+  ChevronRight, 
+  User, 
+  Calendar, 
+  Search, 
+  Monitor, 
+  Send, 
+  CheckCircle2, 
+  AlertCircle, 
+  Clock, 
+  Paperclip, 
+  MessageSquare, 
+  Plus, 
+  RefreshCw, 
+  X, 
+  Trash2, 
+  Upload,
+  Share2
 } from 'lucide-react';
 import { OfflineBanner } from './OfflineBanner';
 import { ChurchSearchModal } from './ChurchSearchModal';
@@ -25,6 +37,17 @@ interface MobileViewProps {
   API_BASE: string;
 }
 
+interface ReceiptItem {
+  id: string;
+  churchId: string;
+  periodId: string;
+  fileName: string;
+  fileUrl: string;
+  amount: number;
+  uploadedAt: string;
+  notes?: string;
+}
+
 export function MobileView({
   token,
   user,
@@ -32,9 +55,35 @@ export function MobileView({
   onSwitchToDesktop,
   API_BASE,
 }: MobileViewProps) {
-  const [activeScreen, setActiveScreen] = useState<'capture' | 'history' | 'summary' | 'profile'>('capture');
+  const isTesorero = user?.rol === 'tesorero';
+
+  // Navigation tab state
+  const [activeScreen, setActiveScreen] = useState<'capture' | 'gastos' | 'history' | 'summary' | 'profile'>('capture');
   const [toast, setToast] = useState<{ msg: string; type: 'success' | 'error' } | null>(null);
+  
+  // Modals state
   const [showChurchSearch, setShowChurchSearch] = useState(false);
+  const [showSendConfirmModal, setShowSendConfirmModal] = useState(false);
+  const [showReviewModal, setShowReviewModal] = useState(false);
+  const [reviewNotes, setReviewNotes] = useState('');
+  const [showNotesModal, setShowNotesModal] = useState(false);
+  const [notesInput, setNotesInput] = useState('');
+  const [showReceiptsModal, setShowReceiptsModal] = useState(false);
+  const [showNewGastoModal, setShowNewGastoModal] = useState(false);
+
+  // Receipts state
+  const [receipts, setReceipts] = useState<ReceiptItem[]>(() => {
+    try {
+      const saved = localStorage.getItem('tesorapp_mobile_receipts');
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
+  const [receiptAmount, setReceiptAmount] = useState('');
+  const [receiptNotes, setReceiptNotes] = useState('');
+  const [receiptFilePreview, setReceiptFilePreview] = useState<string | null>(null);
+  const [receiptFileName, setReceiptFileName] = useState('');
 
   // Dropdown list
   const [periodos, setPeriodos] = useState<any[]>([]);
@@ -46,8 +95,22 @@ export function MobileView({
   const [iglesias, setIglesias] = useState<any[]>([]);
   const [selectedIglesia, setSelectedIglesia] = useState<string>('');
 
+  // Section filter in capture screen
+  const [sectionFilter, setSectionFilter] = useState<'all' | 'ingresos' | 'egresos' | 'calculados'>('all');
+
   // Grid values (fields and inputs)
   const [gridData, setGridData] = useState<any>(null);
+  const [loadingValues, setLoadingValues] = useState(false);
+
+  // Gastos state for treasurer
+  const [gastos, setGastos] = useState<any[]>([]);
+  const [resumenFondos, setResumenFondos] = useState<any[]>([]);
+  const [newGastoData, setNewGastoData] = useState({
+    descripcion: '',
+    monto: '',
+    fecha: new Date().toISOString().split('T')[0],
+    campo_fondo_id: '',
+  });
 
   const triggerToast = (msg: string, type: 'success' | 'error' = 'success') => {
     setToast({ msg, type });
@@ -70,7 +133,6 @@ export function MobileView({
         setSelectedPeriodo(perRes.data[0].id);
       }
 
-      const isTesorero = user.rol === 'tesorero';
       if (tabRes.data.length > 0) {
         let defaultTabId = '';
         if (isTesorero) {
@@ -81,6 +143,7 @@ export function MobileView({
             t.iglesias?.some((i: any) => i.id === (user.iglesiaId || user.iglesia_id))
           );
           if (matchedTab) defaultTabId = matchedTab.id;
+          else defaultTabId = tabRes.data[0].id;
         }
         setSelectedTabla(defaultTabId);
       }
@@ -101,10 +164,11 @@ export function MobileView({
       const matched = tablas.find(t => t.id === selectedTabla);
       if (matched) {
         setIglesias(matched.iglesias || []);
-        const isTesorero = user?.rol === 'tesorero';
         if (matched.iglesias && matched.iglesias.length > 0) {
           if (isTesorero) {
-            setSelectedIglesia(matched.iglesias[0].id);
+            if (!selectedIglesia || !matched.iglesias.some((i: any) => i.id === selectedIglesia)) {
+              setSelectedIglesia(matched.iglesias[0].id);
+            }
           } else {
             setSelectedIglesia(user.iglesiaId || user.iglesia_id);
           }
@@ -116,17 +180,41 @@ export function MobileView({
   // Load actual values for selected church, table, and period
   const fetchValues = async () => {
     if (!selectedTabla || !selectedPeriodo || !selectedIglesia) return;
+    setLoadingValues(true);
     try {
       const res = await axios.get(`${API_BASE}/valores?tabla_id=${selectedTabla}&periodo_id=${selectedPeriodo}`);
       setGridData(res.data);
     } catch (err) {
       console.error(err);
+    } finally {
+      setLoadingValues(false);
     }
   };
 
   useEffect(() => {
     fetchValues();
   }, [selectedTabla, selectedPeriodo, selectedIglesia]);
+
+  // Fetch gastos if treasurer
+  const fetchGastos = async () => {
+    if (!isTesorero || !selectedPeriodo) return;
+    try {
+      const [gRes, rRes] = await Promise.all([
+        axios.get(`${API_BASE}/gastos?periodo_id=${selectedPeriodo}`),
+        axios.get(`${API_BASE}/gastos/resumen?periodo_id=${selectedPeriodo}`)
+      ]);
+      setGastos(gRes.data || []);
+      setResumenFondos(rRes.data || []);
+    } catch (err) {
+      console.error('Error fetching gastos on mobile:', err);
+    }
+  };
+
+  useEffect(() => {
+    if (isTesorero && (activeScreen === 'gastos' || activeScreen === 'capture')) {
+      fetchGastos();
+    }
+  }, [isTesorero, selectedPeriodo, activeScreen]);
 
   // Save manual value handler
   const handleSaveValue = async (campoId: string, valStr: string) => {
@@ -145,46 +233,194 @@ export function MobileView({
     }
   };
 
+  // Workflow Handlers
+  const handleSendReport = async () => {
+    if (!selectedIglesia || !selectedPeriodo) return;
+    try {
+      await axios.post(`${API_BASE}/informes/enviar`, {
+        iglesia_id: selectedIglesia,
+        periodo_id: selectedPeriodo,
+      });
+      setShowSendConfirmModal(false);
+      triggerToast('¡Informe mensual enviado a tesorería con éxito!', 'success');
+      fetchValues();
+    } catch (err: any) {
+      triggerToast(err.response?.data?.message || 'Error al enviar informe', 'error');
+    }
+  };
+
+  const handleChangeWorkflowStatus = async (estado: string, observaciones?: string) => {
+    if (!selectedIglesia || !selectedPeriodo) return;
+    try {
+      await axios.put(`${API_BASE}/informes/estado`, {
+        iglesia_id: selectedIglesia,
+        periodo_id: selectedPeriodo,
+        estado,
+        observaciones,
+      });
+      setShowReviewModal(false);
+      triggerToast(`Estado actualizado a "${estado}".`, 'success');
+      fetchValues();
+    } catch (err: any) {
+      triggerToast(err.response?.data?.message || 'Error actualizando estado', 'error');
+    }
+  };
+
+  // Save Gasto handler for Treasurer
+  const handleSaveGasto = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newGastoData.descripcion || !newGastoData.monto || !newGastoData.campo_fondo_id) {
+      triggerToast('Complete todos los campos del gasto', 'error');
+      return;
+    }
+
+    try {
+      await axios.post(`${API_BASE}/gastos`, {
+        descripcion: newGastoData.descripcion,
+        monto: Number(newGastoData.monto),
+        fecha: newGastoData.fecha,
+        campo_fondo_id: newGastoData.campo_fondo_id,
+        periodo_id: selectedPeriodo,
+      });
+      triggerToast('Gasto registrado con éxito', 'success');
+      setShowNewGastoModal(false);
+      setNewGastoData({
+        descripcion: '',
+        monto: '',
+        fecha: new Date().toISOString().split('T')[0],
+        campo_fondo_id: '',
+      });
+      fetchGastos();
+    } catch (err: any) {
+      triggerToast(err.response?.data?.message || 'Error guardando gasto', 'error');
+    }
+  };
+
+  // Receipt Handlers
+  const handleAddReceipt = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!receiptAmount) return;
+
+    const newReceipt: ReceiptItem = {
+      id: `rc_${Date.now()}`,
+      churchId: selectedIglesia,
+      periodId: selectedPeriodo,
+      fileName: receiptFileName || `Comprobante_${Date.now().toString().slice(-4)}.jpg`,
+      fileUrl: receiptFilePreview || '',
+      amount: parseFloat(receiptAmount.replace(/[^0-9.-]/g, '')) || 0,
+      uploadedAt: new Date().toLocaleDateString('es-CO'),
+      notes: receiptNotes,
+    };
+
+    const updated = [newReceipt, ...receipts];
+    setReceipts(updated);
+    try {
+      localStorage.setItem('tesorapp_mobile_receipts', JSON.stringify(updated));
+    } catch {}
+
+    setReceiptAmount('');
+    setReceiptNotes('');
+    setReceiptFilePreview(null);
+    setReceiptFileName('');
+    triggerToast('Comprobante adjuntado con éxito', 'success');
+  };
+
+  const handleDeleteReceipt = (id: string) => {
+    const updated = receipts.filter(r => r.id !== id);
+    setReceipts(updated);
+    try {
+      localStorage.setItem('tesorapp_mobile_receipts', JSON.stringify(updated));
+    } catch {}
+    triggerToast('Comprobante eliminado', 'success');
+  };
+
   const currentPeriodObj = periodos.find(p => p.id === selectedPeriodo);
   const isPeriodOpen = currentPeriodObj?.estado === 'abierto';
 
   // Get current row values for the selected church
   const currentChurchRow = gridData?.filas?.find((r: any) => r.iglesia_id === selectedIglesia);
   const columns = gridData?.columnas || [];
-  const isTesorero = user?.rol === 'tesorero';
+
+  const estadoInforme = currentChurchRow?.estado_informe || 'borrador';
+  const isReportEditable = isPeriodOpen && (isTesorero || estadoInforme === 'borrador' || estadoInforme === 'en_revision');
+
+  // Real-time financial calculations
+  const financialTotals = useMemo(() => {
+    if (!currentChurchRow || !columns.length) return { ingresos: 0, egresos: 0, saldoNeto: 0 };
+    let ingresos = 0;
+    let egresos = 0;
+
+    columns.forEach((col: any) => {
+      const val = currentChurchRow.valores?.find((v: any) => v.campo_id === col.id);
+      if (!val) return;
+      const isCalc = val.modo_calculo === 'calculado';
+      const num = Number(isCalc ? (val.valor_calculado || 0) : (val.valor_manual || 0));
+
+      const sec = (col.seccion || col.seccion_iglesia || '').toLowerCase();
+      if (sec === 'ingresos') ingresos += num;
+      else if (sec === 'egresos') egresos += num;
+      else if (col.nombre?.toLowerCase().includes('diezmo') || col.nombre?.toLowerCase().includes('ofrenda')) ingresos += num;
+      else if (col.nombre?.toLowerCase().includes('gasto') || col.nombre?.toLowerCase().includes('aporte')) egresos += num;
+    });
+
+    return {
+      ingresos,
+      egresos,
+      saldoNeto: ingresos - egresos,
+    };
+  }, [currentChurchRow, columns]);
+
+  // Filtered columns based on section tab
+  const filteredColumns = useMemo(() => {
+    if (sectionFilter === 'all') return columns;
+    return columns.filter((col: any) => {
+      const val = currentChurchRow?.valores?.find((v: any) => v.campo_id === col.id);
+      const isCalc = val?.modo_calculo === 'calculado';
+      const sec = (col.seccion || col.seccion_iglesia || '').toLowerCase();
+
+      if (sectionFilter === 'calculados') return isCalc;
+      if (sectionFilter === 'ingresos') return sec === 'ingresos' || (!isCalc && !sec.includes('egreso'));
+      if (sectionFilter === 'egresos') return sec === 'egresos' || sec.includes('aporte') || sec.includes('gasto');
+      return true;
+    });
+  }, [columns, currentChurchRow, sectionFilter]);
+
+  const churchReceipts = receipts.filter(r => r.churchId === selectedIglesia && r.periodId === selectedPeriodo);
 
   return (
-    <div className="h-full w-full bg-slate-50 flex flex-col font-sans overflow-y-auto pb-28 touch-pan-y overscroll-y-contain">
+    <div className="h-full w-full bg-slate-100 flex flex-col font-sans overflow-y-auto pb-28 touch-pan-y overscroll-y-contain">
       {/* Offline Status Banner */}
       <OfflineBanner />
 
       {/* Dynamic Header */}
-      <header className="sticky top-0 bg-white border-b border-slate-200 z-30 px-4 py-2.5 flex flex-col gap-2 shadow-xs">
+      <header className="sticky top-0 bg-slate-900 text-white z-30 px-4 py-2.5 flex flex-col gap-2 shadow-md">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <div className="p-1 bg-slate-900 text-white rounded-md">
+            <div className="p-1.5 bg-indigo-600 rounded-lg text-white">
               <Building2 className="w-4 h-4" />
             </div>
-            <span className="font-bold text-slate-900 text-sm tracking-tight">TesorApp</span>
-            <span className="text-[10px] bg-indigo-50 text-indigo-700 font-bold px-1.5 py-0.5 rounded border border-indigo-100">
-              Móvil
-            </span>
+            <div>
+              <div className="flex items-center gap-1.5">
+                <span className="font-extrabold text-sm tracking-tight">TesorApp</span>
+                <span className="text-[9px] bg-indigo-500/30 text-indigo-200 font-bold px-1.5 py-0.5 rounded border border-indigo-400/30">
+                  {isTesorero ? 'Tesorero' : 'Sede'}
+                </span>
+              </div>
+            </div>
           </div>
 
           <div className="flex items-center gap-1.5">
             <button
               onClick={onSwitchToDesktop}
               title="Cambiar a vista de escritorio"
-              className="p-1.5 text-slate-500 hover:text-indigo-600 hover:bg-slate-100 rounded-lg text-xs flex items-center gap-1 transition cursor-pointer"
+              className="p-1.5 text-slate-300 hover:text-white hover:bg-slate-800 rounded-lg text-xs flex items-center gap-1 transition cursor-pointer"
             >
               <Monitor className="w-4 h-4" />
             </button>
-            <span className="text-[11px] font-medium text-slate-500 max-w-[100px] truncate">
-              {user?.nombre_completo}
-            </span>
             <button 
               onClick={onLogout} 
-              className="p-1 text-slate-400 hover:text-slate-600 rounded-full cursor-pointer"
+              className="p-1.5 text-slate-300 hover:text-rose-400 hover:bg-slate-800 rounded-lg cursor-pointer"
+              title="Cerrar sesión"
             >
               <LogOut className="w-4 h-4" />
             </button>
@@ -192,16 +428,16 @@ export function MobileView({
         </div>
 
         {/* Filters and selectors */}
-        <div className="grid grid-cols-2 gap-2 pt-1 border-t border-slate-100">
+        <div className="grid grid-cols-2 gap-2 pt-1 border-t border-slate-800">
           <div>
             <select
               value={selectedPeriodo}
               onChange={(e) => setSelectedPeriodo(e.target.value)}
-              className="w-full px-2 py-1 bg-slate-50 border border-slate-200 rounded text-xs font-semibold text-slate-800 focus:outline-none focus:border-slate-400"
+              className="w-full px-2 py-1.5 bg-slate-800 border border-slate-700 rounded-lg text-xs font-bold text-slate-100 focus:outline-none focus:border-indigo-500"
             >
               {periodos.map((p: any) => (
                 <option key={p.id} value={p.id}>
-                  {p.nombre} {p.estado === 'cerrado' ? '🔒' : ''}
+                  {p.nombre} {p.estado === 'cerrado' ? '🔒' : '●'}
                 </option>
               ))}
             </select>
@@ -212,7 +448,7 @@ export function MobileView({
               <select
                 value={selectedTabla}
                 onChange={(e) => setSelectedTabla(e.target.value)}
-                className="w-full px-2 py-1 bg-slate-50 border border-slate-200 rounded text-xs font-semibold text-slate-800 focus:outline-none focus:border-slate-400"
+                className="w-full px-2 py-1.5 bg-slate-800 border border-slate-700 rounded-lg text-xs font-bold text-slate-100 focus:outline-none focus:border-indigo-500"
               >
                 {tablas.map((t: any) => (
                   <option key={t.id} value={t.id}>
@@ -221,100 +457,267 @@ export function MobileView({
                 ))}
               </select>
             ) : (
-              <div className="px-2 py-1 bg-slate-100 border border-slate-200 rounded text-xs font-semibold text-slate-600 truncate">
-                {iglesias[0]?.nombre || 'Mi Iglesia'}
+              <div className="px-2 py-1.5 bg-slate-800/80 border border-slate-700 rounded-lg text-xs font-bold text-indigo-300 truncate">
+                {iglesias[0]?.nombre || 'Mi Congregación'}
               </div>
             )}
           </div>
         </div>
 
-        {/* Church selector with Quick Search for Treasurer */}
+        {/* Church selector for Treasurer */}
         {isTesorero && (
-          <div className="pt-1">
+          <div className="pt-0.5">
             <button
               type="button"
               onClick={() => setShowChurchSearch(true)}
-              className="w-full px-3 py-1.5 bg-slate-100 border border-slate-300 rounded-lg text-xs font-bold text-slate-900 flex items-center justify-between hover:bg-slate-200 transition cursor-pointer"
+              className="w-full px-3 py-1.5 bg-slate-800 border border-slate-700 rounded-lg text-xs font-bold text-slate-100 flex items-center justify-between hover:bg-slate-700 transition cursor-pointer"
             >
               <div className="flex items-center gap-1.5 truncate">
-                <Building2 className="w-3.5 h-3.5 text-slate-500 shrink-0" />
+                <Building2 className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
                 <span className="truncate">
                   {iglesias.find((i: any) => i.id === selectedIglesia)?.nombre || 'Seleccionar Congregación'}
                 </span>
               </div>
-              <div className="flex items-center gap-1 text-slate-500 shrink-0 font-normal text-[10px]">
+              <div className="flex items-center gap-1 text-slate-400 shrink-0 font-normal text-[10px]">
                 <Search className="w-3 h-3" />
-                <span>Buscar</span>
+                <span>Buscar ({iglesias.length})</span>
               </div>
             </button>
           </div>
         )}
       </header>
 
-      {/* Screen 1: CAPTURE SCREEN */}
+      {/* Screen 1: CAPTURE SCREEN (PLANILLA CONTABLE) */}
       {activeScreen === 'capture' && (
-        <div className="p-4 flex-1 flex flex-col gap-4">
-          <div className="flex items-center justify-between">
-            <h2 className="text-xs font-bold text-slate-400 uppercase tracking-wider">
-              {currentChurchRow?.iglesia_nombre || 'Planilla de Registro'}
-            </h2>
-            <span className="text-[10px] bg-slate-200 text-slate-700 px-2 py-0.5 rounded-full font-bold">
-              {columns.length} Campos
-            </span>
+        <div className="p-3.5 flex-1 flex flex-col gap-3">
+          {/* Workflow Status Banner & Action Buttons */}
+          <div className={`p-3 rounded-2xl border flex flex-col gap-2.5 shadow-xs ${
+            estadoInforme === 'aprobado' || estadoInforme === 'consolidado'
+              ? 'bg-emerald-50 border-emerald-200 text-emerald-950'
+              : estadoInforme === 'enviado'
+              ? 'bg-blue-50 border-blue-200 text-blue-950'
+              : estadoInforme === 'en_revision'
+              ? 'bg-amber-50 border-amber-200 text-amber-950'
+              : 'bg-white border-slate-200 text-slate-800'
+          }`}>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                {estadoInforme === 'aprobado' || estadoInforme === 'consolidado' ? (
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                ) : estadoInforme === 'enviado' ? (
+                  <Clock className="w-4 h-4 text-blue-600" />
+                ) : estadoInforme === 'en_revision' ? (
+                  <AlertCircle className="w-4 h-4 text-amber-600" />
+                ) : (
+                  <FileSpreadsheet className="w-4 h-4 text-slate-600" />
+                )}
+                <div>
+                  <span className="text-[10px] font-extrabold uppercase tracking-wider block">
+                    Estado del Informe
+                  </span>
+                  <span className="font-extrabold text-xs capitalize">
+                    {estadoInforme === 'en_revision' ? 'En Revisión (Ajustes)' : estadoInforme}
+                  </span>
+                </div>
+              </div>
+
+              {/* Action Buttons depending on role */}
+              <div className="flex items-center gap-1.5">
+                {/* Church: Send Report Button */}
+                {!isTesorero && isPeriodOpen && (estadoInforme === 'borrador' || estadoInforme === 'en_revision') && (
+                  <button
+                    onClick={() => setShowSendConfirmModal(true)}
+                    className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-extrabold flex items-center gap-1.5 shadow-sm active:scale-95 transition cursor-pointer"
+                  >
+                    <Send className="w-3.5 h-3.5" />
+                    <span>Enviar Informe</span>
+                  </button>
+                )}
+
+                {/* Treasurer: Review and Approval Buttons */}
+                {isTesorero && (
+                  <>
+                    {estadoInforme !== 'aprobado' && estadoInforme !== 'consolidado' && (
+                      <button
+                        onClick={() => handleChangeWorkflowStatus('aprobado')}
+                        className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold flex items-center gap-1 transition cursor-pointer active:scale-95 shadow-2xs"
+                      >
+                        <CheckCircle2 className="w-3 h-3" />
+                        <span>Aprobar</span>
+                      </button>
+                    )}
+                    <button
+                      onClick={() => setShowReviewModal(true)}
+                      className="px-2.5 py-1 bg-slate-700 hover:bg-slate-600 text-white rounded-lg text-xs font-bold flex items-center gap-1 transition cursor-pointer active:scale-95 shadow-2xs"
+                    >
+                      <span>Revisión</span>
+                    </button>
+                  </>
+                )}
+              </div>
+            </div>
+
+            {/* Sub-bar tools: Attachments & Notes */}
+            <div className="flex items-center justify-between pt-2 border-t border-slate-200/60 text-[11px]">
+              <button
+                onClick={() => setShowReceiptsModal(true)}
+                className="flex items-center gap-1 font-bold text-indigo-700 hover:text-indigo-900 cursor-pointer"
+              >
+                <Paperclip className="w-3.5 h-3.5" />
+                <span>Soportes Bancarios ({churchReceipts.length})</span>
+              </button>
+
+              <button
+                onClick={() => {
+                  setNotesInput(currentChurchRow?.observaciones || '');
+                  setShowNotesModal(true);
+                }}
+                className="flex items-center gap-1 font-bold text-slate-600 hover:text-slate-900 cursor-pointer"
+              >
+                <MessageSquare className="w-3.5 h-3.5" />
+                <span>{currentChurchRow?.observaciones ? 'Ver Observación' : 'Añadir Nota'}</span>
+              </button>
+            </div>
           </div>
 
-          {!isPeriodOpen && (
-            <div className="p-3 bg-slate-100 border border-slate-300 text-slate-700 rounded-lg text-xs flex items-center gap-2 font-medium">
-              <span>Periodo Cerrado. La captura está bloqueada en modo lectura.</span>
+          {/* Real-time Financial Totals Sticky Bar */}
+          <div className="grid grid-cols-3 gap-2 bg-white p-3 rounded-2xl border border-slate-200 shadow-xs">
+            <div className="text-center">
+              <span className="text-[9px] font-bold text-slate-500 uppercase block">Ingresos</span>
+              <span className="font-mono font-extrabold text-xs text-emerald-600 block mt-0.5">
+                {formatCOP(financialTotals.ingresos)}
+              </span>
             </div>
-          )}
+            <div className="text-center border-x border-slate-100">
+              <span className="text-[9px] font-bold text-slate-500 uppercase block">Egresos</span>
+              <span className="font-mono font-extrabold text-xs text-rose-600 block mt-0.5">
+                {formatCOP(financialTotals.egresos)}
+              </span>
+            </div>
+            <div className="text-center">
+              <span className="text-[9px] font-bold text-slate-500 uppercase block">Saldo Neto</span>
+              <span className={`font-mono font-extrabold text-xs block mt-0.5 ${
+                financialTotals.saldoNeto >= 0 ? 'text-indigo-700' : 'text-rose-600'
+              }`}>
+                {formatCOP(financialTotals.saldoNeto)}
+              </span>
+            </div>
+          </div>
+
+          {/* Section Filter Pills */}
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar">
+            <button
+              onClick={() => setSectionFilter('all')}
+              className={`px-3 py-1 rounded-lg text-xs font-bold whitespace-nowrap transition cursor-pointer ${
+                sectionFilter === 'all'
+                  ? 'bg-slate-900 text-white shadow-2xs'
+                  : 'bg-white text-slate-600 border border-slate-200'
+              }`}
+            >
+              Todos ({columns.length})
+            </button>
+            <button
+              onClick={() => setSectionFilter('ingresos')}
+              className={`px-3 py-1 rounded-lg text-xs font-bold whitespace-nowrap transition cursor-pointer ${
+                sectionFilter === 'ingresos'
+                  ? 'bg-emerald-700 text-white shadow-2xs'
+                  : 'bg-white text-slate-600 border border-slate-200'
+              }`}
+            >
+              📥 Ingresos
+            </button>
+            <button
+              onClick={() => setSectionFilter('egresos')}
+              className={`px-3 py-1 rounded-lg text-xs font-bold whitespace-nowrap transition cursor-pointer ${
+                sectionFilter === 'egresos'
+                  ? 'bg-rose-700 text-white shadow-2xs'
+                  : 'bg-white text-slate-600 border border-slate-200'
+              }`}
+            >
+              📤 Egresos
+            </button>
+            <button
+              onClick={() => setSectionFilter('calculados')}
+              className={`px-3 py-1 rounded-lg text-xs font-bold whitespace-nowrap transition cursor-pointer ${
+                sectionFilter === 'calculados'
+                  ? 'bg-indigo-700 text-white shadow-2xs'
+                  : 'bg-white text-slate-600 border border-slate-200'
+              }`}
+            >
+              🧮 Fórmulas
+            </button>
+          </div>
 
           {/* Render Cards / Fields */}
-          <div className="space-y-3">
-            {!currentChurchRow || columns.length === 0 ? (
-              <div className="text-center py-12 text-slate-400 text-xs">
-                No hay campos definidos para registrar en esta zona.
+          <div className="space-y-2.5">
+            {loadingValues ? (
+              <div className="text-center py-12 text-slate-400 text-xs flex items-center justify-center gap-2">
+                <RefreshCw className="w-4 h-4 animate-spin text-indigo-600" />
+                <span>Cargando datos contables...</span>
+              </div>
+            ) : filteredColumns.length === 0 ? (
+              <div className="text-center py-12 text-slate-400 text-xs bg-white rounded-2xl border border-slate-200 p-6">
+                No hay campos que coincidan con la sección seleccionada.
               </div>
             ) : (
-              columns.map((col: any) => {
-                const val = currentChurchRow.valores?.find((v: any) => v.campo_id === col.id);
+              filteredColumns.map((col: any) => {
+                const val = currentChurchRow?.valores?.find((v: any) => v.campo_id === col.id);
                 if (!val) return null;
                 const isCalculated = val.modo_calculo === 'calculado';
                 const value = isCalculated ? val.valor_calculado : val.valor_manual;
                 const isCurrency = !col.tipo || col.tipo === 'moneda';
+                const canEdit = isReportEditable && val.editable && !isCalculated;
 
                 return (
                   <div 
                     key={col.id} 
-                    className="p-4 bg-white border border-slate-200 rounded-xl flex flex-col gap-3 shadow-xs"
+                    className={`p-3.5 rounded-2xl border transition shadow-xs flex flex-col gap-2.5 ${
+                      isCalculated
+                        ? 'bg-indigo-50/40 border-indigo-200/80'
+                        : 'bg-white border-slate-200'
+                    }`}
                   >
-                    <div className="flex items-center justify-between">
+                    <div className="flex items-start justify-between gap-2">
                       <div>
-                        <h4 className="font-bold text-slate-900 text-sm">{col.nombre}</h4>
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <h4 className="font-extrabold text-slate-900 text-xs tracking-tight">
+                            {col.nombre}
+                          </h4>
+                          {col.es_transito && (
+                            <span className="text-[9px] font-black uppercase tracking-wider bg-amber-100 text-amber-900 px-1.5 py-0.2 rounded border border-amber-300">
+                              En Tránsito
+                            </span>
+                          )}
+                          {col.es_fondo && !col.es_transito && (
+                            <span className="text-[9px] font-black uppercase tracking-wider bg-indigo-100 text-indigo-800 px-1.5 py-0.2 rounded">
+                              Fondo
+                            </span>
+                          )}
+                        </div>
                         <span className="text-[10px] text-slate-400 capitalize mt-0.5 block font-mono">
-                          {col.seccion} • {isCalculated ? 'Fórmula' : 'Manual'}
+                          {col.seccion || 'General'} • {isCalculated ? 'Calculado' : 'Digitación Manual'}
                         </span>
                       </div>
 
                       {col.es_acumulable && (
-                        <div className="text-right">
-                          <span className="block text-[9px] text-slate-400 uppercase font-semibold">Acumulado</span>
-                          <span className="text-xs text-slate-900 font-bold">{formatCOP(val.valor_acumulado)}</span>
+                        <div className="text-right shrink-0">
+                          <span className="block text-[8px] text-slate-400 uppercase font-extrabold">Acumulado</span>
+                          <span className="text-[11px] text-indigo-700 font-extrabold font-mono">{formatCOP(val.valor_acumulado)}</span>
                         </div>
                       )}
                     </div>
 
                     <div>
-                      {val.editable && isPeriodOpen ? (
+                      {canEdit ? (
                         <div className="relative">
                           {isCurrency && (
-                            <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 font-medium text-xs">$</span>
+                            <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 font-extrabold text-xs">$</span>
                           )}
                           <input
                             key={`${selectedIglesia}_${selectedPeriodo}_${col.id}_${value}`}
                             type="text"
                             inputMode="numeric"
-                            className={`w-full ${isCurrency ? 'pl-6' : 'pl-3'} pr-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-slate-900 font-semibold focus:outline-none focus:border-slate-500 text-sm font-mono`}
+                            className={`w-full ${isCurrency ? 'pl-7' : 'pl-3'} pr-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-slate-900 font-extrabold focus:outline-none focus:border-indigo-600 focus:bg-white text-sm font-mono shadow-2xs transition`}
                             defaultValue={value === 0 ? '' : value}
                             placeholder="0"
                             onBlur={(e) => handleSaveValue(col.id, e.target.value)}
@@ -326,9 +729,11 @@ export function MobileView({
                           />
                         </div>
                       ) : (
-                        <div className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg flex items-center justify-between">
-                          <span className="text-xs text-slate-400 font-medium">Total</span>
-                          <span className="text-sm font-bold font-mono text-slate-900">
+                        <div className="w-full px-3 py-2 bg-slate-50/80 border border-slate-200 rounded-xl flex items-center justify-between">
+                          <span className="text-[11px] text-slate-400 font-semibold">
+                            {isCalculated ? 'Resultado Fórmula' : 'Valor Registrado'}
+                          </span>
+                          <span className="text-sm font-extrabold font-mono text-slate-900">
                             {isCurrency ? formatCOP(value) : value}
                           </span>
                         </div>
@@ -342,13 +747,121 @@ export function MobileView({
         </div>
       )}
 
-      {/* Screen 2: HISTORY READ-ONLY */}
-      {activeScreen === 'history' && (
-        <div className="p-4 flex-1 flex flex-col">
-          <h3 className="text-base font-bold text-slate-900 mb-0.5">Hojas Históricas</h3>
-          <p className="text-xs text-slate-400 mb-4">Consulte y cargue planillas de meses anteriores.</p>
+      {/* Screen 2: GASTOS & FONDOS (SOLO TESORERO EN MÓVIL) */}
+      {activeScreen === 'gastos' && isTesorero && (
+        <div className="p-3.5 flex-1 flex flex-col gap-3">
+          <div className="flex items-center justify-between bg-white p-3.5 rounded-2xl border border-slate-200 shadow-xs">
+            <div>
+              <h3 className="font-extrabold text-sm text-slate-900">Gastos y Fondos</h3>
+              <p className="text-[11px] text-slate-500">Control de salidas y saldos en tiempo real</p>
+            </div>
+            {isPeriodOpen && (
+              <button
+                onClick={() => setShowNewGastoModal(true)}
+                className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold flex items-center gap-1 shadow-sm active:scale-95 transition cursor-pointer"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span>Gasto</span>
+              </button>
+            )}
+          </div>
 
-          <div className="space-y-2.5 overflow-y-auto flex-1">
+          {/* Funds List */}
+          <div className="space-y-2.5">
+            <h4 className="text-xs font-extrabold text-slate-500 uppercase tracking-wider">
+              Estado de Fondos ({resumenFondos.length})
+            </h4>
+
+            {resumenFondos.map((f: any) => (
+              <div 
+                key={f.campo_fondo_id}
+                className={`p-3.5 rounded-2xl border shadow-xs bg-white ${
+                  f.es_transito ? 'border-amber-300' : 'border-slate-200'
+                }`}
+              >
+                <div className="flex items-start justify-between gap-2 mb-2">
+                  <div>
+                    <div className="flex items-center gap-1.5 flex-wrap mb-0.5">
+                      {f.es_transito ? (
+                        <span className="text-[9px] font-black uppercase bg-amber-100 text-amber-900 px-1.5 py-0.2 rounded border border-amber-300">
+                          🚀 En Tránsito
+                        </span>
+                      ) : (
+                        <span className="text-[9px] font-black uppercase bg-indigo-100 text-indigo-800 px-1.5 py-0.2 rounded">
+                          🏛️ Fondo Propio
+                        </span>
+                      )}
+                      {f.ente_superior_nombre && (
+                        <span className="text-[9px] font-bold text-amber-800">
+                          Destino: {f.ente_superior_nombre}
+                        </span>
+                      )}
+                    </div>
+                    <h5 className="font-extrabold text-slate-900 text-xs">{f.campo_fondo_nombre}</h5>
+                  </div>
+                  <span className={`text-xs font-extrabold font-mono ${
+                    f.saldo_disponible < 0 ? 'text-rose-600' : f.es_transito ? 'text-amber-800' : 'text-indigo-700'
+                  }`}>
+                    {formatCOP(f.saldo_disponible)}
+                  </span>
+                </div>
+
+                <div className="text-[10px] text-slate-500 flex justify-between pt-1.5 border-t border-slate-100">
+                  <span>Recaudo: {formatCOP(f.total_fondo)}</span>
+                  <span className="text-rose-600">Gastos: −{formatCOP(f.total_gastos)}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Gastos History */}
+          <div className="space-y-2.5 pt-2">
+            <h4 className="text-xs font-extrabold text-slate-500 uppercase tracking-wider">
+              Egresos Registrados ({gastos.length})
+            </h4>
+
+            {gastos.length === 0 ? (
+              <div className="text-center py-6 text-slate-400 text-xs bg-white rounded-2xl border border-slate-200">
+                No hay gastos registrados en este período.
+              </div>
+            ) : (
+              gastos.map((g: any) => (
+                <div key={g.id} className="p-3 bg-white border border-slate-200 rounded-xl shadow-2xs flex items-center justify-between">
+                  <div>
+                    <h6 className="font-extrabold text-slate-900 text-xs">{g.descripcion}</h6>
+                    <span className="text-[10px] text-slate-400">
+                      {g.campo_fondo?.nombre} • {new Date(g.fecha).toLocaleDateString('es-CO')}
+                    </span>
+                  </div>
+                  <div className="text-right">
+                    <span className="font-mono font-extrabold text-xs text-rose-600 block">
+                      −{formatCOP(g.monto)}
+                    </span>
+                    <button
+                      onClick={() => {
+                        const text = `🏛️ *COMPROBANTE DE EGRESO*\nConcepto: ${g.descripcion}\nMonto: ${formatCOP(g.monto)} COP\nFecha: ${new Date(g.fecha).toLocaleDateString('es-CO')}\nAutorizado por: ${g.creado_por?.nombre_completo || 'Tesorero'} - Tesorería Zona 52`;
+                        window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
+                      }}
+                      className="text-[10px] font-bold text-emerald-700 flex items-center gap-0.5 mt-0.5 cursor-pointer ml-auto"
+                    >
+                      <Share2 className="w-2.5 h-2.5" />
+                      <span>WhatsApp</span>
+                    </button>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Screen 3: HISTORY READ-ONLY */}
+      {activeScreen === 'history' && (
+        <div className="p-3.5 flex-1 flex flex-col">
+          <h3 className="text-base font-extrabold text-slate-900 mb-0.5">Hojas Históricas</h3>
+          <p className="text-xs text-slate-500 mb-3.5">Consulte planillas de meses anteriores.</p>
+
+          <div className="space-y-2 overflow-y-auto flex-1">
             {periodos.map((pe) => {
               const isCurrent = pe.id === selectedPeriodo;
               return (
@@ -357,20 +870,20 @@ export function MobileView({
                   onClick={() => {
                     setSelectedPeriodo(pe.id);
                     setActiveScreen('capture');
-                    triggerToast(`Cargado periodo ${pe.nombre}`);
+                    triggerToast(`Cargado período ${pe.nombre}`);
                   }}
-                  className={`w-full p-3.5 rounded-xl border text-left flex justify-between items-center transition cursor-pointer ${
+                  className={`w-full p-3 rounded-2xl border text-left flex justify-between items-center transition cursor-pointer ${
                     isCurrent 
-                      ? 'bg-slate-900 text-white border-slate-900' 
-                      : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
+                      ? 'bg-slate-900 text-white border-slate-900 shadow-sm' 
+                      : 'bg-white border-slate-200 text-slate-800 hover:bg-slate-50'
                   }`}
                 >
                   <div className="flex items-center gap-3">
-                    <Calendar className={`w-4 h-4 ${isCurrent ? 'text-white' : 'text-slate-400'}`} />
+                    <Calendar className={`w-4 h-4 ${isCurrent ? 'text-indigo-400' : 'text-slate-400'}`} />
                     <div>
-                      <h4 className="font-bold text-xs">{pe.nombre}</h4>
+                      <h4 className="font-extrabold text-xs">{pe.nombre}</h4>
                       <p className={`text-[10px] ${isCurrent ? 'text-slate-300' : 'text-slate-400'}`}>
-                        {pe.estado === 'abierto' ? 'Período Abierto' : 'Período Cerrado'}
+                        {pe.estado === 'abierto' ? 'Período Abierto' : 'Período Cerrado (Lectura)'}
                       </p>
                     </div>
                   </div>
@@ -382,61 +895,75 @@ export function MobileView({
         </div>
       )}
 
-      {/* Screen 3: METRIC SUMMARY */}
+      {/* Screen 4: METRIC SUMMARY */}
       {activeScreen === 'summary' && (
-        <div className="p-4 flex-1 flex flex-col space-y-4">
+        <div className="p-3.5 flex-1 flex flex-col space-y-3.5">
           <div>
-            <h3 className="text-base font-bold text-slate-900">Resumen y Métricas</h3>
-            <p className="text-xs text-slate-400 mt-0.5">Indicadores principales consolidados.</p>
+            <h3 className="text-base font-extrabold text-slate-900">Resumen y Métricas</h3>
+            <p className="text-xs text-slate-500 mt-0.5">Consolidado del informe del período.</p>
           </div>
 
-          {currentChurchRow && columns.length > 0 ? (
-            <div className="space-y-3">
-              {columns.map((col: any) => {
-                const val = currentChurchRow.valores?.find((v: any) => v.campo_id === col.id);
-                if (!val) return null;
-                const isCalc = val.modo_calculo === 'calculado';
-                const value = isCalc ? val.valor_calculado : val.valor_manual;
-
-                return (
-                  <div key={col.id} className="p-4 bg-white border border-slate-200 rounded-xl shadow-xs relative overflow-hidden">
-                    <div className="absolute right-4 bottom-3 text-slate-100">
-                      <Calculator className="w-10 h-10" />
-                    </div>
-                    <span className="text-[10px] font-semibold tracking-wider text-slate-400 uppercase block">{col.nombre}</span>
-                    <span className="text-xl font-bold font-mono block mt-1 text-slate-900">
-                      {formatCOP(value)}
-                    </span>
-                  </div>
-                );
-              })}
+          <div className="grid grid-cols-2 gap-2.5">
+            <div className="bg-white p-3.5 rounded-2xl border border-slate-200 shadow-xs">
+              <span className="text-[10px] font-bold text-slate-500 uppercase block">Total Ingresos</span>
+              <span className="text-base font-mono font-extrabold text-emerald-600 block mt-1">
+                {formatCOP(financialTotals.ingresos)}
+              </span>
             </div>
-          ) : (
-            <div className="text-center py-12 text-slate-400 text-xs">No hay datos de resumen.</div>
-          )}
+            <div className="bg-white p-3.5 rounded-2xl border border-slate-200 shadow-xs">
+              <span className="text-[10px] font-bold text-slate-500 uppercase block">Total Egresos</span>
+              <span className="text-base font-mono font-extrabold text-rose-600 block mt-1">
+                {formatCOP(financialTotals.egresos)}
+              </span>
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <h4 className="text-xs font-extrabold text-slate-500 uppercase tracking-wider">
+              Detalle de Columnas
+            </h4>
+            {columns.map((col: any) => {
+              const val = currentChurchRow?.valores?.find((v: any) => v.campo_id === col.id);
+              if (!val) return null;
+              const isCalc = val.modo_calculo === 'calculado';
+              const value = isCalc ? val.valor_calculado : val.valor_manual;
+
+              return (
+                <div key={col.id} className="p-3 bg-white border border-slate-200 rounded-xl shadow-2xs flex items-center justify-between">
+                  <div>
+                    <span className="text-xs font-bold text-slate-900 block">{col.nombre}</span>
+                    <span className="text-[10px] text-slate-400 capitalize">{col.seccion}</span>
+                  </div>
+                  <span className="text-xs font-mono font-extrabold text-slate-900">
+                    {formatCOP(value)}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
         </div>
       )}
 
-      {/* Screen 4: PROFILE */}
+      {/* Screen 5: PROFILE */}
       {activeScreen === 'profile' && (
-        <div className="p-4 flex-1 flex flex-col justify-between">
-          <div className="space-y-4">
-            <h3 className="text-base font-bold text-slate-900">Configuración</h3>
+        <div className="p-3.5 flex-1 flex flex-col justify-between">
+          <div className="space-y-3.5">
+            <h3 className="text-base font-extrabold text-slate-900">Perfil y Ajustes</h3>
             
-            <div className="p-5 bg-white border border-slate-200 rounded-xl text-center shadow-xs">
-              <div className="w-14 h-14 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center mx-auto text-xl font-bold text-slate-700 mb-2.5">
-                {user?.nombre_completo?.substring(0, 2).toUpperCase()}
+            <div className="p-4 bg-white border border-slate-200 rounded-2xl text-center shadow-xs">
+              <div className="w-12 h-12 rounded-full bg-slate-900 text-white flex items-center justify-center mx-auto text-base font-extrabold mb-2 shadow-xs">
+                {user?.nombre_completo?.substring(0, 2).toUpperCase() || 'US'}
               </div>
-              <h4 className="font-bold text-slate-900 text-sm">{user?.nombre_completo || user?.nombre}</h4>
-              <p className="text-xs text-slate-400 mt-0.5">{user?.correo}</p>
-              <p className="text-xs font-semibold text-slate-700 mt-2.5 capitalize bg-slate-100 border border-slate-200 px-3 py-0.5 rounded-full inline-block">
+              <h4 className="font-extrabold text-slate-900 text-sm">{user?.nombre_completo || user?.nombre}</h4>
+              <p className="text-xs text-slate-500 mt-0.5">{user?.correo}</p>
+              <div className="mt-2.5 inline-flex items-center gap-1 bg-indigo-50 border border-indigo-200 text-indigo-700 px-3 py-0.5 rounded-full text-xs font-extrabold capitalize">
                 Rol: {user?.rol}
-              </p>
+              </div>
             </div>
 
             <button
               onClick={onSwitchToDesktop}
-              className="w-full py-2.5 bg-indigo-50 border border-indigo-200 text-indigo-700 rounded-xl text-xs font-bold flex items-center justify-center gap-2 hover:bg-indigo-100 transition cursor-pointer"
+              className="w-full py-3 bg-indigo-600 text-white rounded-xl text-xs font-extrabold flex items-center justify-center gap-2 hover:bg-indigo-700 shadow-xs transition cursor-pointer"
             >
               <Monitor className="w-4 h-4" />
               Cambiar a Vista de Escritorio
@@ -445,62 +972,376 @@ export function MobileView({
 
           <button
             onClick={onLogout}
-            className="w-full py-3 border border-slate-300 hover:bg-slate-100 rounded-xl text-slate-700 font-medium text-xs transition flex items-center justify-center gap-2 cursor-pointer mt-4"
+            className="w-full py-3 border border-slate-300 bg-white hover:bg-slate-100 rounded-xl text-slate-700 font-extrabold text-xs transition flex items-center justify-center gap-2 cursor-pointer mt-4 shadow-2xs"
           >
-            <LogOut className="w-4 h-4" />
+            <LogOut className="w-4 h-4 text-rose-500" />
             Cerrar Sesión
           </button>
         </div>
       )}
 
+      {/* Toast Notification */}
       {toast && (
-        <div className="fixed bottom-24 left-1/2 transform -translate-x-1/2 z-50 px-4 py-2.5 rounded border shadow-xl text-xs font-medium bg-slate-900 text-white border-slate-800 transition">
+        <div className="fixed bottom-20 left-1/2 transform -translate-x-1/2 z-50 px-4 py-2 rounded-xl border shadow-xl text-xs font-bold bg-slate-900 text-white border-slate-800 transition animate-fade-in">
           {toast.msg}
         </div>
       )}
 
-      {/* Navigation tab bar */}
-      <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 h-14 flex items-center justify-around z-40 shadow-sm">
+      {/* Bottom Navigation Tab Bar */}
+      <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 h-16 flex items-center justify-around z-40 shadow-lg px-2">
         <button
           onClick={() => setActiveScreen('capture')}
           className={`flex flex-col items-center justify-center flex-1 h-full transition cursor-pointer ${
-            activeScreen === 'capture' ? 'text-slate-950 font-bold' : 'text-slate-400'
+            activeScreen === 'capture' ? 'text-indigo-600 font-extrabold' : 'text-slate-400'
           }`}
         >
           <FileSpreadsheet className="w-4 h-4" />
-          <span className="text-[10px] font-medium mt-1">Planilla</span>
+          <span className="text-[10px] mt-1">Planilla</span>
         </button>
+
+        {isTesorero && (
+          <button
+            onClick={() => setActiveScreen('gastos')}
+            className={`flex flex-col items-center justify-center flex-1 h-full transition cursor-pointer ${
+              activeScreen === 'gastos' ? 'text-indigo-600 font-extrabold' : 'text-slate-400'
+            }`}
+          >
+            <TrendingDown className="w-4 h-4" />
+            <span className="text-[10px] mt-1">Gastos</span>
+          </button>
+        )}
 
         <button
           onClick={() => setActiveScreen('history')}
           className={`flex flex-col items-center justify-center flex-1 h-full transition cursor-pointer ${
-            activeScreen === 'history' ? 'text-slate-950 font-bold' : 'text-slate-400'
+            activeScreen === 'history' ? 'text-indigo-600 font-extrabold' : 'text-slate-400'
           }`}
         >
           <History className="w-4 h-4" />
-          <span className="text-[10px] font-medium mt-1">Historial</span>
+          <span className="text-[10px] mt-1">Historial</span>
         </button>
 
         <button
           onClick={() => setActiveScreen('summary')}
           className={`flex flex-col items-center justify-center flex-1 h-full transition cursor-pointer ${
-            activeScreen === 'summary' ? 'text-slate-950 font-bold' : 'text-slate-400'
+            activeScreen === 'summary' ? 'text-indigo-600 font-extrabold' : 'text-slate-400'
           }`}
         >
           <TrendingUp className="w-4 h-4" />
-          <span className="text-[10px] font-medium mt-1">Métricas</span>
+          <span className="text-[10px] mt-1">Métricas</span>
         </button>
 
         <button
           onClick={() => setActiveScreen('profile')}
           className={`flex flex-col items-center justify-center flex-1 h-full transition cursor-pointer ${
-            activeScreen === 'profile' ? 'text-slate-950 font-bold' : 'text-slate-400'
+            activeScreen === 'profile' ? 'text-indigo-600 font-extrabold' : 'text-slate-400'
           }`}
         >
           <User className="w-4 h-4" />
-          <span className="text-[10px] font-medium mt-1">Perfil</span>
+          <span className="text-[10px] mt-1">Perfil</span>
         </button>
       </nav>
+
+      {/* Modal: Confirm Send Monthly Report */}
+      {showSendConfirmModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4 animate-fade-in">
+          <div className="bg-white w-full max-w-sm rounded-2xl shadow-2xl border border-slate-200 p-5 space-y-4">
+            <div className="w-10 h-10 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center mx-auto">
+              <Send className="w-5 h-5" />
+            </div>
+            <div className="text-center">
+              <h3 className="font-extrabold text-sm text-slate-900">¿Enviar Informe a Tesorería?</h3>
+              <p className="text-xs text-slate-500 mt-1 leading-relaxed">
+                Al enviar el informe, la Tesorería de la Zona 52 recibirá tus valores registrados para revisión y aprobación oficial.
+              </p>
+            </div>
+            <div className="flex items-center gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => setShowSendConfirmModal(false)}
+                className="flex-1 py-2 text-xs font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-xl transition cursor-pointer"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={handleSendReport}
+                className="flex-1 py-2 text-xs font-extrabold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl transition shadow-xs cursor-pointer"
+              >
+                Sí, Enviar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal: Treasurer Review Action */}
+      {showReviewModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4 animate-fade-in">
+          <div className="bg-white w-full max-w-sm rounded-2xl shadow-2xl border border-slate-200 p-5 space-y-3.5">
+            <div className="flex items-center justify-between">
+              <h3 className="font-extrabold text-sm text-slate-900">Revisión de Informe</h3>
+              <button onClick={() => setShowReviewModal(false)} className="text-slate-400 hover:text-slate-600">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <div>
+              <label className="block text-[10px] font-extrabold uppercase text-slate-600 mb-1">
+                Observaciones / Motivo de Revisión:
+              </label>
+              <textarea
+                value={reviewNotes}
+                onChange={(e) => setReviewNotes(e.target.value)}
+                placeholder="Indique los ajustes requeridos a la congregación..."
+                className="w-full p-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs text-slate-900 focus:outline-none focus:border-indigo-600 h-24"
+              />
+            </div>
+            <div className="flex flex-col gap-2 pt-1">
+              <button
+                onClick={() => handleChangeWorkflowStatus('en_revision', reviewNotes)}
+                className="w-full py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-xs font-extrabold transition cursor-pointer"
+              >
+                ⚠️ Solicitar Corrección (Poner en Revisión)
+              </button>
+              <button
+                onClick={() => handleChangeWorkflowStatus('borrador', reviewNotes)}
+                className="w-full py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-xl text-xs font-bold transition cursor-pointer"
+              >
+                ↩️ Reabrir como Borrador
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal: Notes / Observaciones */}
+      {showNotesModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4 animate-fade-in">
+          <div className="bg-white w-full max-w-sm rounded-2xl shadow-2xl border border-slate-200 p-5 space-y-3.5">
+            <div className="flex items-center justify-between">
+              <h3 className="font-extrabold text-sm text-slate-900">Observaciones del Informe</h3>
+              <button onClick={() => setShowNotesModal(false)} className="text-slate-400 hover:text-slate-600">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <div>
+              <textarea
+                value={notesInput}
+                onChange={(e) => setNotesInput(e.target.value)}
+                placeholder="Escribe comentarios o notas del mes..."
+                className="w-full p-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs text-slate-900 focus:outline-none focus:border-indigo-600 h-28"
+              />
+            </div>
+            <div className="flex items-center justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setShowNotesModal(false)}
+                className="px-3 py-1.5 text-xs font-bold text-slate-600 bg-slate-100 rounded-lg"
+              >
+                Cerrar
+              </button>
+              <button
+                type="button"
+                onClick={async () => {
+                  await handleChangeWorkflowStatus(estadoInforme, notesInput);
+                  setShowNotesModal(false);
+                }}
+                className="px-4 py-1.5 text-xs font-extrabold text-white bg-indigo-600 rounded-lg shadow-xs"
+              >
+                Guardar Nota
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal: Receipts / Soportes Bancarios */}
+      {showReceiptsModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4 animate-fade-in">
+          <div className="bg-white w-full max-w-md max-h-[85vh] rounded-2xl shadow-2xl border border-slate-200 flex flex-col overflow-hidden">
+            <div className="p-4 bg-slate-900 text-white flex items-center justify-between shrink-0">
+              <div className="flex items-center gap-2">
+                <Paperclip className="w-4 h-4 text-indigo-400" />
+                <h3 className="font-extrabold text-xs uppercase tracking-wider">Soportes de Consignación</h3>
+              </div>
+              <button onClick={() => setShowReceiptsModal(false)} className="text-slate-400 hover:text-white">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="p-4 overflow-y-auto space-y-4 flex-1">
+              {/* Add form */}
+              <form onSubmit={handleAddReceipt} className="p-3.5 bg-slate-50 border border-slate-200 rounded-xl space-y-2.5">
+                <span className="text-[10px] font-extrabold uppercase text-slate-700 block">
+                  + Adjuntar Nuevo Comprobante
+                </span>
+                <div>
+                  <input
+                    type="text"
+                    placeholder="Valor Consignado ($)"
+                    value={receiptAmount}
+                    onChange={(e) => setReceiptAmount(e.target.value)}
+                    className="w-full px-3 py-1.5 bg-white border border-slate-300 rounded-lg text-xs font-bold text-slate-900"
+                    required
+                  />
+                </div>
+                <div>
+                  <input
+                    type="text"
+                    placeholder="Nota (Ej: Consignación Bancolombia #123)"
+                    value={receiptNotes}
+                    onChange={(e) => setReceiptNotes(e.target.value)}
+                    className="w-full px-3 py-1.5 bg-white border border-slate-300 rounded-lg text-xs text-slate-900"
+                  />
+                </div>
+                <div className="flex items-center gap-2">
+                  <label className="flex-1 py-1.5 px-3 bg-white border border-dashed border-slate-300 rounded-lg text-[11px] font-bold text-slate-600 flex items-center justify-center gap-1.5 cursor-pointer hover:bg-slate-100">
+                    <Upload className="w-3.5 h-3.5 text-indigo-600" />
+                    <span>{receiptFileName ? 'Foto cargada' : 'Tomar Foto / Archivo'}</span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(e) => {
+                        if (e.target.files && e.target.files[0]) {
+                          const file = e.target.files[0];
+                          setReceiptFileName(file.name);
+                          setReceiptFilePreview(URL.createObjectURL(file));
+                        }
+                      }}
+                    />
+                  </label>
+                  <button
+                    type="submit"
+                    className="px-4 py-1.5 bg-indigo-600 text-white rounded-lg text-xs font-extrabold shadow-xs"
+                  >
+                    Guardar
+                  </button>
+                </div>
+              </form>
+
+              {/* Receipts List */}
+              <div className="space-y-2">
+                <span className="text-[10px] font-extrabold uppercase text-slate-500 block">
+                  Comprobantes Adjuntos ({churchReceipts.length})
+                </span>
+                {churchReceipts.length === 0 ? (
+                  <p className="text-xs text-slate-400 text-center py-4">No hay comprobantes adjuntos este mes.</p>
+                ) : (
+                  churchReceipts.map((r) => (
+                    <div key={r.id} className="p-3 bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-between">
+                      <div>
+                        <span className="font-extrabold text-xs text-slate-900 block">{formatCOP(r.amount)}</span>
+                        <span className="text-[10px] text-slate-500 block">{r.notes || r.fileName} • {r.uploadedAt}</span>
+                      </div>
+                      <button
+                        onClick={() => handleDeleteReceipt(r.id)}
+                        className="p-1.5 text-rose-500 hover:bg-rose-50 rounded-lg"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal: New Gasto for Treasurer */}
+      {showNewGastoModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4 animate-fade-in">
+          <div className="bg-white w-full max-w-sm rounded-2xl shadow-2xl border border-slate-200 p-5 space-y-3.5">
+            <div className="flex items-center justify-between">
+              <h3 className="font-extrabold text-sm text-slate-900">Registrar Gasto de Tesorería</h3>
+              <button onClick={() => setShowNewGastoModal(false)} className="text-slate-400 hover:text-slate-600">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveGasto} className="space-y-3">
+              <div>
+                <label className="block text-[10px] font-extrabold uppercase text-slate-600 mb-1">
+                  Fondo a Deducir:
+                </label>
+                <select
+                  value={newGastoData.campo_fondo_id}
+                  onChange={(e) => setNewGastoData(d => ({ ...d, campo_fondo_id: e.target.value }))}
+                  className="w-full p-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-bold text-slate-900"
+                  required
+                >
+                  <option value="">— Seleccionar Fondo —</option>
+                  {resumenFondos.map((f: any) => (
+                    <option key={f.campo_fondo_id} value={f.campo_fondo_id}>
+                      {f.es_transito ? '🚀 [Tránsito] ' : '🏛️ [Local] '}
+                      {f.campo_fondo_nombre} (Saldo: {formatCOP(f.saldo_disponible)})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-extrabold uppercase text-slate-600 mb-1">
+                  Concepto / Detalle:
+                </label>
+                <input
+                  type="text"
+                  placeholder="Ej: Aporte Misionero, Arreglos..."
+                  value={newGastoData.descripcion}
+                  onChange={(e) => setNewGastoData(d => ({ ...d, descripcion: e.target.value }))}
+                  className="w-full p-2 bg-slate-50 border border-slate-300 rounded-xl text-xs text-slate-900"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-extrabold uppercase text-slate-600 mb-1">
+                  Monto a Egresar ($):
+                </label>
+                <input
+                  type="number"
+                  placeholder="0"
+                  min="1"
+                  value={newGastoData.monto}
+                  onChange={(e) => setNewGastoData(d => ({ ...d, monto: e.target.value }))}
+                  className="w-full p-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-mono font-extrabold text-slate-900"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-extrabold uppercase text-slate-600 mb-1">
+                  Fecha:
+                </label>
+                <input
+                  type="date"
+                  value={newGastoData.fecha}
+                  onChange={(e) => setNewGastoData(d => ({ ...d, fecha: e.target.value }))}
+                  className="w-full p-2 bg-slate-50 border border-slate-300 rounded-xl text-xs text-slate-900"
+                  required
+                />
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowNewGastoModal(false)}
+                  className="px-3 py-1.5 text-xs font-bold text-slate-600 bg-slate-100 rounded-xl"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-1.5 text-xs font-extrabold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl shadow-xs"
+                >
+                  Registrar Gasto
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* Church Search Modal for Treasurer */}
       <ChurchSearchModal

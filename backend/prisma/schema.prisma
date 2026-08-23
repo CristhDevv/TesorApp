@@ -131,6 +131,8 @@ model CampoPlantilla {
   multiplo_redondeo            Decimal?           @default(1) @db.Decimal(18, 2)
   es_acumulable                Boolean            @default(false)
   es_fondo                     Boolean            @default(false)
+  es_transito                  Boolean            @default(false)
+  ente_superior_nombre         String?
   seccion                      String
   seccion_iglesia              String?            @default("Ingresos")
   seccion_tesorero             String?            @default("Ingresos")

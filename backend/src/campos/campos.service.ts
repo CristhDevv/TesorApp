@@ -67,6 +67,8 @@ export class CamposService {
       multiplo_redondeo?: number;
       es_acumulable?: boolean;
       es_fondo?: boolean;
+      es_transito?: boolean;
+      ente_superior_nombre?: string | null;
       seccion: string;
       seccion_iglesia?: string;
       seccion_tesorero?: string;
@@ -117,6 +119,8 @@ export class CamposService {
           multiplo_redondeo: data.multiplo_redondeo !== undefined ? Number(data.multiplo_redondeo) : 1,
           es_acumulable: data.es_acumulable ?? false,
           es_fondo: data.es_fondo ?? false,
+          es_transito: data.es_transito ?? false,
+          ente_superior_nombre: data.es_transito ? data.ente_superior_nombre : null,
           seccion: data.seccion,
           seccion_iglesia: data.seccion_iglesia || data.seccion,
           seccion_tesorero: data.seccion_tesorero || data.seccion,
@@ -192,6 +196,8 @@ export class CamposService {
       multiplo_redondeo?: number;
       es_acumulable?: boolean;
       es_fondo?: boolean;
+      es_transito?: boolean;
+      ente_superior_nombre?: string | null;
       seccion?: string;
       seccion_iglesia?: string;
       seccion_tesorero?: string;
@@ -248,6 +254,8 @@ export class CamposService {
         ? (data.periodo_id !== undefined ? (data.periodo_id && data.periodo_id.trim() !== '' ? data.periodo_id : null) : original.periodo_id)
         : null;
 
+      const isTransito = data.es_transito !== undefined ? data.es_transito : original.es_transito;
+
       const campo = await tx.campoPlantilla.update({
         where: { id },
         data: {
@@ -260,6 +268,8 @@ export class CamposService {
           multiplo_redondeo: data.multiplo_redondeo !== undefined ? Number(data.multiplo_redondeo) : original.multiplo_redondeo,
           es_acumulable: data.es_acumulable,
           es_fondo: data.es_fondo,
+          es_transito: isTransito,
+          ente_superior_nombre: isTransito ? (data.ente_superior_nombre !== undefined ? data.ente_superior_nombre : original.ente_superior_nombre) : null,
           seccion: data.seccion,
           seccion_iglesia: data.seccion_iglesia,
           seccion_tesorero: data.seccion_tesorero,

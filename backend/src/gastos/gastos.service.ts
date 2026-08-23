@@ -48,7 +48,16 @@ export class GastosService {
     // 2. Fetch all active designated fund fields (es_fondo: true)
     const camposFondo = await this.prisma.campoPlantilla.findMany({
       where: { es_fondo: true, activo: true },
-      select: { id: true, nombre: true, slug: true, es_acumulable: true, seccion: true, orden: true },
+      select: { 
+        id: true, 
+        nombre: true, 
+        slug: true, 
+        es_acumulable: true, 
+        es_transito: true,
+        ente_superior_nombre: true,
+        seccion: true, 
+        orden: true 
+      },
       orderBy: [{ seccion: "asc" }, { orden: "asc" }],
     });
 
@@ -114,6 +123,8 @@ export class GastosService {
         campo_fondo_nombre: f.nombre,
         campo_fondo_slug: f.slug,
         es_acumulable: f.es_acumulable,
+        es_transito: f.es_transito,
+        ente_superior_nombre: f.ente_superior_nombre,
         seccion: f.seccion,
         // Período actual
         fondo_periodo: fondoPeriodo,

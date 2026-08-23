@@ -75,6 +75,7 @@ export function ExecutiveDashboard({
   const metrics = useMemo(() => {
     let totalIngresos = 0;
     let totalEgresos = 0;
+    let totalTransito = 0;
     let reportedChurches = 0;
 
     let countBorrador = 0;
@@ -87,6 +88,7 @@ export function ExecutiveDashboard({
       const igDetails = iglesias.find((i) => i.id === r.iglesia_id) || {};
       let churchIngresos = 0;
       let churchEgresos = 0;
+      let churchTransito = 0;
       let manualFieldsCount = 0;
       let filledFieldsCount = 0;
 
@@ -98,6 +100,10 @@ export function ExecutiveDashboard({
         if (!isCalc && col.tipo === 'moneda') {
           manualFieldsCount++;
           if (numVal > 0) filledFieldsCount++;
+        }
+
+        if (col.es_transito) {
+          churchTransito += numVal;
         }
 
         const colName = (col.nombre || '').toLowerCase();
@@ -123,6 +129,7 @@ export function ExecutiveDashboard({
       const churchTotal = churchIngresos;
       totalIngresos += churchIngresos;
       totalEgresos += churchEgresos;
+      totalTransito += churchTransito;
 
       const completionRate = manualFieldsCount > 0 ? (filledFieldsCount / manualFieldsCount) * 100 : (churchTotal > 0 ? 100 : 0);
       
@@ -165,6 +172,7 @@ export function ExecutiveDashboard({
         total: churchTotal,
         ingresos: churchIngresos,
         egresos: churchEgresos,
+        transito: churchTransito,
         completionRate: Math.round(completionRate),
         status,
         statusReason,
@@ -174,11 +182,14 @@ export function ExecutiveDashboard({
     const totalChurches = rows.length;
     const complianceRate = totalChurches > 0 ? Math.round((reportedChurches / totalChurches) * 100) : 0;
     const balanceNeto = totalIngresos - totalEgresos;
+    const balanceNetoPropio = totalIngresos - totalEgresos - totalTransito;
 
     return {
       totalIngresos,
       totalEgresos,
+      totalTransito,
       balanceNeto,
+      balanceNetoPropio,
       reportedChurches,
       totalChurches,
       complianceRate,
@@ -426,19 +437,25 @@ export function ExecutiveDashboard({
           </div>
         </div>
 
-        {/* KPI 3: Balance Neto */}
+        {/* KPI 3: Balance Neto en Caja */}
         <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs flex flex-col justify-between">
           <div className="flex items-center justify-between">
-            <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Balance Neto en Caja</span>
+            <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+              {metrics.totalTransito > 0 ? "Saldo Propio Zona 52" : "Balance Neto en Caja"}
+            </span>
             <span className="p-1.5 bg-indigo-50 text-indigo-600 rounded-lg text-xs font-bold flex items-center gap-0.5">
               <Scale className="w-3.5 h-3.5" /> Neto
             </span>
           </div>
           <div className="mt-3">
             <div className="text-2xl font-extrabold text-indigo-600 font-mono tracking-tight">
-              {formatCOP(metrics.balanceNeto)}
+              {formatCOP(metrics.totalTransito > 0 ? metrics.balanceNetoPropio : metrics.balanceNeto)}
             </div>
-            <p className="text-[11px] text-slate-400 mt-1">Ingresos menos egresos del período</p>
+            <p className="text-[11px] text-slate-400 mt-1">
+              {metrics.totalTransito > 0
+                ? `Excluye ${formatCOP(metrics.totalTransito)} en tránsito para entes superiores`
+                : "Ingresos menos egresos del período"}
+            </p>
           </div>
           <div className="w-full bg-slate-100 h-1 rounded-full mt-3 overflow-hidden">
             <div className="bg-indigo-500 h-1 rounded-full" style={{ width: '100%' }}></div>

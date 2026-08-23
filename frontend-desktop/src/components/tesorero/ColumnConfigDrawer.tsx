@@ -1,5 +1,5 @@
 import React from 'react';
-import { X, CheckCircle2, Columns, Wallet } from 'lucide-react';
+import { X, CheckCircle2, Columns, Wallet, Building2, Send } from 'lucide-react';
 import type { Periodo } from '../../types/contabilidad';
 
 interface FieldModalData {
@@ -12,6 +12,8 @@ interface FieldModalData {
   multiplo_redondeo: number;
   es_acumulable: boolean;
   es_fondo: boolean;
+  es_transito: boolean;
+  ente_superior_nombre: string;
   seccion: string;
   seccion_iglesia: string;
   seccion_tesorero: string;
@@ -770,34 +772,98 @@ export function ColumnConfigDrawer({
           </label>
 
           {/* ── Control de Fondos y Gastos ── */}
-          <label className={`flex items-start gap-2.5 cursor-pointer p-2.5 rounded-lg border transition ${
+          <div className={`p-2.5 rounded-lg border transition ${
             fieldModalData.es_fondo
               ? 'bg-indigo-50/70 border-indigo-300 ring-1 ring-indigo-500/20'
-              : 'bg-slate-50 border-slate-200 hover:bg-slate-100'
+              : 'bg-slate-50 border-slate-200'
           }`}>
-            <input
-              type="checkbox"
-              checked={fieldModalData.es_fondo}
-              onChange={(e) => update({ es_fondo: e.target.checked })}
-              className="accent-indigo-600 w-4 h-4 mt-0.5"
-            />
-            <div className="flex-1">
-              <div className="flex items-center gap-1.5">
-                <Wallet className={`w-3.5 h-3.5 ${fieldModalData.es_fondo ? 'text-indigo-600' : 'text-slate-500'}`} />
-                <span className="font-bold text-slate-800 text-xs">
-                  Habilitar como Fondo de Tesorería
-                </span>
-                {fieldModalData.es_fondo && (
-                  <span className="text-[9px] font-black uppercase tracking-wider bg-indigo-100 text-indigo-700 px-1.5 py-0.5 rounded">
-                    Activo
+            <label className="flex items-start gap-2.5 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={fieldModalData.es_fondo}
+                onChange={(e) => update({ es_fondo: e.target.checked })}
+                className="accent-indigo-600 w-4 h-4 mt-0.5"
+              />
+              <div className="flex-1">
+                <div className="flex items-center gap-1.5">
+                  <Wallet className={`w-3.5 h-3.5 ${fieldModalData.es_fondo ? 'text-indigo-600' : 'text-slate-500'}`} />
+                  <span className="font-bold text-slate-800 text-xs">
+                    Habilitar como Fondo de Tesorería
                   </span>
+                  {fieldModalData.es_fondo && (
+                    <span className="text-[9px] font-black uppercase tracking-wider bg-indigo-100 text-indigo-700 px-1.5 py-0.5 rounded">
+                      Activo
+                    </span>
+                  )}
+                </div>
+                <span className="text-[10px] text-slate-500 block mt-0.5 leading-relaxed">
+                  Permite controlar el recaudo, saldo disponible y salidas de dinero de esta columna.
+                </span>
+              </div>
+            </label>
+
+            {/* Selector de Destino Contable del Fondo */}
+            {fieldModalData.es_fondo && (
+              <div className="mt-3 pt-3 border-t border-indigo-200/80 space-y-2">
+                <label className="block text-[10px] font-extrabold uppercase tracking-wider text-slate-700">
+                  Destino Contable del Dinero Recaudado
+                </label>
+                
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => update({ es_transito: false })}
+                    className={`p-2 rounded-lg border text-left transition cursor-pointer ${
+                      !fieldModalData.es_transito
+                        ? 'border-indigo-600 bg-white text-indigo-950 font-bold shadow-xs'
+                        : 'border-slate-200 bg-slate-50/70 text-slate-600 hover:bg-white'
+                    }`}
+                  >
+                    <div className="flex items-center gap-1.5 text-xs">
+                      <Building2 className="w-3.5 h-3.5 text-indigo-600" />
+                      <span>🏛️ Fondo Propio</span>
+                    </div>
+                    <p className="text-[10px] text-slate-500 font-normal mt-1 leading-tight">
+                      Queda en caja de la Zona 52 para gastos locales.
+                    </p>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => update({ es_transito: true })}
+                    className={`p-2 rounded-lg border text-left transition cursor-pointer ${
+                      fieldModalData.es_transito
+                        ? 'border-indigo-600 bg-white text-indigo-950 font-bold shadow-xs'
+                        : 'border-slate-200 bg-slate-50/70 text-slate-600 hover:bg-white'
+                    }`}
+                  >
+                    <div className="flex items-center gap-1.5 text-xs">
+                      <Send className="w-3.5 h-3.5 text-indigo-600" />
+                      <span>🚀 En Tránsito</span>
+                    </div>
+                    <p className="text-[10px] text-slate-500 font-normal mt-1 leading-tight">
+                      Viaja / Se gira a un ente superior (no infla caja).
+                    </p>
+                  </button>
+                </div>
+
+                {fieldModalData.es_transito && (
+                  <div className="pt-1.5">
+                    <label className="block text-[10px] font-bold text-slate-700 mb-1">
+                      Ente Superior Destinatario (Opcional):
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="Ej: Sede Nacional, Fondo Pensional Central..."
+                      value={fieldModalData.ente_superior_nombre || ''}
+                      onChange={(e) => update({ ente_superior_nombre: e.target.value })}
+                      className="w-full px-2.5 py-1.5 bg-white border border-slate-300 rounded-lg text-xs text-slate-900 focus:outline-none focus:border-indigo-600 shadow-2xs"
+                    />
+                  </div>
                 )}
               </div>
-              <span className="text-[10px] text-slate-500 block mt-0.5 leading-relaxed">
-                Permite controlar el recaudo, saldo disponible y registrar salidas de dinero (gastos) contra esta columna en el módulo de Gastos.
-              </span>
-            </div>
-          </label>
+            )}
+          </div>
         </form>
 
         {/* Footer actions */}

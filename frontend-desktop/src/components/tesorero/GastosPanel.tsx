@@ -13,6 +13,8 @@ import {
   History,
   Coins,
   FileText,
+  Building2,
+  Send,
 } from "lucide-react";
 import { formatCOP } from "../../utils/formatters";
 
@@ -31,6 +33,8 @@ export interface ResumenFondo {
   campo_fondo_nombre: string;
   campo_fondo_slug: string;
   es_acumulable: boolean;
+  es_transito?: boolean;
+  ente_superior_nombre?: string | null;
   seccion?: string;
   // Período actual
   fondo_periodo: number;
@@ -91,19 +95,21 @@ export function GastosPanel({
   selectedPeriodoNombre,
   isPeriodOpen,
 }: GastosPanelProps) {
-  const [filterType, setFilterType] = useState<"all" | "acumulable" | "periodo">("all");
+  const [filterType, setFilterType] = useState<"all" | "propios" | "transito" | "acumulable">("all");
   const [searchTerm, setSearchTerm] = useState("");
 
   // Filtered funds
   const filteredResumen = useMemo(() => {
     return resumen.filter((r) => {
+      if (filterType === "propios" && r.es_transito) return false;
+      if (filterType === "transito" && !r.es_transito) return false;
       if (filterType === "acumulable" && !r.es_acumulable) return false;
-      if (filterType === "periodo" && r.es_acumulable) return false;
       if (searchTerm.trim()) {
         const term = searchTerm.toLowerCase();
         return (
           r.campo_fondo_nombre.toLowerCase().includes(term) ||
-          r.campo_fondo_slug.toLowerCase().includes(term)
+          r.campo_fondo_slug.toLowerCase().includes(term) ||
+          (r.ente_superior_nombre || '').toLowerCase().includes(term)
         );
       }
       return true;
@@ -124,18 +130,23 @@ export function GastosPanel({
   // Overall KPIs
   const totalGastosPeriodo = gastos.reduce((sum, g) => sum + Number(g.monto), 0);
 
-  const totalSaldoAcumuladoTesorería = useMemo(() => {
+  // Saldo real propio disponible en caja para Zona 52 (Fondos no marcados como tránsito)
+  const totalSaldoDisponibleZona52 = useMemo(() => {
     return resumen
-      .filter((r) => r.es_acumulable)
-      .reduce((sum, r) => sum + (r.saldo_acumulado ?? r.saldo_disponible ?? 0), 0);
+      .filter((r) => !r.es_transito)
+      .reduce((sum, r) => sum + (r.saldo_disponible ?? 0), 0);
   }, [resumen]);
 
-  const totalSaldoPeriodoActual = useMemo(() => {
-    return resumen.reduce((sum, r) => sum + (r.saldo_periodo ?? 0), 0);
+  // Total acumulado recaudado para girar a Entes Superiores
+  const totalPorGirarEntesSuperiores = useMemo(() => {
+    return resumen
+      .filter((r) => Boolean(r.es_transito))
+      .reduce((sum, r) => sum + (r.saldo_disponible ?? 0), 0);
   }, [resumen]);
 
+  const countPropios = resumen.filter((r) => !r.es_transito).length;
+  const countTransito = resumen.filter((r) => Boolean(r.es_transito)).length;
   const countAcumulables = resumen.filter((r) => r.es_acumulable).length;
-  const countPeriodo = resumen.filter((r) => !r.es_acumulable).length;
 
   return (
     <div className="flex flex-col h-full bg-slate-50">
@@ -149,7 +160,7 @@ export function GastosPanel({
             <div className="flex items-center gap-2">
               <h1 className="text-lg font-bold text-slate-900">Gastos y Control de Fondos</h1>
               <span className="px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-wider bg-indigo-100 text-indigo-800 rounded-full border border-indigo-200">
-                Fondos Acumulables
+                Tesorería Zona 52
               </span>
             </div>
             <p className="text-xs text-slate-500 mt-0.5">
@@ -180,41 +191,41 @@ export function GastosPanel({
       <div className="flex-1 overflow-auto p-6 space-y-6">
         {/* KPI Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {/* Card 1: Saldo Acumulado en Tesorería */}
+          {/* Card 1: Saldo Disponible Real Zona 52 */}
           <div className="bg-gradient-to-br from-indigo-900 via-indigo-800 to-slate-900 text-white rounded-2xl p-4 shadow-md border border-indigo-700/50">
             <div className="flex items-center justify-between">
               <div className="p-2 bg-indigo-700/60 rounded-xl">
-                <Coins className="w-5 h-5 text-indigo-200" />
+                <Building2 className="w-5 h-5 text-indigo-200" />
               </div>
               <span className="text-[10px] font-extrabold uppercase tracking-widest bg-indigo-500/30 text-indigo-200 px-2 py-0.5 rounded-full border border-indigo-400/30">
-                Multiperíodo
+                Caja Zona 52
               </span>
             </div>
-            <p className="text-xs text-indigo-200 font-medium mt-3">Saldo Acumulado en Fondos (Tesorería)</p>
+            <p className="text-xs text-indigo-200 font-medium mt-3">Saldo Neto Disponible (Fondos Propios)</p>
             <p className="text-2xl font-black text-white mt-0.5 tracking-tight">
-              {formatCOP(totalSaldoAcumuladoTesorería)}
+              {formatCOP(totalSaldoDisponibleZona52)}
             </p>
             <p className="text-[11px] text-indigo-300/80 mt-1 flex items-center gap-1">
-              <History className="w-3 h-3" /> Fondos permanentes acumulados de todos los períodos
+              <CheckCircle2 className="w-3 h-3" /> Fondos bajo administración local ({countPropios} fondos)
             </p>
           </div>
 
-          {/* Card 2: Saldo del Período Actual */}
+          {/* Card 2: Dineros en Tránsito para Entes Superiores */}
           <div className="bg-white rounded-2xl p-4 shadow-sm border border-slate-200">
             <div className="flex items-center justify-between">
-              <div className="p-2 bg-emerald-100 rounded-xl">
-                <Wallet className="w-5 h-5 text-emerald-700" />
+              <div className="p-2 bg-amber-100 rounded-xl">
+                <Send className="w-5 h-5 text-amber-700" />
               </div>
-              <span className="text-[10px] font-extrabold uppercase tracking-widest bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded-full border border-emerald-200">
-                Este Período
+              <span className="text-[10px] font-extrabold uppercase tracking-widest bg-amber-50 text-amber-800 px-2 py-0.5 rounded-full border border-amber-200">
+                En Tránsito
               </span>
             </div>
-            <p className="text-xs text-slate-500 font-medium mt-3">Flujo Neto del Período Actual</p>
-            <p className={`text-2xl font-black mt-0.5 tracking-tight ${totalSaldoPeriodoActual >= 0 ? "text-emerald-700" : "text-rose-600"}`}>
-              {formatCOP(totalSaldoPeriodoActual)}
+            <p className="text-xs text-slate-500 font-medium mt-3">Por Girar a Entes Superiores (Nacional)</p>
+            <p className="text-2xl font-black text-amber-700 mt-0.5 tracking-tight">
+              {formatCOP(totalPorGirarEntesSuperiores)}
             </p>
             <p className="text-[11px] text-slate-500 mt-1">
-              Ingresos del mes menos gastos del mes
+              Recaudado para transferir ({countTransito} concepto{countTransito !== 1 ? 's' : ''})
             </p>
           </div>
 
@@ -228,7 +239,7 @@ export function GastosPanel({
                 {gastos.length} Registro{gastos.length !== 1 ? "s" : ""}
               </span>
             </div>
-            <p className="text-xs text-slate-500 font-medium mt-3">Total Gastos en {selectedPeriodoNombre}</p>
+            <p className="text-xs text-slate-500 font-medium mt-3">Total Gastos Locales en {selectedPeriodoNombre}</p>
             <p className="text-2xl font-black text-rose-600 mt-0.5 tracking-tight">
               −{formatCOP(totalGastosPeriodo)}
             </p>
@@ -250,7 +261,31 @@ export function GastosPanel({
                   : "text-slate-600 hover:text-slate-900"
               }`}
             >
-              Todos los Fondos ({resumen.length})
+              Todos ({resumen.length})
+            </button>
+            <button
+              type="button"
+              onClick={() => setFilterType("propios")}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition cursor-pointer ${
+                filterType === "propios"
+                  ? "bg-indigo-600 text-white shadow-xs"
+                  : "text-slate-600 hover:text-slate-900"
+              }`}
+            >
+              <Building2 className="w-3.5 h-3.5" />
+              🏛️ Fondos Propios ({countPropios})
+            </button>
+            <button
+              type="button"
+              onClick={() => setFilterType("transito")}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition cursor-pointer ${
+                filterType === "transito"
+                  ? "bg-amber-600 text-white shadow-xs"
+                  : "text-slate-600 hover:text-slate-900"
+              }`}
+            >
+              <Send className="w-3.5 h-3.5" />
+              🚀 En Tránsito ({countTransito})
             </button>
             <button
               type="button"
@@ -262,18 +297,7 @@ export function GastosPanel({
               }`}
             >
               <Coins className="w-3.5 h-3.5" />
-              Fondos Acumulativos ({countAcumulables})
-            </button>
-            <button
-              type="button"
-              onClick={() => setFilterType("periodo")}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer ${
-                filterType === "periodo"
-                  ? "bg-white text-slate-900 shadow-xs"
-                  : "text-slate-600 hover:text-slate-900"
-              }`}
-            >
-              Fondos de Período ({countPeriodo})
+              Acumulativos ({countAcumulables})
             </button>
           </div>
 
@@ -281,7 +305,7 @@ export function GastosPanel({
             <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
             <input
               type="text"
-              placeholder="Buscar fondo o columna..."
+              placeholder="Buscar fondo o ente superior..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="pl-8 pr-3 py-1.5 bg-white border border-slate-300 rounded-lg text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-indigo-600 w-56"
@@ -314,7 +338,9 @@ export function GastosPanel({
                 <div
                   key={r.campo_fondo_id}
                   className={`bg-white rounded-2xl border p-4 shadow-sm hover:shadow-md transition flex flex-col justify-between ${
-                    isAcumulable
+                    r.es_transito
+                      ? "border-amber-300 bg-amber-50/20 ring-1 ring-amber-500/10"
+                      : isAcumulable
                       ? "border-indigo-200 ring-1 ring-indigo-500/10"
                       : "border-slate-200"
                   }`}
@@ -323,14 +349,23 @@ export function GastosPanel({
                     {/* Header */}
                     <div className="flex items-start justify-between gap-2 mb-3">
                       <div className="min-w-0">
-                        <div className="flex items-center gap-1.5 mb-1">
-                          {isAcumulable ? (
+                        <div className="flex items-center gap-1.5 mb-1 flex-wrap">
+                          {r.es_transito ? (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-black uppercase tracking-wider bg-amber-100 text-amber-900 border border-amber-300">
+                              <Send className="w-3 h-3 text-amber-700" /> En Tránsito
+                            </span>
+                          ) : isAcumulable ? (
                             <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-black uppercase tracking-wider bg-indigo-50 text-indigo-700 border border-indigo-200">
                               <Coins className="w-3 h-3 text-indigo-600" /> Fondo Acumulativo
                             </span>
                           ) : (
                             <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-black uppercase tracking-wider bg-slate-100 text-slate-600 border border-slate-200">
                               ⚡ Fondo de Período
+                            </span>
+                          )}
+                          {r.ente_superior_nombre && (
+                            <span className="text-[10px] font-bold text-amber-800 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200">
+                              Destino: {r.ente_superior_nombre}
                             </span>
                           )}
                           {r.seccion && (
@@ -343,8 +378,14 @@ export function GastosPanel({
                           {r.campo_fondo_nombre}
                         </h3>
                       </div>
-                      <div className={`p-2 rounded-xl flex-shrink-0 ${isAcumulable ? "bg-indigo-50 text-indigo-600" : "bg-slate-100 text-slate-600"}`}>
-                        <Wallet className="w-4 h-4" />
+                      <div className={`p-2 rounded-xl flex-shrink-0 ${
+                        r.es_transito
+                          ? "bg-amber-100 text-amber-700"
+                          : isAcumulable
+                          ? "bg-indigo-50 text-indigo-600"
+                          : "bg-slate-100 text-slate-600"
+                      }`}>
+                        {r.es_transito ? <Send className="w-4 h-4" /> : <Wallet className="w-4 h-4" />}
                       </div>
                     </div>
 
@@ -360,16 +401,16 @@ export function GastosPanel({
                           </div>
                           <div className="flex justify-between items-center text-rose-600">
                             <span className="flex items-center gap-1 font-medium">
-                              <ArrowDownRight className="w-3 h-3" /> Gastos acumulados deducidos
+                              <ArrowDownRight className="w-3 h-3" /> Egresos / Giros acumulados
                             </span>
                             <span className="font-bold">−{formatCOP(r.gastos_acumulados)}</span>
                           </div>
                           <div className="h-px bg-slate-200/80 my-1" />
                           <div className="flex justify-between items-center pt-0.5">
                             <span className="font-black text-slate-800 text-[11px] uppercase tracking-wide">
-                              Saldo Real en Caja
+                              {r.es_transito ? "Por Transferir / Girar" : "Saldo Real en Caja"}
                             </span>
-                            <span className={`font-black text-sm ${displaySaldo < 0 ? "text-rose-600" : "text-indigo-700"}`}>
+                            <span className={`font-black text-sm ${displaySaldo < 0 ? "text-rose-600" : r.es_transito ? "text-amber-800" : "text-indigo-700"}`}>
                               {formatCOP(displaySaldo)}
                             </span>
                           </div>
@@ -391,16 +432,16 @@ export function GastosPanel({
                           </div>
                           <div className="flex justify-between items-center text-rose-600">
                             <span className="flex items-center gap-1 font-medium">
-                              <ArrowDownRight className="w-3 h-3" /> Gastos del período
+                              <ArrowDownRight className="w-3 h-3" /> Egresos / Giros del período
                             </span>
                             <span className="font-bold">−{formatCOP(r.gastos_periodo)}</span>
                           </div>
                           <div className="h-px bg-slate-200/80 my-1" />
                           <div className="flex justify-between items-center pt-0.5">
                             <span className="font-black text-slate-800 text-[11px] uppercase tracking-wide">
-                              Saldo del período
+                              {r.es_transito ? "Por Girar (Mes)" : "Saldo del período"}
                             </span>
-                            <span className={`font-black text-sm ${displaySaldo < 0 ? "text-rose-600" : "text-emerald-700"}`}>
+                            <span className={`font-black text-sm ${displaySaldo < 0 ? "text-rose-600" : r.es_transito ? "text-amber-800" : "text-emerald-700"}`}>
                               {formatCOP(displaySaldo)}
                             </span>
                           </div>

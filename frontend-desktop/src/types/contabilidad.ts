@@ -32,6 +32,8 @@ export interface Campo {
   multiplo_redondeo: number;
   es_acumulable: boolean;
   es_fondo: boolean;
+  es_transito?: boolean;
+  ente_superior_nombre?: string | null;
   seccion: SeccionCampo;
   seccion_iglesia: SeccionCampo;
   seccion_tesorero: SeccionCampo;
