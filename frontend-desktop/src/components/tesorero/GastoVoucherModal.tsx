@@ -6,7 +6,6 @@ import {
   CheckCircle2, 
   Building2, 
   Calendar, 
-  Wallet, 
   FileText, 
   User
 } from 'lucide-react';
@@ -110,7 +109,6 @@ export function GastoVoucherModal({ isOpen, onClose, gasto }: GastoVoucherModalP
       `━━━━━━━━━━━━━━━━━━━━━━━━\n` +
       `📄 *No. Comprobante:* ${voucherNumber}\n` +
       `📅 *Fecha:* ${new Date(gasto.fecha).toLocaleDateString('es-CO', { day: '2-digit', month: 'long', year: 'numeric' })}\n` +
-      `🏛️ *Fondo de Origen:* ${gasto.campo_fondo_nombre || 'Fondo de Tesorería'}\n` +
       `📝 *Concepto / Detalle:* ${gasto.descripcion}\n` +
       `💰 *Monto Pagado:* ${formatCOP(gasto.monto)}\n` +
       `🔤 *Son:* ${montoLetras}\n` +
@@ -181,7 +179,7 @@ export function GastoVoucherModal({ isOpen, onClose, gasto }: GastoVoucherModalP
                   TESORAPP — GESTIÓN FINANCIERA
                 </h1>
                 <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                  Tesorería &amp; Control de Fondos
+                  Tesorería &amp; Control de Egresos
                 </p>
               </div>
             </div>
@@ -197,30 +195,21 @@ export function GastoVoucherModal({ isOpen, onClose, gasto }: GastoVoucherModalP
           </div>
 
           {/* Metadata Row */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-xs">
+          <div className="grid grid-cols-2 gap-3 text-xs">
             <div className="p-2.5 bg-slate-50 rounded-xl border border-slate-200">
               <span className="text-[10px] uppercase font-bold text-slate-400 flex items-center gap-1">
-                <Calendar className="w-3 h-3 text-indigo-600" /> Fecha
+                <Calendar className="w-3 h-3 text-indigo-600" /> Fecha de Emisión
               </span>
               <span className="font-bold text-slate-800 mt-0.5 block">
                 {new Date(gasto.fecha).toLocaleDateString('es-CO', {
                   day: '2-digit',
-                  month: 'short',
+                  month: 'long',
                   year: 'numeric',
                 })}
               </span>
             </div>
 
             <div className="p-2.5 bg-slate-50 rounded-xl border border-slate-200">
-              <span className="text-[10px] uppercase font-bold text-slate-400 flex items-center gap-1">
-                <Wallet className="w-3 h-3 text-indigo-600" /> Fondo Afectado
-              </span>
-              <span className="font-bold text-slate-800 mt-0.5 block truncate" title={gasto.campo_fondo_nombre}>
-                {gasto.campo_fondo_nombre || 'Fondo General'}
-              </span>
-            </div>
-
-            <div className="p-2.5 bg-slate-50 rounded-xl border border-slate-200 col-span-2 sm:col-span-1">
               <span className="text-[10px] uppercase font-bold text-slate-400 flex items-center gap-1">
                 <User className="w-3 h-3 text-indigo-600" /> Autorizado por
               </span>

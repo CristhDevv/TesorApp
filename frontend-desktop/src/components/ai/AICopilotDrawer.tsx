@@ -6,7 +6,8 @@ import {
   Copy, 
   Check, 
   Cpu,
-  ArrowRight
+  ArrowRight,
+  Printer
 } from 'lucide-react';
 import { formatCOP } from '../../utils/formatters';
 import { askGrokAI, extractFinancialData } from '../../services/grokAiService';
@@ -48,92 +49,70 @@ export function AICopilotDrawer({
   const rows = gridData?.filas || [];
   const columns = gridData?.columnas || [];
 
-  // Auto-scroll to bottom whenever messages change or AI is typing
-  useEffect(() => {
-    if (isOpen) {
-      chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-    }
-  }, [messages, isTyping, isOpen]);
-
-  // Generate initial financial analysis narrative
-  const generateNarrative = () => {
-    if (!rows.length) {
-      return 'No hay datos suficientes en la planilla actual para generar un análisis financiero.';
-    }
-
-    const { totalGeneral, churchList, totalMisiones, totalTemplo } = extractFinancialData({
-      periodName: currentPeriod?.nombre || 'Actual',
-      rows,
-      columns,
-      iglesias,
-    });
-
-    const sorted = [...churchList].sort((a, b) => b.total - a.total);
-    const top3 = sorted.slice(0, 3);
-    const emptyChurches = sorted.filter((c) => !c.hasValues);
-    const misionesEst = totalMisiones || totalGeneral * 0.25;
-    const temploEst = totalTemplo || totalGeneral * 0.15;
-
-    return `📊 **Resumen Ejecutivo de Inteligencia Financiera — Periodo ${currentPeriod?.nombre || 'Actual'}**
-
-**1. Desempeño Consolidado:**
-• El recaudo total registrado asciende a **${formatCOP(totalGeneral)}**, distribuido en **${rows.length} congregaciones**.
-• Estimación Fondos Especiales: **${formatCOP(misionesEst)}** destinados a Misiones y **${formatCOP(temploEst)}** para Fondo Pro-Templo / Edificación.
-
-**2. Sedes Destacadas (Top 3 Aportes):**
-${top3.map((c, i) => `${i + 1}. **${c.name}**: ${formatCOP(c.total)} (${totalGeneral > 0 ? ((c.total / totalGeneral) * 100).toFixed(1) : 0}% del total)`).join('\n')}
-
-**3. Diagnóstico y Alertas de Auditoría:**
-${emptyChurches.length > 0 ? `⚠️ Hay **${emptyChurches.length} congregación(es)** sin registros reportados (${emptyChurches.slice(0, 3).map((e) => e.name).join(', ')}${emptyChurches.length > 3 ? '...' : ''}).` : '✅ Todas las congregaciones presentan registros contables al día.'}
-• **Recomendación**: Validar los soportes de consignación antes del cierre oficial del periodo.
-
-👉 [Ir a Planilla Contable](#tab:sheet) | [Generar Informe PDF](#modal:pdf)`;
-  };
-
-  // Initialize initial AI summary
+  // Initialize with initial financial brief when opened
   useEffect(() => {
     if (isOpen && messages.length === 0) {
-      setIsTyping(true);
-      setTimeout(() => {
-        setMessages([
-          {
-            id: 'init-summary',
-            sender: 'ai',
-            text: generateNarrative(),
-            timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-            isSummary: true,
-            modelUsed: '✨ Google Gemini 3.7 Flash',
-          },
-        ]);
-        setIsTyping(false);
-      }, 200);
+      const periodName = currentPeriod?.nombre || 'Periodo Actual';
+      const { totalGeneral, activeChurches, totalChurches } = extractFinancialData({
+        gridData,
+        currentPeriod,
+        iglesias,
+      });
+
+      const initialBrief = `🏛️ **¡Paz y bendiciones! Soy TesorApp Copilot**, tu asesor financiero y tutor contable.
+
+He analizado los registros de **${periodName}**:
+• **Recaudo Total:** **${formatCOP(totalGeneral)}**
+• **Reportes al día:** **${activeChurches} de ${totalChurches} congregaciones**
+
+### 💡 ¿En qué te puedo asesorar hoy?
+1. Generar reportes o análisis detallados de cualquier sede.
+2. Emitir certificados o informes imprimibles en PDF.
+3. Explicarte paso a paso cómo registrar gastos, planillas o fondos.
+
+👉 [Ir a Planilla Contable](#tab:sheet) | [🖨️ Generar Informe en PDF](#action:print)`;
+
+      setMessages([
+        {
+          id: 'welcome',
+          sender: 'ai',
+          text: initialBrief,
+          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          isSummary: true,
+          modelUsed: 'gemini-3.7-flash',
+        },
+      ]);
     }
-  }, [isOpen]);
+  }, [isOpen, gridData, currentPeriod, iglesias]);
 
-  // Handle user question in natural language via Google Gemini
-  const handleSend = async (queryText?: string) => {
-    const q = (queryText || inputQuery).trim();
-    if (!q) return;
+  // Scroll to bottom on message update
+  useEffect(() => {
+    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages, isTyping]);
 
-    const userMsg: Message = {
+  const handleSend = async () => {
+    if (!inputQuery.trim() || isTyping) return;
+
+    const userText = inputQuery.trim();
+    setInputQuery('');
+
+    const newMsg: Message = {
       id: Date.now().toString(),
       sender: 'user',
-      text: q,
+      text: userText,
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
     };
 
-    setMessages((prev) => [...prev, userMsg]);
-    setInputQuery('');
+    setMessages((prev) => [...prev, newMsg]);
     setIsTyping(true);
 
     try {
       const { text, modelUsed } = await askGrokAI(
-        q,
-        messages,
+        userText,
+        messages.map((m) => ({ sender: m.sender, text: m.text })),
         {
-          periodName: currentPeriod?.nombre || 'Periodo Actual',
-          rows,
-          columns,
+          gridData,
+          currentPeriod,
           iglesias,
         }
       );
@@ -169,11 +148,159 @@ ${emptyChurches.length > 0 ? `⚠️ Hay **${emptyChurches.length} congregación
     setTimeout(() => setCopiedId(null), 2000);
   };
 
-  const handleActionClick = (target: string) => {
+  const handlePrintMessage = (messageText: string) => {
+    const printWindow = window.open('', '_blank', 'width=850,height=900');
+    if (!printWindow) {
+      window.print();
+      return;
+    }
+
+    const currentPeriodName = currentPeriod?.nombre || 'Período Contable Actual';
+    const dateStr = new Date().toLocaleDateString('es-CO', {
+      day: '2-digit',
+      month: 'long',
+      year: 'numeric',
+    });
+
+    // Format simple markdown into clean HTML for printing
+    const formattedHtml = messageText
+      .replace(/### (.*)/g, '<h3 style="color:#0f172a; margin-top:18px; margin-bottom:6px; font-size:15px; font-weight:800;">$1</h3>')
+      .replace(/## (.*)/g, '<h2 style="color:#0f172a; margin-top:22px; margin-bottom:8px; font-size:17px; font-weight:900;">$1</h2>')
+      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+      .replace(/\*(.*?)\*/g, '<em>$1</em>')
+      .replace(/\[(.*?)\]\(.*?\)/g, '')
+      .replace(/•\s*(.*)/g, '<li style="margin-bottom:4px;">$1</li>')
+      .replace(/\n\n/g, '<br/><br/>')
+      .replace(/\n/g, '<br/>');
+
+    printWindow.document.write(`
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>Informe Oficial de Tesorería — TesorApp</title>
+          <style>
+            body {
+              font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+              color: #1e293b;
+              padding: 40px;
+              line-height: 1.6;
+              font-size: 13px;
+              background: #ffffff;
+            }
+            .header {
+              border-bottom: 2px solid #0f172a;
+              padding-bottom: 16px;
+              margin-bottom: 24px;
+              display: flex;
+              justify-content: space-between;
+              align-items: center;
+            }
+            .title {
+              font-size: 18px;
+              font-weight: 900;
+              color: #0f172a;
+              text-transform: uppercase;
+              letter-spacing: 0.5px;
+            }
+            .subtitle {
+              font-size: 12px;
+              color: #64748b;
+              font-weight: 600;
+            }
+            .badge {
+              background: #f1f5f9;
+              border: 1px solid #cbd5e1;
+              padding: 6px 12px;
+              border-radius: 8px;
+              font-size: 11px;
+              font-weight: 700;
+              color: #334155;
+            }
+            .content {
+              margin-bottom: 40px;
+              background: #ffffff;
+            }
+            .signatures {
+              margin-top: 60px;
+              display: grid;
+              grid-template-columns: 1fr 1fr;
+              gap: 40px;
+              text-align: center;
+            }
+            .sign-line {
+              border-bottom: 1px solid #94a3b8;
+              height: 40px;
+              margin-bottom: 8px;
+            }
+            .footer {
+              margin-top: 50px;
+              border-top: 1px solid #e2e8f0;
+              padding-top: 12px;
+              font-size: 10px;
+              color: #94a3b8;
+              display: flex;
+              justify-content: space-between;
+            }
+            @media print {
+              body { padding: 0; }
+              @page { margin: 18mm; }
+            }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <div>
+              <div class="title">🏛️ TesorApp — Informe Oficial de Tesorería</div>
+              <div class="subtitle">Sistema Financiero y Contabilidad Eclesiástica</div>
+            </div>
+            <div class="badge">
+              Período: ${currentPeriodName}
+            </div>
+          </div>
+          <div class="content">
+            ${formattedHtml}
+          </div>
+          <div class="signatures">
+            <div>
+              <div class="sign-line"></div>
+              <strong>Tesorero General / Encargado</strong>
+              <div style="font-size:11px; color:#64748b;">Firma y Sello Oficial</div>
+            </div>
+            <div>
+              <div class="sign-line"></div>
+              <strong>Pastor / Junta Directiva</strong>
+              <div style="font-size:11px; color:#64748b;">Visto Bueno y Aprobación</div>
+            </div>
+          </div>
+          <div class="footer">
+            <span>Certificado emitido por TesorApp Copilot</span>
+            <span>Fecha de emisión: ${dateStr}</span>
+          </div>
+          <script>
+            window.onload = function() {
+              window.print();
+            };
+          </script>
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
+  };
+
+  const handleActionClick = (target: string, contextText?: string) => {
     if (target.startsWith('#tab:')) {
       const tabName = target.replace('#tab:', '');
       if (onNavigate) onNavigate(tabName);
       else onClose();
+    } else if (
+      target.startsWith('#action:print') || 
+      target.startsWith('#action:pdf') || 
+      target.startsWith('#modal:pdf') || 
+      target.startsWith('#print')
+    ) {
+      // Print active or latest report to PDF
+      const textToPrint = contextText || messages.filter(m => m.sender === 'ai').slice(-1)[0]?.text || '';
+      handlePrintMessage(textToPrint);
     } else if (target.startsWith('#modal:')) {
       const modalName = target.replace('#modal:', '');
       if (onOpenModal) onOpenModal(modalName);
@@ -184,13 +311,38 @@ ${emptyChurches.length > 0 ? `⚠️ Hay **${emptyChurches.length} congregación
   /**
    * Parses inline formatting: **bold**, *italic*, [Action](#tab:xxx)
    */
-  const renderInlineFormattedText = (lineText: string) => {
-    // Tokenizer regex for bold (**text**), links ([text](#action)), and italic (*text*)
-    const tokenRegex = /(\*\*.*?\*\*|\[.*?\]\(#(?:tab|modal):[a-zA-Z0-9_-]+\)|\*.*?\*)/g;
+  const renderInlineFormattedText = (lineText: string, fullMessageText: string) => {
+    // Regex for bold, links with various action prefixes (#tab:, #action:, #modal:, #print), and italic
+    const tokenRegex = /(\*\*.*?\*\*|\[.*?\]\(#(?:tab|action|modal|print):[a-zA-Z0-9_:-]+\)|\*.*?\*)/g;
     const parts = lineText.split(tokenRegex);
 
     return parts.map((part, index) => {
       if (!part) return null;
+
+      // Action Links: [Label](#tab:sheet) or [Label](#action:print)
+      const linkMatch = part.match(/^\[(.*?)\]\((#(?:tab|action|modal|print):[a-zA-Z0-9_:-]+)\)$/);
+      if (linkMatch) {
+        const isPrint = linkMatch[2].includes('print') || linkMatch[2].includes('pdf');
+        return (
+          <button
+            key={index}
+            onClick={() => handleActionClick(linkMatch[2], fullMessageText)}
+            className={`inline-flex items-center gap-1.5 px-3 py-1 my-1 mx-1 rounded-xl text-xs font-bold transition shadow-xs cursor-pointer group ${
+              isPrint 
+                ? 'bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-700 hover:to-teal-800 text-white' 
+                : 'bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-700 hover:to-indigo-800 text-white border border-indigo-600'
+            }`}
+          >
+            {isPrint ? (
+              <Printer className="w-3.5 h-3.5 text-emerald-200 group-hover:text-white" />
+            ) : null}
+            <span>{linkMatch[1]}</span>
+            {!isPrint ? (
+              <ArrowRight className="w-3 h-3 text-indigo-200 group-hover:text-white transition-transform group-hover:translate-x-0.5" />
+            ) : null}
+          </button>
+        );
+      }
 
       // Bold: **text**
       if (part.startsWith('**') && part.endsWith('**') && part.length >= 4) {
@@ -202,24 +354,24 @@ ${emptyChurches.length > 0 ? `⚠️ Hay **${emptyChurches.length} congregación
         );
       }
 
-      // Action Links: [Label](#tab:sheet)
-      const linkMatch = part.match(/^\[(.*?)\]\((#(?:tab|modal):[a-zA-Z0-9_-]+)\)$/);
-      if (linkMatch) {
-        return (
-          <button
-            key={index}
-            onClick={() => handleActionClick(linkMatch[2])}
-            className="inline-flex items-center gap-1.5 px-3 py-1 my-1 mx-1 bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-700 hover:to-indigo-800 text-white border border-indigo-600 rounded-lg text-xs font-bold transition shadow-xs cursor-pointer group"
-          >
-            <span>{linkMatch[1]}</span>
-            <ArrowRight className="w-3 h-3 text-indigo-200 group-hover:text-white transition-transform group-hover:translate-x-0.5" />
-          </button>
-        );
-      }
-
-      // Italic: *text*
+      // Italic: *text* (Check if it was wrapping an action link)
       if (part.startsWith('*') && part.endsWith('*') && part.length >= 2) {
         const cleanText = part.slice(1, -1);
+        const innerLinkMatch = cleanText.match(/^\[(.*?)\]\((#(?:tab|action|modal|print):[a-zA-Z0-9_:-]+)\)$/);
+        if (innerLinkMatch) {
+          const isPrint = innerLinkMatch[2].includes('print') || innerLinkMatch[2].includes('pdf');
+          return (
+            <button
+              key={index}
+              onClick={() => handleActionClick(innerLinkMatch[2], fullMessageText)}
+              className="inline-flex items-center gap-1.5 px-3 py-1 my-1 mx-1 bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-700 hover:to-indigo-800 text-white rounded-xl text-xs font-bold transition shadow-xs cursor-pointer group"
+            >
+              {isPrint ? <Printer className="w-3.5 h-3.5 text-emerald-200" /> : null}
+              <span>{innerLinkMatch[1]}</span>
+              {!isPrint ? <ArrowRight className="w-3 h-3 text-indigo-200" /> : null}
+            </button>
+          );
+        }
         return (
           <em key={index} className="italic text-slate-700">
             {cleanText}
@@ -252,7 +404,7 @@ ${emptyChurches.length > 0 ? `⚠️ Hay **${emptyChurches.length} congregación
             const cleanTitle = trimmed.replace(/^#+\s*/, '');
             return (
               <h4 key={lineIdx} className="font-bold text-sm text-slate-900 pt-1.5 pb-0.5">
-                {renderInlineFormattedText(cleanTitle)}
+                {renderInlineFormattedText(cleanTitle, rawText)}
               </h4>
             );
           }
@@ -265,7 +417,7 @@ ${emptyChurches.length > 0 ? `⚠️ Hay **${emptyChurches.length} congregación
                 key={lineIdx}
                 className="p-2 my-1 border-l-2 border-indigo-400 bg-indigo-50/70 rounded-r-lg text-slate-700 italic"
               >
-                {renderInlineFormattedText(cleanQuote)}
+                {renderInlineFormattedText(cleanQuote, rawText)}
               </div>
             );
           }
@@ -276,7 +428,7 @@ ${emptyChurches.length > 0 ? `⚠️ Hay **${emptyChurches.length} congregación
             return (
               <div key={lineIdx} className="flex items-start gap-1.5 pl-1 my-0.5">
                 <span className="font-bold text-indigo-600 shrink-0">{numMatch[1]}.</span>
-                <div className="flex-1">{renderInlineFormattedText(numMatch[2])}</div>
+                <div className="flex-1">{renderInlineFormattedText(numMatch[2], rawText)}</div>
               </div>
             );
           }
@@ -287,13 +439,13 @@ ${emptyChurches.length > 0 ? `⚠️ Hay **${emptyChurches.length} congregación
             return (
               <div key={lineIdx} className="flex items-start gap-1.5 pl-1 my-0.5">
                 <span className="text-indigo-500 font-bold shrink-0">•</span>
-                <div className="flex-1">{renderInlineFormattedText(cleanBullet)}</div>
+                <div className="flex-1">{renderInlineFormattedText(cleanBullet, rawText)}</div>
               </div>
             );
           }
 
           // Regular paragraph line
-          return <div key={lineIdx}>{renderInlineFormattedText(line)}</div>;
+          return <div key={lineIdx}>{renderInlineFormattedText(line, rawText)}</div>;
         })}
       </div>
     );
@@ -302,30 +454,44 @@ ${emptyChurches.length > 0 ? `⚠️ Hay **${emptyChurches.length} congregación
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 overflow-hidden bg-slate-900/60 backdrop-blur-xs flex justify-end animate-fade-in">
-      <div className="w-full max-w-lg bg-white h-full shadow-2xl flex flex-col border-l border-slate-200">
-        {/* Header */}
-        <div className="p-4 bg-gradient-to-r from-purple-700 via-indigo-700 to-indigo-900 text-white flex items-center justify-between shrink-0 shadow-md">
+    <div className="fixed inset-0 z-50 flex justify-end bg-slate-900/40 backdrop-blur-2xs animate-fade-in">
+      <div className="bg-white w-full max-w-md h-full shadow-2xl flex flex-col border-l border-slate-200">
+        {/* Drawer Top Header */}
+        <div className="p-4 bg-gradient-to-r from-indigo-900 via-indigo-800 to-slate-900 text-white flex items-center justify-between shadow-xs">
           <div className="flex items-center gap-2.5">
-            <div className="p-2 bg-white/10 backdrop-blur-md rounded-xl border border-white/20">
-              <Sparkles className="w-5 h-5 text-amber-300 animate-pulse" />
+            <div className="p-2 bg-indigo-600/60 rounded-xl border border-indigo-400/30">
+              <Sparkles className="w-5 h-5 text-indigo-200 animate-pulse" />
             </div>
             <div>
               <div className="flex items-center gap-1.5">
                 <h3 className="font-extrabold text-sm tracking-tight">TesorApp Copilot</h3>
-                <span className="text-[10px] bg-gradient-to-r from-blue-400 to-indigo-400 text-slate-950 font-extrabold px-2 py-0.2 rounded-full uppercase tracking-wider shadow-2xs">
-                  ✨ Gemini 3.7 Flash
+                <span className="text-[9px] font-black uppercase tracking-wider bg-amber-400 text-slate-900 px-1.5 py-0.2 rounded-full">
+                  GEMINI 3.7 FLASH
                 </span>
               </div>
-              <p className="text-[11px] text-purple-200">Tutor y Asesor Contable con Google Gemini 3.7 Flash</p>
+              <p className="text-[11px] text-indigo-200/80">Tutor y Asesor Contable con Google Gemini</p>
             </div>
           </div>
+
           <button
             onClick={onClose}
-            className="p-1.5 text-white/70 hover:text-white hover:bg-white/10 rounded-lg transition cursor-pointer"
+            className="p-1.5 text-indigo-300 hover:text-white hover:bg-white/10 rounded-lg transition cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>
+        </div>
+
+        {/* Quick Context Bar */}
+        <div className="px-4 py-2 bg-slate-100 border-b border-slate-200 text-[11px] text-slate-600 flex items-center justify-between">
+          <div className="flex items-center gap-1.5">
+            <span className="font-semibold text-slate-700">Período:</span>
+            <span className="bg-white px-2 py-0.5 rounded border border-slate-200 font-bold text-indigo-700">
+              {currentPeriod?.nombre || 'Actual'}
+            </span>
+          </div>
+          <div className="text-slate-500">
+            {rows.length} sedes • {columns.length} columnas
+          </div>
         </div>
 
         {/* Chat History with Auto-scroll */}
@@ -360,22 +526,34 @@ ${emptyChurches.length > 0 ? `⚠️ Hay **${emptyChurches.length} congregación
                     </span>
                   )}
                   {isAi && (
-                    <button
-                      onClick={() => copyToClipboard(msg.id, msg.text)}
-                      className="text-[10px] text-slate-400 hover:text-indigo-600 flex items-center gap-0.5 cursor-pointer"
-                    >
-                      {copiedId === msg.id ? (
-                        <>
-                          <Check className="w-3 h-3 text-emerald-500" />
-                          <span className="text-emerald-500 font-bold">Copiado</span>
-                        </>
-                      ) : (
-                        <>
-                          <Copy className="w-3 h-3" />
-                          <span>Copiar</span>
-                        </>
-                      )}
-                    </button>
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        onClick={() => copyToClipboard(msg.id, msg.text)}
+                        className="text-[10px] text-slate-400 hover:text-indigo-600 flex items-center gap-0.5 cursor-pointer"
+                        title="Copiar texto"
+                      >
+                        {copiedId === msg.id ? (
+                          <>
+                            <Check className="w-3 h-3 text-emerald-500" />
+                            <span className="text-emerald-500 font-bold">Copiado</span>
+                          </>
+                        ) : (
+                          <>
+                            <Copy className="w-3 h-3" />
+                            <span>Copiar</span>
+                          </>
+                        )}
+                      </button>
+
+                      <button
+                        onClick={() => handlePrintMessage(msg.text)}
+                        className="text-[10px] text-slate-400 hover:text-indigo-600 flex items-center gap-0.5 cursor-pointer ml-1"
+                        title="Imprimir / Exportar a PDF"
+                      >
+                        <Printer className="w-3 h-3" />
+                        <span>PDF</span>
+                      </button>
+                    </div>
                   )}
                 </div>
               </div>
