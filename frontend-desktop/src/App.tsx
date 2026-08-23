@@ -431,9 +431,16 @@ export default function App() {
   const fetchMe = async () => {
     try {
       const res = await axios.get(`${API_BASE}/auth/me`);
-      setUser(res.data);
-      if (res.data.rol !== 'tesorero') setActiveTab('sheet');
-      loadGlobalData(res.data.rol);
+      const normalizedUser = {
+        ...res.data,
+        id: res.data.userId || res.data.id,
+        nombre_completo: res.data.nombre || res.data.nombre_completo,
+        iglesia_id: res.data.iglesiaId || res.data.iglesia_id,
+        iglesiaId: res.data.iglesiaId || res.data.iglesia_id,
+      };
+      setUser(normalizedUser);
+      if (normalizedUser.rol !== 'tesorero') setActiveTab('sheet');
+      loadGlobalData(normalizedUser.rol);
     } catch {
       handleLogout();
     }
@@ -446,10 +453,17 @@ export default function App() {
       const res = await axios.post(`${API_BASE}/auth/login`, { correo: loginEmail, contrasena: loginPass });
       localStorage.setItem('token', res.data.access_token);
       setToken(res.data.access_token);
-      setUser(res.data.user);
-      if (res.data.user.rol !== 'tesorero') setActiveTab('sheet');
+      const normalizedUser = {
+        ...res.data.user,
+        id: res.data.user.id || res.data.user.userId,
+        nombre_completo: res.data.user.nombre_completo || res.data.user.nombre,
+        iglesia_id: res.data.user.iglesia_id || res.data.user.iglesiaId,
+        iglesiaId: res.data.user.iglesia_id || res.data.user.iglesiaId,
+      };
+      setUser(normalizedUser);
+      if (normalizedUser.rol !== 'tesorero') setActiveTab('sheet');
       triggerToast('Sesión iniciada');
-      loadGlobalData(res.data.user.rol);
+      loadGlobalData(normalizedUser.rol);
     } catch (err: any) {
       triggerToast(err.response?.data?.message || 'Error de autenticación', 'error');
     } finally {

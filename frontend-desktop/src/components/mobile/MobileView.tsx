@@ -27,6 +27,7 @@ import {
   Sun,
   Moon,
   HelpCircle,
+  Coins,
 } from 'lucide-react';
 import { OfflineBanner } from './OfflineBanner';
 import { ChurchSearchModal } from './ChurchSearchModal';
@@ -145,17 +146,21 @@ export function MobileView({
 
       if (tabRes.data.length > 0) {
         let defaultTabId = '';
+        const userChurchId = user?.iglesiaId || user?.iglesia_id || user?.iglesia?.id;
         if (isTesorero) {
           defaultTabId = tabRes.data[0].id;
         } else {
           // Find table that contains this church
           const matchedTab = tabRes.data.find((t: any) => 
-            t.iglesias?.some((i: any) => i.id === (user.iglesiaId || user.iglesia_id))
+            t.iglesias?.some((i: any) => i.id === userChurchId)
           );
           if (matchedTab) defaultTabId = matchedTab.id;
           else defaultTabId = tabRes.data[0].id;
         }
         setSelectedTabla(defaultTabId);
+        if (!isTesorero && userChurchId) {
+          setSelectedIglesia(userChurchId);
+        }
       }
     } catch (err) {
       console.error('Error loading mobile dropdowns:', err);
@@ -165,27 +170,37 @@ export function MobileView({
   useEffect(() => {
     if (user) {
       loadDropdowns();
+      if (!isTesorero) {
+        const userChurchId = user?.iglesiaId || user?.iglesia_id || user?.iglesia?.id;
+        if (userChurchId) setSelectedIglesia(userChurchId);
+      }
     }
-  }, [user]);
+  }, [user, isTesorero]);
 
   // Set churches list based on selected table
   useEffect(() => {
     if (selectedTabla) {
       const matched = tablas.find(t => t.id === selectedTabla);
       if (matched) {
-        setIglesias(matched.iglesias || []);
-        if (matched.iglesias && matched.iglesias.length > 0) {
+        const churchList = matched.iglesias || [];
+        setIglesias(churchList);
+        if (churchList.length > 0) {
           if (isTesorero) {
-            if (!selectedIglesia || !matched.iglesias.some((i: any) => i.id === selectedIglesia)) {
-              setSelectedIglesia(matched.iglesias[0].id);
+            if (!selectedIglesia || !churchList.some((i: any) => i.id === selectedIglesia)) {
+              setSelectedIglesia(churchList[0].id);
             }
           } else {
-            setSelectedIglesia(user.iglesiaId || user.iglesia_id);
+            const userChurchId = user?.iglesiaId || user?.iglesia_id || user?.iglesia?.id;
+            if (userChurchId) {
+              setSelectedIglesia(userChurchId);
+            } else {
+              setSelectedIglesia(churchList[0].id);
+            }
           }
         }
       }
     }
-  }, [selectedTabla, tablas, user]);
+  }, [selectedTabla, tablas, user, isTesorero]);
 
   // Load actual values for selected church, table, and period
   const fetchValues = async () => {
@@ -380,6 +395,25 @@ export function MobileView({
     };
   }, [currentChurchRow, columns]);
 
+  // Emolumentos calculation for church view
+  const totalEmolumentos = useMemo(() => {
+    if (!currentChurchRow || !columns.length) return 0;
+    const emoCol = columns.find((c: any) => 
+      c.slug === 'total_emolumentos' || 
+      c.nombre?.toLowerCase() === 'total emolumentos' ||
+      c.slug === 'subtotal_emolumentos' ||
+      c.nombre?.toLowerCase().includes('emolumento')
+    );
+    if (emoCol) {
+      const val = currentChurchRow.valores?.find((v: any) => v.campo_id === emoCol.id);
+      if (val) {
+        const isCalc = val.modo_calculo === 'calculado';
+        return Number(isCalc ? (val.valor_calculado || 0) : (val.valor_manual || 0));
+      }
+    }
+    return 0;
+  }, [currentChurchRow, columns]);
+
   // Filtered columns based on section tab
   const filteredColumns = useMemo(() => {
     if (sectionFilter === 'all') return columns;
@@ -483,8 +517,12 @@ export function MobileView({
                 ))}
               </select>
             ) : (
-              <div className="px-2 py-1.5 bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-bold text-indigo-700 dark:text-indigo-300 truncate">
-                {iglesias[0]?.nombre || 'Mi Congregación'}
+              <div className="px-2.5 py-1.5 bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-bold text-indigo-700 dark:text-indigo-300 truncate">
+                {iglesias.find((i: any) => i.id === selectedIglesia)?.nombre 
+                  || iglesias.find((i: any) => i.id === (user?.iglesiaId || user?.iglesia_id))?.nombre 
+                  || user?.iglesia?.nombre 
+                  || user?.iglesia_nombre 
+                  || 'Mi Congregación'}
               </div>
             )}
           </div>
@@ -606,26 +644,24 @@ export function MobileView({
             </div>
           </div>
 
-          {/* Real-time Financial Totals Sticky Bar */}
-          <div className="grid grid-cols-3 gap-2 bg-white dark:bg-slate-900 p-3 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs relative">
-            <div className="text-center">
-              <span className="text-[9px] font-bold text-slate-500 uppercase block">Ingresos</span>
-              <span className="font-mono font-extrabold text-xs text-emerald-600 block mt-0.5">
-                {formatCOP(financialTotals.ingresos)}
-              </span>
+          {/* Emolumentos Highlight Card in Green */}
+          <div className="bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 p-3.5 rounded-2xl flex items-center justify-between shadow-xs">
+            <div className="flex items-center gap-2.5">
+              <div className="p-2 bg-emerald-600 dark:bg-emerald-500 text-white rounded-xl shadow-xs">
+                <Coins className="w-4 h-4" />
+              </div>
+              <div>
+                <span className="text-[10px] font-extrabold text-emerald-800 dark:text-emerald-300 uppercase tracking-wider block">
+                  Emolumentos
+                </span>
+                <span className="text-[11px] text-emerald-600/90 dark:text-emerald-400/90 font-medium">
+                  Total calculado para el pastor
+                </span>
+              </div>
             </div>
-            <div className="text-center border-x border-slate-100 dark:border-slate-800">
-              <span className="text-[9px] font-bold text-slate-500 uppercase block">Egresos</span>
-              <span className="font-mono font-extrabold text-xs text-rose-600 block mt-0.5">
-                {formatCOP(financialTotals.egresos)}
-              </span>
-            </div>
-            <div className="text-center">
-              <span className="text-[9px] font-bold text-slate-500 uppercase block">Saldo Neto</span>
-              <span className={`font-mono font-extrabold text-xs block mt-0.5 ${
-                financialTotals.saldoNeto >= 0 ? 'text-indigo-700 dark:text-indigo-400' : 'text-rose-600'
-              }`}>
-                {formatCOP(financialTotals.saldoNeto)}
+            <div className="text-right">
+              <span className="font-mono font-black text-base sm:text-lg text-emerald-700 dark:text-emerald-300">
+                {formatCOP(totalEmolumentos)}
               </span>
             </div>
           </div>

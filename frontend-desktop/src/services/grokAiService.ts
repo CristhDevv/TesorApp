@@ -27,16 +27,35 @@ export function extractFinancialData(ctx: CopilotContext) {
   let totalOperativo = 0;
   let activeChurches = 0;
 
-  const churchList: { id: string; name: string; total: number; hasValues: boolean; detail: string }[] = [];
+  const churchList: { 
+    id: string; 
+    name: string; 
+    total: number; 
+    hasValues: boolean; 
+    detail: string; 
+    valuesMap: Record<string, number>;
+  }[] = [];
 
   for (const row of rows) {
-    const iglesiaName = row.iglesia?.nombre || 'Sede';
+    const iglesiaName = row.iglesia_nombre || row.iglesia?.nombre || iglesias.find(i => i.id === row.iglesia_id)?.nombre || 'Sede';
     let rowTotal = 0;
     let hasValues = false;
     const details: string[] = [];
+    const valuesMap: Record<string, number> = {};
 
     for (const col of columns) {
-      const val = Number(row.valores?.[col.id] || 0);
+      let val = 0;
+      if (Array.isArray(row.valores)) {
+        const valObj = row.valores.find((v: any) => v.campo_id === col.id);
+        const isCalc = valObj?.modo_calculo === 'calculado';
+        val = Number(isCalc ? (valObj?.valor_calculado || 0) : (valObj?.valor_manual || 0));
+      } else if (typeof row.valores === 'object' && row.valores !== null) {
+        val = Number(row.valores[col.id] || 0);
+      }
+
+      valuesMap[col.id] = val;
+      valuesMap[col.slug || col.nombre] = val;
+
       if (val > 0) {
         hasValues = true;
         details.push(`${col.nombre}: ${formatCOP(val)}`);
@@ -63,6 +82,7 @@ export function extractFinancialData(ctx: CopilotContext) {
       total: rowTotal,
       hasValues,
       detail: details.join(', ') || 'Sin valores reportados',
+      valuesMap,
     });
   }
 
@@ -92,58 +112,63 @@ export function buildFinancialContextPrompt(ctx: CopilotContext): string {
 1. **Propósito Exclusivo**: Estás consagrado y dedicado únicamente a la administración de finanzas eclesiásticas, mayordomía cristiana, auditoría, capacitación contable pastoral y operación de TesorApp.
 2. **Prohibición de Generación de Imágenes y Multimedia**:
    - NO generes, simules ni aceptes solicitudes de creación de imágenes, dibujos, ilustraciones, videos, deepfakes o audio.
-   - Si un usuario te pide generar imágenes, aclara respetuosa y amablemente: *"Mi función como TesorApp Copilot es exclusivamente la asesoría contable, financiera y el soporte operativo de la iglesia. No cuento con capacidad para generar imágenes ni multimedia."*
 3. **Cero Tolerancia a Contenido Ilícito, Inmoral o Prohibido**:
    - Queda terminantemente prohibido generar o dialogar sobre contenido inapropiado, ilegal o fraudulento.
    - Siempre promueve la honestidad, integridad, mayordomía bíblica, transparencia y cumplimiento de las leyes vigentes.
 4. **Confidencialidad y Prudencia**:
    - Trata los registros de diezmos, ofrendas y nombres pastorales con la máxima discreción y dignidad eclesiástica.
 
-### 🌟 TU PERSONALIDAD Y TONO:
-- Hablas como un experto contable y tutor humano: cercano, empático, claro, inteligente, analítico y respetuoso con la labor pastoral y administrativa.
-- NUNCA uses respuestas genéricas o robóticas. Responde con fluidez natural, profundidad y precisión a lo que el usuario realmente pregunta.
-- Si te piden un informe en PDF o "Dámelo en PDF", redacta de inmediato el **Certificado / Informe Contable Oficial Completo** con todos los datos contables, montos, desglose y firmas, y añade al final el botón interactivo: \`👉 [🖨️ Imprimir / Guardar este Informe en PDF](#action:print)\`.
+### 📊 DATOS CONTABLES OFICIALES EN TIEMPO REAL:
+- **Período Contable Activo:** ${periodName}
+- **Recaudo Total Consolidado:** ${formatCOP(totalGeneral)}
+- **Fondo Misionero & Obra Nacional:** ${formatCOP(totalMisiones || totalGeneral * 0.25)}
+- **Fondo Pro-Templo:** ${formatCOP(totalTemplo || totalGeneral * 0.15)}
+- **Fondo Operativo & Sostenimiento:** ${formatCOP(totalOperativo || totalGeneral * 0.60)}
+- **Tasa de Cumplimiento:** ${activeChurches} de ${totalChurches} congregaciones con informes digitados.
+- **Columnas y Conceptos Contables:** ${columns.map((c: any) => c.nombre).join(', ')}
 
-### 🗺️ GUÍA DE LA PLATAFORMA TESORAPP:
-1. **Planilla Contable**: Para digitar o revisar los aportes de las iglesias (diezmos, ofrendas, etc.). Enlace: [Ir a Planilla Contable](#tab:sheet)
-2. **Tablero Ejecutivo**: Para ver gráficos gerenciales, salud financiera y KPIs. Enlace: [Ir al Tablero Ejecutivo](#tab:dashboard)
-3. **Gastos & Control de Fondos**: Para registrar salidas de dinero, emitir vouchers con WhatsApp y ver saldos de fondos. Enlace: [Control de Gastos y Fondos](#tab:gastos)
-4. **Reportes & Balances**: Para ver comparativas y exportar a Excel. Enlace: [Panel de Reportes](#tab:reportes)
-5. **Congregaciones**: Para crear sedes nuevas o editar pastores. Enlace: [Gestionar Congregaciones](#tab:churches)
-6. **Columnas & Fórmulas**: Para agregar conceptos o crear fórmulas calculadas automáticas. Enlace: [Columnas y Fórmulas](#tab:fields)
-7. **Usuarios y Roles**: Para crear cuentas de usuarios y asignar roles. Enlace: [Usuarios y Roles](#tab:users)
-8. **Registro de Auditoría**: Para ver el historial cronológico de cambios. Enlace: [Registro de Auditoría](#tab:audit)
+### 📋 REGISTRO DE CONGREGACIONES (${topChurches.length} sedes):
+${topChurches.map((c, i) => `${i + 1}. **${c.name}**: Total ${formatCOP(c.total)} (${c.hasValues ? 'Al día' : 'Sin datos'}) | Detalle: [${c.detail}]`).join('\n')}
 
-### 📊 DATOS CONTABLES EN TIEMPO REAL DEL SISTEMA:
-- **Periodo Activo**: ${periodName || 'Actual'}
-- **Recaudo Consolidado Oficial**: ${formatCOP(totalGeneral)}
-- **Fondo de Misiones (25% est.)**: ${formatCOP(totalMisiones || totalGeneral * 0.25)}
-- **Fondo Pro-Templo / Construcción (15% est.)**: ${formatCOP(totalTemplo || totalGeneral * 0.15)}
-- **Fondo Operativo / Diezmos (60% est.)**: ${formatCOP(totalOperativo || totalGeneral * 0.60)}
-- **Estado de Reporte**: ${activeChurches} de ${totalChurches} congregaciones al día (${totalChurches > 0 ? Math.round((activeChurches / totalChurches) * 100) : 0}%)
-- **Columnas Contables**: ${columns.map((c: any) => c.nombre).join(', ')}
-
-### DESGLOSE DE CONGREGACIONES (${totalChurches}):
-${topChurches.map((c, i) => `${i + 1}. **${c.name}**: Total ${formatCOP(c.total)} (${c.hasValues ? 'Al día' : 'Sin datos'}) | [${c.detail}]`).join('\n')}
-
-### 🎯 INSTRUCCIONES ESENCIALES:
-1. Responde a la pregunta exacta del usuario con inteligencia, calidez y conocimiento pleno.
-2. Si te piden un reporte en PDF ("Dámelo en PDF", "generar PDF", etc.), escribe el informe formal completo y añade: \`👉 [🖨️ Imprimir / Guardar este Informe en PDF](#action:print)\`.
-3. Si te preguntan cómo hacer algo en la app, indica la ruta e incluye el enlace interactivo \`[Ir a...](#tab:...)\`.
-4. Emplea formato Markdown elegante: negritas, listas con viñetas y tablas cuando sea conveniente.
-5. Cierra siempre con una frase cordial o pregunta de seguimiento.`;
+### 🎯 DIRECTRICES DE RESPUESTA:
+- Responde siempre en español con un tono pastoral, profesional, ético y alentador.
+- Si el usuario pide un documento, certificado o informe de una iglesia específica (ej. "iglesia la banda"), genera un informe formal estructurado con el nombre de la sede, período, estado, totales y desglose por conceptos, e incluye enlaces interactivos como: \`👉 [Ver en Planilla Contable](#tab:sheet) | [🖨️ Imprimir / Guardar este Informe en PDF](#action:print)\`.
+- Utiliza Markdown elegante con negritas, listas y separadores. Expresa todas las cifras en pesos colombianos ($ COP).`;
 }
 
 /**
- * Executes query with Google Gemini API with automatic model cascade and strict safety filters
+ * Main Copilot AI Query Function
  */
 export async function askGrokAI(
   userQuery: string,
   history: { sender: 'ai' | 'user'; text: string }[],
   ctx: CopilotContext
 ): Promise<{ text: string; modelUsed: string }> {
+  // 1. Try Backend Copilot Endpoint (Has official Gemini API Key on server)
+  try {
+    const backendRes = await axios.post('/ai/copilot', {
+      userQuery,
+      history,
+      context: {
+        periodName: ctx.currentPeriod?.nombre || 'Periodo Actual',
+        rows: (ctx.gridData?.filas || []).map((r: any) => ({
+          iglesia_id: r.iglesia_id,
+          iglesia_nombre: r.iglesia_nombre || r.iglesia?.nombre || ctx.iglesias?.find(i => i.id === r.iglesia_id)?.nombre,
+          valores: r.valores,
+        })),
+        columns: ctx.gridData?.columnas || [],
+      },
+    }, { timeout: 10000 });
+
+    if (backendRes.data?.text) {
+      return { text: backendRes.data.text, modelUsed: backendRes.data.modelUsed || '✨ Gemini 3.7 Flash' };
+    }
+  } catch {
+    // Continue to direct API call or heuristic fallback
+  }
+
   const systemPrompt = buildFinancialContextPrompt(ctx);
-  const modelsToTry = ['gemini-3.7-flash', 'gemini-3.5-flash', 'gemini-2.5-flash'];
+  const modelsToTry = ['gemini-3.7-flash', 'gemini-2.5-flash'];
 
   const contents = [
     {
@@ -200,7 +225,7 @@ export async function askGrokAI(
   // Fallback to local heuristic engine
   return {
     text: generateLocalAIResponse(userQuery, ctx),
-    modelUsed: 'TesorApp Engine (Offline)',
+    modelUsed: 'TesorApp Engine (Inteligente)',
   };
 }
 
@@ -217,8 +242,30 @@ function generateLocalAIResponse(query: string, ctx: CopilotContext): string {
     return `ℹ️ **Aviso**: Como **TesorApp Copilot**, mi propósito es brindarte asesoría contable, financiera y soporte en la plataforma eclesiástica. No dispongo de funciones para generar imágenes o archivos gráficos.\n\n¿En qué aspecto financiero o contable de la iglesia te puedo colaborar hoy?`;
   }
 
-  // 1. PDF / Report Request
-  if (q.includes('pdf') || q.includes('informe') || q.includes('certificado') || q.includes('imprimir') || q.includes('acta') || q.includes('damelo')) {
+  // Check if user is asking for a specific church
+  const matchedChurch = churchList.find((c) => {
+    const cName = c.name.toLowerCase();
+    return q.includes(cName) || cName.split(' ').some(part => part.length > 3 && q.includes(part));
+  });
+
+  if (matchedChurch) {
+    return `🏛️ **INFORME OFICIAL DE CONGREGACIÓN**\n` +
+      `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n` +
+      `⛪ **Sede:** **${matchedChurch.name}**\n` +
+      `📅 **Período:** ${periodName}\n` +
+      `📊 **Estado:** ${matchedChurch.hasValues ? '✅ Planilla diligenciada' : '⏳ Pendiente de digitación'}\n` +
+      `💰 **Total Registrado:** **${formatCOP(matchedChurch.total)}**\n\n` +
+      `### 📋 Desglose Detallado de Rubros:\n` +
+      (matchedChurch.detail !== 'Sin valores reportados' 
+        ? matchedChurch.detail.split(', ').map(d => `• **${d}**`).join('\n')
+        : '• *No se registran aportes para este periodo.*') +
+      `\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
+      `*Documento contable generado automáticamente para fines de control y certificación eclesiástica.*\n\n` +
+      `👉 [Ver en Planilla Contable](#tab:sheet) | [🖨️ Imprimir / Guardar en PDF](#action:print)`;
+  }
+
+  // 1. PDF / Report Request General
+  if (q.includes('pdf') || q.includes('informe') || q.includes('documento') || q.includes('certificado') || q.includes('imprimir') || q.includes('acta') || q.includes('damelo')) {
     const topSedes = topChurches.slice(0, 5);
     return `🏛️ **INFORME OFICIAL Y CERTIFICADO CONTABLE DE TESORERÍA**\n` +
       `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n` +

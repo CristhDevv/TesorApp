@@ -313,7 +313,10 @@ export default function App() {
               </select>
             ) : (
               <div className="px-2 py-1 bg-slate-100 border border-slate-200 rounded text-xs font-semibold text-slate-600 truncate">
-                {iglesias[0]?.nombre || 'Mi Iglesia'}
+                {iglesias.find((i: any) => i.id === selectedIglesia)?.nombre 
+                  || iglesias.find((i: any) => i.id === (user?.iglesiaId || user?.iglesia_id))?.nombre 
+                  || user?.iglesia?.nombre 
+                  || 'Mi Iglesia'}
               </div>
             )}
           </div>
