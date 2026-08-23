@@ -17,6 +17,7 @@ import {
   Send,
 } from "lucide-react";
 import { formatCOP } from "../../utils/formatters";
+import { HelpTooltip } from "../common/HelpTooltip";
 
 interface Gasto {
   id: string;
@@ -162,6 +163,10 @@ export function GastosPanel({
               <span className="px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-wider bg-indigo-100 text-indigo-800 rounded-full border border-indigo-200">
                 Tesorería Zona 52
               </span>
+              <HelpTooltip
+                title="Control de Fondos y Gastos"
+                text="Módulo para monitorear el recaudo por cada fondo contable, registrar egresos, emitir comprobantes oficiales y vigilar el saldo disponible en caja zonal."
+              />
             </div>
             <p className="text-xs text-slate-500 mt-0.5">
               Período activo: <span className="font-semibold text-slate-800">{selectedPeriodoNombre}</span>
@@ -197,9 +202,15 @@ export function GastosPanel({
               <div className="p-2 bg-indigo-700/60 rounded-xl">
                 <Building2 className="w-5 h-5 text-indigo-200" />
               </div>
-              <span className="text-[10px] font-extrabold uppercase tracking-widest bg-indigo-500/30 text-indigo-200 px-2 py-0.5 rounded-full border border-indigo-400/30">
-                Caja Zona 52
-              </span>
+              <div className="flex items-center gap-1.5">
+                <span className="text-[10px] font-extrabold uppercase tracking-widest bg-indigo-500/30 text-indigo-200 px-2 py-0.5 rounded-full border border-indigo-400/30">
+                  Caja Zona 52
+                </span>
+                <HelpTooltip
+                  title="Saldo Real Zona 52"
+                  text="Suma disponible de todos los fondos locales administrados directamente por la Zona 52. Excluye fondos en tránsito."
+                />
+              </div>
             </div>
             <p className="text-xs text-indigo-200 font-medium mt-3">Saldo Neto Disponible (Fondos Propios)</p>
             <p className="text-2xl font-black text-white mt-0.5 tracking-tight">
@@ -216,9 +227,15 @@ export function GastosPanel({
               <div className="p-2 bg-amber-100 rounded-xl">
                 <Send className="w-5 h-5 text-amber-700" />
               </div>
-              <span className="text-[10px] font-extrabold uppercase tracking-widest bg-amber-50 text-amber-800 px-2 py-0.5 rounded-full border border-amber-200">
-                En Tránsito
-              </span>
+              <div className="flex items-center gap-1.5">
+                <span className="text-[10px] font-extrabold uppercase tracking-widest bg-amber-50 text-amber-800 px-2 py-0.5 rounded-full border border-amber-200">
+                  En Tránsito
+                </span>
+                <HelpTooltip
+                  title="Fondos en Tránsito"
+                  text="Dineros recaudados de las sedes que no pertenecen a la caja zonal sino que deben ser girados a un ente superior (ej. Directiva Nacional)."
+                />
+              </div>
             </div>
             <p className="text-xs text-slate-500 font-medium mt-3">Por Girar a Entes Superiores (Nacional)</p>
             <p className="text-2xl font-black text-amber-700 mt-0.5 tracking-tight">
@@ -235,9 +252,15 @@ export function GastosPanel({
               <div className="p-2 bg-rose-100 rounded-xl">
                 <TrendingDown className="w-5 h-5 text-rose-600" />
               </div>
-              <span className="text-[10px] font-extrabold uppercase tracking-widest bg-rose-50 text-rose-700 px-2 py-0.5 rounded-full border border-rose-200">
-                {gastos.length} Registro{gastos.length !== 1 ? "s" : ""}
-              </span>
+              <div className="flex items-center gap-1.5">
+                <span className="text-[10px] font-extrabold uppercase tracking-widest bg-rose-50 text-rose-700 px-2 py-0.5 rounded-full border border-rose-200">
+                  {gastos.length} Registro{gastos.length !== 1 ? "s" : ""}
+                </span>
+                <HelpTooltip
+                  title="Gastos del Mes"
+                  text="Total de salidas de dinero registradas durante el período contable activo."
+                />
+              </div>
             </div>
             <p className="text-xs text-slate-500 font-medium mt-3">Total Gastos Locales en {selectedPeriodoNombre}</p>
             <p className="text-2xl font-black text-rose-600 mt-0.5 tracking-tight">

@@ -55,6 +55,7 @@ import { AuditDrawer } from './components/tesorero/AuditDrawer';
 import { FormulaModal } from './components/tesorero/FormulaModal';
 import { WorkflowModal } from './components/tesorero/WorkflowModal';
 import { BadgeStatus } from './components/common/BadgeStatus';
+import { HelpTooltip } from './components/common/HelpTooltip';
 import { useGridKeyboardNav } from './hooks/useGridKeyboardNav';
 import type { SortState, EditingCell, GridData, ColumnaGrid, FilaGrid, EstadoInforme } from './types/contabilidad';
 
@@ -1449,9 +1450,15 @@ export default function App() {
         <div className="flex-1 overflow-y-auto p-3 space-y-5">
           {/* Section: PRINCIPAL */}
           <div className="space-y-1">
-            <span className="px-3 text-[10px] font-extrabold text-slate-400 uppercase tracking-widest block">
-              Principal
-            </span>
+            <div className="px-3 flex items-center justify-between">
+              <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest block">
+                Principal
+              </span>
+              <HelpTooltip
+                title="Menú Principal"
+                text="Accesos al resumen gerencial, la planilla de cálculo de las sedes y los reportes oficiales."
+              />
+            </div>
 
             {isTesorero && (
               <button
@@ -1504,9 +1511,15 @@ export default function App() {
           {/* Section: GESTIÓN & ADMINISTRACIÓN */}
           {isTesorero && (
             <div className="space-y-1">
-              <span className="px-3 text-[10px] font-extrabold text-slate-400 uppercase tracking-widest block">
-                Gestión
-              </span>
+              <div className="px-3 flex items-center justify-between">
+                <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest block">
+                  Gestión
+                </span>
+                <HelpTooltip
+                  title="Módulo de Gestión"
+                  text="Herramientas administrativas para configurar congregaciones, columnas contables, fórmulas, usuarios, auditoría y gastos."
+                />
+              </div>
 
               <button
                 onClick={() => setActiveTab('iglesias')}
@@ -1654,16 +1667,39 @@ export default function App() {
               {sidebarOpen ? <PanelLeftClose className="w-4 h-4" /> : <PanelLeftOpen className="w-4 h-4" />}
             </button>
 
-            <span className="text-xs font-extrabold uppercase tracking-wider text-slate-700 dark:text-slate-200">
-              {activeTab === 'dashboard' && 'Tablero Ejecutivo & Métricas'}
-              {activeTab === 'sheet' && 'Planilla Contable General'}
-              {activeTab === 'iglesias' && 'Directorio de Congregaciones'}
-              {activeTab === 'campos' && 'Estructura de Columnas & Fórmulas'}
-              {activeTab === 'usuarios' && 'Gestión de Usuarios & Accesos'}
-              {activeTab === 'historial' && 'Auditoría & Trazabilidad de Cambios'}
-              {activeTab === 'gastos' && 'Gastos & Control de Fondos'}
-              {activeTab === 'reportes' && 'Centro de Reportes & Consolidados'}
-            </span>
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-extrabold uppercase tracking-wider text-slate-700 dark:text-slate-200">
+                {activeTab === 'dashboard' && 'Tablero Ejecutivo & Métricas'}
+                {activeTab === 'sheet' && 'Planilla Contable General'}
+                {activeTab === 'iglesias' && 'Directorio de Congregaciones'}
+                {activeTab === 'campos' && 'Estructura de Columnas & Fórmulas'}
+                {activeTab === 'usuarios' && 'Gestión de Usuarios & Accesos'}
+                {activeTab === 'historial' && 'Auditoría & Trazabilidad de Cambios'}
+                {activeTab === 'gastos' && 'Gastos & Control de Fondos'}
+                {activeTab === 'reportes' && 'Centro de Reportes & Consolidados'}
+              </span>
+              <HelpTooltip
+                title={
+                  activeTab === 'dashboard' ? 'Tablero Ejecutivo' :
+                  activeTab === 'sheet' ? 'Planilla Contable' :
+                  activeTab === 'iglesias' ? 'Congregaciones' :
+                  activeTab === 'campos' ? 'Columnas y Fórmulas' :
+                  activeTab === 'usuarios' ? 'Usuarios y Roles' :
+                  activeTab === 'historial' ? 'Auditoría' :
+                  activeTab === 'gastos' ? 'Gastos y Fondos' : 'Reportes'
+                }
+                text={
+                  activeTab === 'dashboard' ? 'Resume en tiempo real los ingresos, egresos, cumplimiento de cada sede y la salud financiera de toda la zona.' :
+                  activeTab === 'sheet' ? 'Hoja de cálculo interactiva para registrar, auditar y calcular fórmulas contables de cada congregación.' :
+                  activeTab === 'iglesias' ? 'Administra el listado de iglesias de la Zona 52, sus pastores responsables y estado.' :
+                  activeTab === 'campos' ? 'Configura los conceptos de ingresos, egresos, fondos de tesorería y reglas de cálculo automático.' :
+                  activeTab === 'usuarios' ? 'Crea cuentas de acceso para tesoreros y congregaciones con sus respectivos permisos.' :
+                  activeTab === 'historial' ? 'Historial de auditoría inmutable que registra quién modificó cada celda y en qué momento.' :
+                  activeTab === 'gastos' ? 'Registra egresos de la tesorería zonal, clasifica fondos propios vs en tránsito y genera vouchers oficiales.' :
+                  'Genera reportes financieros oficiales, balances consolidados y resúmenes contables.'
+                }
+              />
+            </div>
           </div>
 
           <div className="flex items-center gap-2.5 text-xs">

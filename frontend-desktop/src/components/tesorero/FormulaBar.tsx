@@ -1,6 +1,7 @@
 import React from 'react';
 import { FunctionSquare, ArrowRight } from 'lucide-react';
 import type { EditingCell, ColumnaGrid, FilaGrid, Campo } from '../../types/contabilidad';
+import { HelpTooltip } from '../common/HelpTooltip';
 
 interface FormulaBarProps {
   activeCell: EditingCell | null;
@@ -23,11 +24,17 @@ export const FormulaBar = React.memo(function FormulaBar({
 }: FormulaBarProps) {
   if (!activeCell) {
     return (
-      <div className="h-[28px] bg-slate-50 border-b border-slate-200 px-3 flex items-center gap-2 text-[11px] text-slate-400 select-none shrink-0 font-mono">
-        <FunctionSquare className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-        <span className="text-slate-500 font-sans italic text-[10px]">
-          Selecciona una celda para inspeccionar su fórmula y dependencias
-        </span>
+      <div className="h-[28px] bg-slate-50 border-b border-slate-200 px-3 flex items-center justify-between text-[11px] text-slate-400 select-none shrink-0 font-mono">
+        <div className="flex items-center gap-2">
+          <FunctionSquare className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+          <span className="text-slate-500 font-sans italic text-[10px]">
+            Selecciona una celda para inspeccionar su fórmula y dependencias
+          </span>
+        </div>
+        <HelpTooltip
+          title="Barra de Fórmulas Contables"
+          text="Al hacer clic sobre cualquier celda de la planilla, aquí verás la fórmula matemática que la calcula, su valor resultante y las columnas de las que depende."
+        />
       </div>
     );
   }

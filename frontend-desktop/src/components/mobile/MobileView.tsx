@@ -31,6 +31,7 @@ import { OfflineBanner } from './OfflineBanner';
 import { ChurchSearchModal } from './ChurchSearchModal';
 import { formatCOP } from '../../utils/formatters';
 import { generateVoucherPDFBlob } from '../../utils/voucherPdfGenerator';
+import { HelpTooltip } from '../common/HelpTooltip';
 
 interface MobileViewProps {
   token: string | null;
@@ -528,9 +529,15 @@ export function MobileView({
                   <FileSpreadsheet className="w-4 h-4 text-slate-600" />
                 )}
                 <div>
-                  <span className="text-[10px] font-extrabold uppercase tracking-wider block">
-                    Estado del Informe
-                  </span>
+                  <div className="flex items-center gap-1">
+                    <span className="text-[10px] font-extrabold uppercase tracking-wider block">
+                      Estado del Informe
+                    </span>
+                    <HelpTooltip
+                      title="Estado del Informe Mensual"
+                      text="• Borrador: Puedes editar libremente tus números.\n• Enviado: Entregado a tesorería para revisión.\n• En Revisión: El tesorero devolvió el informe con notas para ajustar.\n• Aprobado: Informe validado oficialmente."
+                    />
+                  </div>
                   <span className="font-extrabold text-xs capitalize">
                     {estadoInforme === 'en_revision' ? 'En Revisión (Ajustes)' : estadoInforme}
                   </span>
@@ -597,23 +604,29 @@ export function MobileView({
           </div>
 
           {/* Real-time Financial Totals Sticky Bar */}
-          <div className="grid grid-cols-3 gap-2 bg-white p-3 rounded-2xl border border-slate-200 shadow-xs">
+          <div className="grid grid-cols-3 gap-2 bg-white dark:bg-slate-900 p-3 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs relative">
             <div className="text-center">
               <span className="text-[9px] font-bold text-slate-500 uppercase block">Ingresos</span>
               <span className="font-mono font-extrabold text-xs text-emerald-600 block mt-0.5">
                 {formatCOP(financialTotals.ingresos)}
               </span>
             </div>
-            <div className="text-center border-x border-slate-100">
+            <div className="text-center border-x border-slate-100 dark:border-slate-800">
               <span className="text-[9px] font-bold text-slate-500 uppercase block">Egresos</span>
               <span className="font-mono font-extrabold text-xs text-rose-600 block mt-0.5">
                 {formatCOP(financialTotals.egresos)}
               </span>
             </div>
             <div className="text-center">
-              <span className="text-[9px] font-bold text-slate-500 uppercase block">Saldo Neto</span>
+              <div className="flex items-center justify-center gap-1">
+                <span className="text-[9px] font-bold text-slate-500 uppercase block">Saldo Neto</span>
+                <HelpTooltip
+                  title="Saldo Neto en Tiempo Real"
+                  text="Total de Ingresos menos Total de Egresos calculados al instante con los datos digitados."
+                />
+              </div>
               <span className={`font-mono font-extrabold text-xs block mt-0.5 ${
-                financialTotals.saldoNeto >= 0 ? 'text-indigo-700' : 'text-rose-600'
+                financialTotals.saldoNeto >= 0 ? 'text-indigo-700 dark:text-indigo-400' : 'text-rose-600'
               }`}>
                 {formatCOP(financialTotals.saldoNeto)}
               </span>

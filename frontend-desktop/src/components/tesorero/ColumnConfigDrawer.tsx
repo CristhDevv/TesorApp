@@ -1,6 +1,7 @@
 import React from 'react';
 import { X, CheckCircle2, Columns, Wallet, Building2, Send } from 'lucide-react';
 import type { Periodo } from '../../types/contabilidad';
+import { HelpTooltip } from '../common/HelpTooltip';
 
 interface FieldModalData {
   id: string;
@@ -167,7 +168,13 @@ export function ColumnConfigDrawer({
 
           {/* ── Modo Cálculo ── */}
           <div>
-            <label className={LABEL_CLS}>Modo de Cálculo</label>
+            <div className="flex items-center gap-1.5 mb-1">
+              <label className={LABEL_CLS.replace('mb-1', '')}>Modo de Cálculo</label>
+              <HelpTooltip
+                title="Modo de Cálculo"
+                text="Manual: La congregación o el tesorero digita el número directamente.\nCalculado: El valor se calcula automáticamente mediante una fórmula (ej. 3% de los diezmos, sumas o restas)."
+              />
+            </div>
             <div className="grid grid-cols-2 gap-2">
               <SectionBtn
                 active={fieldModalData.modo_calculo === 'manual'}
@@ -199,7 +206,13 @@ export function ColumnConfigDrawer({
 
           {/* ── Naturaleza / Sección ── */}
           <div>
-            <label className={LABEL_CLS}>Naturaleza Contable</label>
+            <div className="flex items-center gap-1.5 mb-1">
+              <label className={LABEL_CLS.replace('mb-1', '')}>Naturaleza Contable</label>
+              <HelpTooltip
+                title="Naturaleza Contable"
+                text="Define cómo se comporta la columna:\n• Ingreso: Dinero que entra a la iglesia.\n• Aporte: Egreso para la iglesia y entrada para tesorería zonal.\n• Egreso: Gasto o salida final.\n• Informativo: Datos que no suman al balance pero sirven para fórmulas."
+              />
+            </div>
             <div className="grid grid-cols-2 gap-1.5 mb-2">
               <SectionBtn
                 active={
@@ -754,22 +767,28 @@ export function ColumnConfigDrawer({
           </div>
 
           {/* ── Acumulable ── */}
-          <label className="flex items-center gap-2.5 cursor-pointer p-2.5 bg-slate-50 rounded-lg border border-slate-200 hover:bg-slate-100 transition">
-            <input
-              type="checkbox"
-              checked={fieldModalData.es_acumulable}
-              onChange={(e) => update({ es_acumulable: e.target.checked })}
-              className="accent-indigo-600 w-4 h-4"
+          <div className="flex items-center justify-between p-2.5 bg-slate-50 rounded-lg border border-slate-200 hover:bg-slate-100 transition">
+            <label className="flex items-center gap-2.5 cursor-pointer flex-1">
+              <input
+                type="checkbox"
+                checked={fieldModalData.es_acumulable}
+                onChange={(e) => update({ es_acumulable: e.target.checked })}
+                className="accent-indigo-600 w-4 h-4"
+              />
+              <div>
+                <span className="font-bold text-slate-800 block text-xs">
+                  Campo acumulable mes a mes
+                </span>
+                <span className="text-[10px] text-slate-500">
+                  Traslada saldos automáticamente al siguiente periodo
+                </span>
+              </div>
+            </label>
+            <HelpTooltip
+              title="Saldos Acumulables"
+              text="Si está activo, el saldo final que quede en esta columna al cerrar el mes se transferirá automáticamente como saldo inicial del mes siguiente."
             />
-            <div>
-              <span className="font-bold text-slate-800 block text-xs">
-                Campo acumulable mes a mes
-              </span>
-              <span className="text-[10px] text-slate-500">
-                Traslada saldos automáticamente al siguiente periodo
-              </span>
-            </div>
-          </label>
+          </div>
 
           {/* ── Control de Fondos y Gastos ── */}
           <div className={`p-2.5 rounded-lg border transition ${
@@ -777,37 +796,49 @@ export function ColumnConfigDrawer({
               ? 'bg-indigo-50/70 border-indigo-300 ring-1 ring-indigo-500/20'
               : 'bg-slate-50 border-slate-200'
           }`}>
-            <label className="flex items-start gap-2.5 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={fieldModalData.es_fondo}
-                onChange={(e) => update({ es_fondo: e.target.checked })}
-                className="accent-indigo-600 w-4 h-4 mt-0.5"
-              />
-              <div className="flex-1">
-                <div className="flex items-center gap-1.5">
-                  <Wallet className={`w-3.5 h-3.5 ${fieldModalData.es_fondo ? 'text-indigo-600' : 'text-slate-500'}`} />
-                  <span className="font-bold text-slate-800 text-xs">
-                    Habilitar como Fondo de Tesorería
-                  </span>
-                  {fieldModalData.es_fondo && (
-                    <span className="text-[9px] font-black uppercase tracking-wider bg-indigo-100 text-indigo-700 px-1.5 py-0.5 rounded">
-                      Activo
+            <div className="flex items-start justify-between">
+              <label className="flex items-start gap-2.5 cursor-pointer flex-1">
+                <input
+                  type="checkbox"
+                  checked={fieldModalData.es_fondo}
+                  onChange={(e) => update({ es_fondo: e.target.checked })}
+                  className="accent-indigo-600 w-4 h-4 mt-0.5"
+                />
+                <div className="flex-1">
+                  <div className="flex items-center gap-1.5">
+                    <Wallet className={`w-3.5 h-3.5 ${fieldModalData.es_fondo ? 'text-indigo-600' : 'text-slate-500'}`} />
+                    <span className="font-bold text-slate-800 text-xs">
+                      Habilitar como Fondo de Tesorería
                     </span>
-                  )}
+                    {fieldModalData.es_fondo && (
+                      <span className="text-[9px] font-black uppercase tracking-wider bg-indigo-100 text-indigo-700 px-1.5 py-0.5 rounded">
+                        Activo
+                      </span>
+                    )}
+                  </div>
+                  <span className="text-[10px] text-slate-500 block mt-0.5 leading-relaxed">
+                    Permite controlar el recaudo, saldo disponible y salidas de dinero de esta columna.
+                  </span>
                 </div>
-                <span className="text-[10px] text-slate-500 block mt-0.5 leading-relaxed">
-                  Permite controlar el recaudo, saldo disponible y salidas de dinero de esta columna.
-                </span>
-              </div>
-            </label>
+              </label>
+              <HelpTooltip
+                title="Fondos de Tesorería"
+                text="Convierte este concepto en una 'bolsa' o cuenta controlada en el panel de Gastos. Te permitirá registrar egresos directamente contra este dinero y generar comprobantes oficiales."
+              />
+            </div>
 
             {/* Selector de Destino Contable del Fondo */}
             {fieldModalData.es_fondo && (
               <div className="mt-3 pt-3 border-t border-indigo-200/80 space-y-2">
-                <label className="block text-[10px] font-extrabold uppercase tracking-wider text-slate-700">
-                  Destino Contable del Dinero Recaudado
-                </label>
+                <div className="flex items-center justify-between">
+                  <label className="block text-[10px] font-extrabold uppercase tracking-wider text-slate-700">
+                    Destino Contable del Dinero Recaudado
+                  </label>
+                  <HelpTooltip
+                    title="Fondo Propio vs En Tránsito"
+                    text="🏛️ Fondo Propio: Dinero que permanece en la Zona 52 para gastos locales y suma al saldo de caja zonal.\n\n🚀 En Tránsito: Dinero que se recauda pero viaja íntegramente a un ente superior (Directiva Nacional, etc.). Se contabiliza pero no infla el saldo de caja local."
+                  />
+                </div>
                 
                 <div className="grid grid-cols-2 gap-2">
                   <button
