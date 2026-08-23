@@ -28,6 +28,7 @@ import {
 import { OfflineBanner } from './OfflineBanner';
 import { ChurchSearchModal } from './ChurchSearchModal';
 import { formatCOP } from '../../utils/formatters';
+import { generateVoucherPDFBlob } from '../../utils/voucherPdfGenerator';
 
 interface MobileViewProps {
   token: string | null;
@@ -838,14 +839,50 @@ export function MobileView({
                       −{formatCOP(g.monto)}
                     </span>
                     <button
-                      onClick={() => {
-                        const text = `🏛️ *COMPROBANTE DE EGRESO*\nConcepto: ${g.descripcion}\nMonto: ${formatCOP(g.monto)} COP\nFecha: ${new Date(g.fecha).toLocaleDateString('es-CO')}\nAutorizado por: ${g.creado_por?.nombre_completo || 'Tesorero'} - Tesorería Zona 52`;
+                      onClick={async () => {
+                        const voucherNum = `CE-${new Date(g.fecha || Date.now()).getFullYear()}-${(g.id || '0000').slice(0, 6).toUpperCase()}`;
+                        const fileName = `Comprobante_${voucherNum}.pdf`;
+                        const pdfBlob = generateVoucherPDFBlob({
+                          voucherNumber: voucherNum,
+                          monto: g.monto,
+                          montoLetras: `${formatCOP(g.monto)} PESOS M/CTE`,
+                          descripcion: g.descripcion,
+                          fecha: g.fecha,
+                          periodoNombre: currentPeriodObj?.nombre,
+                          creadoPorNombre: g.creado_por?.nombre_completo || 'Tesorero',
+                        });
+                        const pdfFile = new File([pdfBlob], fileName, { type: 'application/pdf' });
+
+                        if (navigator.canShare && navigator.canShare({ files: [pdfFile] })) {
+                          try {
+                            await navigator.share({
+                              title: `Comprobante de Egreso ${voucherNum}`,
+                              text: `🏛️ *COMPROBANTE DE EGRESO*\nConcepto: ${g.descripcion}\nMonto: ${formatCOP(g.monto)} COP\nFecha: ${new Date(g.fecha).toLocaleDateString('es-CO')}\nAutorizado por: ${g.creado_por?.nombre_completo || 'Tesorero'} — Tesorería Zona 52`,
+                              files: [pdfFile],
+                            });
+                            return;
+                          } catch (err: any) {
+                            if (err.name !== 'AbortError') console.error(err);
+                          }
+                        }
+
+                        // Fallback: download PDF + open WhatsApp
+                        const url = URL.createObjectURL(pdfBlob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = fileName;
+                        document.body.appendChild(a);
+                        a.click();
+                        document.body.removeChild(a);
+                        URL.revokeObjectURL(url);
+
+                        const text = `🏛️ *COMPROBANTE DE EGRESO*\nConcepto: ${g.descripcion}\nMonto: ${formatCOP(g.monto)} COP\nFecha: ${new Date(g.fecha).toLocaleDateString('es-CO')}\nAutorizado por: ${g.creado_por?.nombre_completo || 'Tesorero'} - Tesorería Zona 52\n📎 _Comprobante oficial PDF generado._`;
                         window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
                       }}
-                      className="text-[10px] font-bold text-emerald-700 flex items-center gap-0.5 mt-0.5 cursor-pointer ml-auto"
+                      className="text-[10px] font-bold text-emerald-700 flex items-center gap-0.5 mt-0.5 cursor-pointer ml-auto bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200 hover:bg-emerald-100"
                     >
                       <Share2 className="w-2.5 h-2.5" />
-                      <span>WhatsApp</span>
+                      <span>WhatsApp & PDF</span>
                     </button>
                   </div>
                 </div>

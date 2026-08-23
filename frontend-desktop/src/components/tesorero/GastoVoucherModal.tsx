@@ -3,9 +3,11 @@ import {
   X, 
   Printer, 
   Share2, 
-  FileText
+  FileText,
+  Download
 } from 'lucide-react';
 import { formatCOP } from '../../utils/formatters';
+import { generateVoucherPDFBlob } from '../../utils/voucherPdfGenerator';
 
 export interface GastoVoucherData {
   id: string;
@@ -293,7 +295,58 @@ export function GastoVoucherModal({ isOpen, onClose, gasto }: GastoVoucherModalP
     printWindow.document.close();
   };
 
-  const handleShareWhatsApp = () => {
+  const handleDownloadPDF = () => {
+    const pdfBlob = generateVoucherPDFBlob({
+      voucherNumber,
+      monto: gasto.monto,
+      montoLetras,
+      descripcion: gasto.descripcion,
+      fecha: gasto.fecha,
+      periodoNombre: gasto.periodo_nombre,
+      creadoPorNombre: gasto.creado_por_nombre,
+    });
+    const url = URL.createObjectURL(pdfBlob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `Comprobante_${voucherNumber}.pdf`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  const handleShareWhatsApp = async () => {
+    const fileName = `Comprobante_${voucherNumber}.pdf`;
+    const pdfBlob = generateVoucherPDFBlob({
+      voucherNumber,
+      monto: gasto.monto,
+      montoLetras,
+      descripcion: gasto.descripcion,
+      fecha: gasto.fecha,
+      periodoNombre: gasto.periodo_nombre,
+      creadoPorNombre: gasto.creado_por_nombre,
+    });
+    const pdfFile = new File([pdfBlob], fileName, { type: 'application/pdf' });
+
+    // Try native Web Share API with attached PDF file (Supported on Mobile devices / Tablets / Compatible browsers)
+    if (navigator.canShare && navigator.canShare({ files: [pdfFile] })) {
+      try {
+        await navigator.share({
+          title: `Comprobante de Egreso ${voucherNumber}`,
+          text: `🏛️ *COMPROBANTE DE EGRESO - TESORERÍA ZONA 52*\n📄 *No:* ${voucherNumber}\n💰 *Monto:* ${formatCOP(gasto.monto)} COP\n📝 *Concepto:* ${gasto.descripcion}`,
+          files: [pdfFile],
+        });
+        return;
+      } catch (err: any) {
+        if (err.name !== 'AbortError') {
+          console.error('Error sharing PDF file:', err);
+        }
+      }
+    }
+
+    // Fallback: Automatically download the generated PDF & open WhatsApp Web/App
+    handleDownloadPDF();
+
     const text = `🏛️ *COMPROBANTE DE EGRESO - TESORERÍA*\n` +
       `━━━━━━━━━━━━━━━━━━━━━━━━\n` +
       `📄 *No. Comprobante:* ${voucherNumber}\n` +
@@ -303,7 +356,7 @@ export function GastoVoucherModal({ isOpen, onClose, gasto }: GastoVoucherModalP
       `🔤 *Son:* ${montoLetras}\n` +
       `👤 *Autorizado por:* ${gasto.creado_por_nombre || 'Tesorero'} — Tesorería Zona 52\n` +
       `━━━━━━━━━━━━━━━━━━━━━━━━\n` +
-      `_Documento oficial generado por TesorApp_`;
+      `📎 _El documento oficial '${fileName}' se ha generado y descargado para adjuntar en esta conversación._`;
 
     const encoded = encodeURIComponent(text);
     window.open(`https://wa.me/?text=${encoded}`, '_blank');
@@ -323,19 +376,28 @@ export function GastoVoucherModal({ isOpen, onClose, gasto }: GastoVoucherModalP
             <button
               onClick={handleShareWhatsApp}
               className="px-3 py-1.5 bg-emerald-700 hover:bg-emerald-800 text-white rounded-lg text-xs font-bold flex items-center gap-1.5 transition cursor-pointer active:scale-95 shadow-2xs"
-              title="Compartir por WhatsApp"
+              title="Compartir por WhatsApp (Adjunta o descarga el PDF)"
             >
               <Share2 className="w-3.5 h-3.5" />
-              <span>WhatsApp</span>
+              <span>WhatsApp & PDF</span>
+            </button>
+
+            <button
+              onClick={handleDownloadPDF}
+              className="px-3 py-1.5 bg-indigo-700 hover:bg-indigo-800 text-white rounded-lg text-xs font-bold flex items-center gap-1.5 transition cursor-pointer active:scale-95 shadow-2xs"
+              title="Descargar archivo PDF"
+            >
+              <Download className="w-3.5 h-3.5" />
+              <span>Descargar PDF</span>
             </button>
 
             <button
               onClick={handlePrint}
               className="px-3 py-1.5 bg-slate-700 hover:bg-slate-600 text-white rounded-lg text-xs font-bold flex items-center gap-1.5 transition cursor-pointer active:scale-95 shadow-2xs"
-              title="Imprimir o guardar como PDF"
+              title="Imprimir"
             >
               <Printer className="w-3.5 h-3.5" />
-              <span>Imprimir / PDF</span>
+              <span>Imprimir</span>
             </button>
 
             <button
