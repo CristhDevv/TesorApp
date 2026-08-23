@@ -21,6 +21,7 @@ import {
   ArrowDown,
   ArrowUpDown,
   TrendingUp,
+  TrendingDown,
   Smartphone,
   Sparkles,
   MessageSquare,
@@ -86,6 +87,11 @@ import { BudgetSimulator } from './components/forecasting/BudgetSimulator';
 import { BoardroomPresentationModal } from './components/presentation/BoardroomPresentationModal';
 import { NotificationCenter } from './components/notifications/NotificationCenter';
 
+// Gastos Feature
+import { GastosPanel } from './components/tesorero/GastosPanel';
+import { GastoModal } from './components/tesorero/GastoModal';
+
+
 const API_BASE = window.location.origin;
 axios.defaults.timeout = 15000;
 
@@ -94,7 +100,7 @@ export default function App() {
 
   const [token, setToken] = useState<string | null>(localStorage.getItem('token'));
   const [user, setUser] = useState<any>(null);
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'sheet' | 'iglesias' | 'campos' | 'permisos' | 'usuarios' | 'historial'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'sheet' | 'iglesias' | 'campos' | 'permisos' | 'usuarios' | 'historial' | 'gastos'>('dashboard');
   const [loading, setLoading] = useState(false);
   const [toast, setToast] = useState<{ msg: string; type: 'success' | 'error' } | null>(null);
 
@@ -170,6 +176,21 @@ export default function App() {
   const [usuarios, setUsuarios] = useState<any[]>([]);
   const [tablas, setTablas] = useState<any[]>([]);
   const [auditorias, setAuditorias] = useState<any[]>([]);
+
+  // Gastos state
+  const [gastos, setGastos] = useState<any[]>([]);
+  const [gastosResumen, setGastosResumen] = useState<any[]>([]);
+  const [gastosLoading, setGastosLoading] = useState(false);
+  const [showGastoModal, setShowGastoModal] = useState(false);
+  const [gastoModalData, setGastoModalData] = useState({
+    id: '',
+    descripcion: '',
+    monto: '',
+    fecha: new Date().toISOString().split('T')[0],
+    campo_fondo_id: '',
+    periodo_id: '',
+  });
+  const [savingGasto, setSavingGasto] = useState(false);
 
   // Selected states (with localStorage persistence for active table)
   const [selectedPeriodoId, setSelectedPeriodoId] = useState<string>('');
@@ -454,6 +475,103 @@ export default function App() {
   useEffect(() => {
     if (user && selectedTablaId && selectedPeriodoId) fetchGridValues();
   }, [selectedTablaId, selectedPeriodoId, showAllColumns, user]);
+
+  // ─── Gastos ───────────────────────────────────────────────────────────
+  const fetchGastos = async () => {
+    if (!selectedPeriodoId) return;
+    setGastosLoading(true);
+    try {
+      const [gastosRes, resumenRes] = await Promise.all([
+        axios.get(`${API_BASE}/gastos?periodo_id=${selectedPeriodoId}`),
+        axios.get(`${API_BASE}/gastos/resumen?periodo_id=${selectedPeriodoId}`),
+      ]);
+      setGastos(gastosRes.data || []);
+      setGastosResumen(resumenRes.data || []);
+    } catch (err) {
+      console.error('Error cargando gastos', err);
+    } finally {
+      setGastosLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (user && selectedPeriodoId && activeTab === 'gastos') fetchGastos();
+  }, [selectedPeriodoId, activeTab, user]);
+
+  const openNewGasto = () => {
+    setGastoModalData({
+      id: '',
+      descripcion: '',
+      monto: '',
+      fecha: new Date().toISOString().split('T')[0],
+      campo_fondo_id: '',
+      periodo_id: selectedPeriodoId,
+    });
+    setShowGastoModal(true);
+  };
+
+  const openEditGasto = (gasto: any) => {
+    setGastoModalData({
+      id: gasto.id,
+      descripcion: gasto.descripcion,
+      monto: String(gasto.monto),
+      fecha: new Date(gasto.fecha).toISOString().split('T')[0],
+      campo_fondo_id: gasto.campo_fondo?.id || '',
+      periodo_id: gasto.periodo?.id || selectedPeriodoId,
+    });
+    setShowGastoModal(true);
+  };
+
+  const saveGasto = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (savingGasto) return;
+    setSavingGasto(true);
+    try {
+      const payload = {
+        descripcion: gastoModalData.descripcion,
+        monto: Number(gastoModalData.monto),
+        fecha: gastoModalData.fecha,
+        campo_fondo_id: gastoModalData.campo_fondo_id,
+        periodo_id: gastoModalData.periodo_id || selectedPeriodoId,
+      };
+      if (gastoModalData.id) {
+        await axios.put(`${API_BASE}/gastos/${gastoModalData.id}`, payload);
+        triggerToast('Gasto actualizado');
+      } else {
+        await axios.post(`${API_BASE}/gastos`, payload);
+        triggerToast('Gasto registrado');
+      }
+      setShowGastoModal(false);
+      fetchGastos();
+    } catch (err: any) {
+      const msg = Array.isArray(err.response?.data?.message)
+        ? err.response.data.message.join(', ')
+        : err.response?.data?.message || 'Error guardando gasto';
+      triggerToast(msg, 'error');
+    } finally {
+      setSavingGasto(false);
+    }
+  };
+
+  const deleteGasto = (gasto: any) => {
+    setConfirmConfig({
+      isOpen: true,
+      title: 'Eliminar Gasto',
+      message: `¿Está seguro de eliminar el gasto "${gasto.descripcion}" por ${formatCOP(Number(gasto.monto))}?`,
+      confirmText: 'Eliminar',
+      variant: 'danger',
+      onConfirm: async () => {
+        setConfirmConfig((prev) => ({ ...prev, isOpen: false }));
+        try {
+          await axios.delete(`${API_BASE}/gastos/${gasto.id}`);
+          triggerToast('Gasto eliminado');
+          fetchGastos();
+        } catch (err: any) {
+          triggerToast(err.response?.data?.message || 'Error al eliminar', 'error');
+        }
+      },
+    });
+  };
 
   // ─── Paper Modal ──────────────────────────────────────────────────────
   const openPaperModal = async (church: any) => {
@@ -1344,6 +1462,25 @@ export default function App() {
                   <span>Registro Auditoría</span>
                 </div>
               </button>
+
+              <button
+                onClick={() => setActiveTab('gastos')}
+                className={`w-full px-3 py-2 rounded-xl text-xs font-semibold flex items-center justify-between transition-all duration-150 cursor-pointer ${
+                  activeTab === 'gastos'
+                    ? 'bg-rose-600 text-white font-bold shadow-md shadow-rose-600/30'
+                    : 'text-slate-400 hover:text-white hover:bg-slate-900/80'
+                }`}
+              >
+                <div className="flex items-center gap-2.5">
+                  <TrendingDown className={`w-4 h-4 ${activeTab === 'gastos' ? 'text-white' : 'text-slate-400'}`} />
+                  <span>Gastos</span>
+                </div>
+                {gastos.length > 0 && (
+                  <span className="text-[10px] font-mono font-bold bg-rose-800 text-rose-300 px-1.5 py-0.5 rounded border border-rose-700">
+                    {gastos.length}
+                  </span>
+                )}
+              </button>
             </div>
           )}
 
@@ -1470,6 +1607,7 @@ export default function App() {
               {activeTab === 'permisos' && 'Matriz de Permisos & Seguridad'}
               {activeTab === 'usuarios' && 'Gestión de Usuarios & Accesos'}
               {activeTab === 'historial' && 'Auditoría & Trazabilidad de Cambios'}
+              {activeTab === 'gastos' && 'Gastos & Control de Fondos'}
             </span>
           </div>
 
@@ -2372,6 +2510,21 @@ export default function App() {
           </div>
         </div>
       )}
+
+      {/* ── TAB 7: GASTOS ── */}
+      {activeTab === 'gastos' && (
+        <GastosPanel
+          gastos={gastos}
+          resumen={gastosResumen}
+          loading={gastosLoading}
+          onNew={openNewGasto}
+          onEdit={openEditGasto}
+          onDelete={deleteGasto}
+          selectedPeriodoNombre={selectedPeriodObj?.nombre || ''}
+          isPeriodOpen={isPeriodOpen}
+        />
+      )}
+
         </div>
       </main>
 
@@ -2386,6 +2539,21 @@ export default function App() {
           {toast.msg}
         </div>
       )}
+
+      {/* ── MODAL: GASTO ── */}
+      <GastoModal
+        isOpen={showGastoModal}
+        onClose={() => setShowGastoModal(false)}
+        data={gastoModalData}
+        setData={setGastoModalData}
+        onSave={saveGasto}
+        onDelete={gastoModalData.id ? () => { setShowGastoModal(false); deleteGasto({ id: gastoModalData.id, descripcion: gastoModalData.descripcion, monto: gastoModalData.monto }); } : undefined}
+        saving={savingGasto}
+        campos={campos.filter((c: any) => c.tipo === 'moneda')}
+        resumen={gastosResumen}
+        periodos={periodos}
+        selectedPeriodoId={selectedPeriodoId}
+      />
 
       {/* ── MODAL: TABLAS (ZONAS) ── */}
       {showTableModal && (

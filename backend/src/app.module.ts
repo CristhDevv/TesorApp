@@ -15,6 +15,7 @@ import { ReportesModule } from './reportes/reportes.module';
 import { UsuariosModule } from './usuarios/usuarios.module';
 import { TablasModule } from './tablas/tablas.module';
 import { AiModule } from './ai/ai.module';
+import { GastosModule } from './gastos/gastos.module';
 
 @Controller()
 export class AppController {
@@ -70,6 +71,7 @@ export class AppController {
     UsuariosModule,
     TablasModule,
     AiModule,
+    GastosModule,
   ],
   controllers: [AppController],
 })

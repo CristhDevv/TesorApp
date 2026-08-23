@@ -44,6 +44,7 @@ enum EntidadAuditoria {
   iglesia
   tabla
   usuario
+  gasto
 }
 
 enum AccionAuditoria {
@@ -69,6 +70,7 @@ model Usuario {
   periodos_cerrados Periodo[]   @relation("CerradoPor")
   periodos_reabiertos Periodo[] @relation("ReabiertoPor")
   auditorias      HistorialCambios[]
+  gastos_creados  Gasto[]
 
   @@map("usuarios")
 }
@@ -133,6 +135,7 @@ model CampoPlantilla {
   permisos_edicion             PermisoEdicion[]
   valores                      Valor[]
   campos_por_tabla             CamposPorTabla[]
+  gastos_como_fondo            Gasto[]            @relation("GastosFondo")
 
   @@map("campos_plantilla")
 }
@@ -178,6 +181,7 @@ model Periodo {
   reabierto_por  Usuario?      @relation("ReabiertoPor", fields: [reabierto_por_id], references: [id])
   valores        Valor[]
   campos_temporales CampoPlantilla[] @relation("CamposTemporales")
+  gastos         Gasto[]
 
   @@index([fecha_inicio, fecha_fin])
   @@map("periodos")
@@ -248,4 +252,23 @@ model CamposPorTabla {
 
   @@id([tabla_id, campo_id])
   @@map("campos_por_tabla")
+}
+
+model Gasto {
+  id              String         @id @default(uuid()) @db.Uuid
+  descripcion     String
+  monto           Decimal        @db.Decimal(18, 2)
+  fecha           DateTime       @db.Date
+  periodo_id      String         @db.Uuid
+  campo_fondo_id  String         @db.Uuid
+  creado_por_id   String         @db.Uuid
+  creado_en       DateTime       @default(now())
+  actualizado_en  DateTime       @updatedAt
+
+  periodo         Periodo        @relation(fields: [periodo_id], references: [id], onDelete: Cascade)
+  campo_fondo     CampoPlantilla @relation("GastosFondo", fields: [campo_fondo_id], references: [id])
+  creado_por      Usuario        @relation(fields: [creado_por_id], references: [id])
+
+  @@index([periodo_id, campo_fondo_id])
+  @@map("gastos")
 }
