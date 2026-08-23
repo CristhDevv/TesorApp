@@ -511,59 +511,14 @@ export default function App() {
   const fetchGridValues = async () => {
     if (!selectedPeriodoId) return;
     try {
-      if (selectedTablaId === 'all' || !selectedTablaId) {
-        let tableList = tablas;
-        if (!tableList || tableList.length === 0) {
-          const tabRes = await axios.get(`${API_BASE}/tablas`);
-          tableList = tabRes.data || [];
-        }
-
-        if (tableList.length > 0) {
-          const responses = await Promise.all(
-            tableList.map((t: any) =>
-              axios
-                .get(
-                  `${API_BASE}/valores?tabla_id=${t.id}&periodo_id=${selectedPeriodoId}&mostrar_todos=true`
-                )
-                .catch(() => ({ data: { filas: [], columnas: [] } }))
-            )
-          );
-
-          const filasMap = new Map<string, any>();
-          let combinedCols: any[] = [];
-
-          for (const r of responses) {
-            if (r.data?.columnas && r.data.columnas.length > combinedCols.length) {
-              combinedCols = r.data.columnas;
-            }
-            for (const f of r.data?.filas || []) {
-              filasMap.set(f.iglesia_id, f);
-            }
-          }
-
-          const periodObj = periodos.find((p) => p.id === selectedPeriodoId);
-          setGridData({
-            tabla_id: 'all',
-            tabla_nombre: 'Consolidado General (Todas las Tablas)',
-            periodo_id: selectedPeriodoId,
-            periodo_nombre: periodObj?.nombre || 'Periodo',
-            columnas: combinedCols,
-            filas: Array.from(filasMap.values()),
-          });
-        } else {
-          const res = await axios.get(
-            `${API_BASE}/valores?tabla_id=all&periodo_id=${selectedPeriodoId}&mostrar_todos=true`
-          );
-          setGridData(res.data);
-        }
-      } else {
-        const res = await axios.get(
-          `${API_BASE}/valores?tabla_id=${selectedTablaId}&periodo_id=${selectedPeriodoId}${
+      const isConsolidated = selectedTablaId === 'all' || !selectedTablaId;
+      const url = isConsolidated
+        ? `${API_BASE}/valores?tabla_id=all&periodo_id=${selectedPeriodoId}&mostrar_todos=true`
+        : `${API_BASE}/valores?tabla_id=${selectedTablaId}&periodo_id=${selectedPeriodoId}${
             showAllColumns ? '&mostrar_todos=true' : ''
-          }`
-        );
-        setGridData(res.data);
-      }
+          }`;
+      const res = await axios.get(url);
+      setGridData(res.data);
     } catch (err) {
       console.error(err);
       triggerToast('No se pudieron cargar los valores', 'error');

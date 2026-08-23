@@ -46,7 +46,7 @@ export class ValoresService {
           },
         ],
       },
-      orderBy: [{ seccion: 'asc' }, { orden: 'asc' }],
+      orderBy: [{ orden: 'asc' }, { creado_en: 'asc' }],
     });
 
     const displayFields = fields.filter((f) => {
@@ -595,7 +595,7 @@ export class ValoresService {
             },
           ],
         },
-        orderBy: [{ seccion: 'asc' }, { orden: 'asc' }],
+        orderBy: [{ orden: 'asc' }, { creado_en: 'asc' }],
       });
     } else {
       rawFields = tabla.campos.map((ct: any) => ct.campo);
