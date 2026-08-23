@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   CheckCircle2,
   Loader2,
@@ -133,19 +133,27 @@ export const ChurchReportForm = React.memo(function ChurchReportForm({
     }
   };
 
-  // Group columns into the 3 strict sections defined in the technical specification
+  // Group columns into categories:
+  // 1. Ingresos manuales
   const ingresosCols = columns.filter(
     (c) => (c.seccion_iglesia || c.seccion) === 'Ingresos' && c.modo_calculo === 'manual'
   );
+
+  // 2. Egresos manuales
   const egresosCols = columns.filter(
     (c) => (c.seccion_iglesia || c.seccion) === 'Egresos' && c.modo_calculo === 'manual'
   );
-  const calculosCols = columns.filter(
+
+  // 3. Otros campos manuales (Informativos, Aportes, Pastorales como Diezmo Personal, Ofrenda Misionera)
+  const informativosManualCols = columns.filter(
     (c) =>
-      c.modo_calculo === 'calculado' ||
-      ((c.seccion_iglesia || c.seccion) !== 'Ingresos' &&
-        (c.seccion_iglesia || c.seccion) !== 'Egresos')
+      c.modo_calculo === 'manual' &&
+      (c.seccion_iglesia || c.seccion) !== 'Ingresos' &&
+      (c.seccion_iglesia || c.seccion) !== 'Egresos'
   );
+
+  // 4. Cálculos automáticos (estrictamente modo_calculo === 'calculado')
+  const calculosCols = columns.filter((c) => c.modo_calculo === 'calculado');
 
   return (
     <div className="flex-1 overflow-y-auto bg-slate-100 p-3 sm:p-6 flex flex-col items-center">
@@ -433,12 +441,71 @@ export const ChurchReportForm = React.memo(function ChurchReportForm({
           </div>
         </div>
 
-        {/* TARJETA 3: CÁLCULOS (SOLO LECTURA) */}
+        {/* TARJETA 3: APORTES & DATOS INFORMATIVOS (MANUALES) */}
+        {informativosManualCols.length > 0 && (
+          <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-xs space-y-3">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-2">
+              <h2 className="text-xs font-bold uppercase tracking-wider text-amber-700 flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-amber-500" />
+                3. Aportes & Datos Informativos
+              </h2>
+              <span className="text-[10px] text-slate-400 font-medium">Ingreso manual</span>
+            </div>
+
+            <div className="space-y-3">
+              {informativosManualCols.map((col) => {
+                const cell = row.valores.find((v) => v.campo_id === col.id);
+                const isBlocked = isFormBlocked || cell?.editable === false;
+
+                return (
+                  <div key={col.id} className="space-y-1">
+                    <div className="flex items-center justify-between text-xs">
+                      <label
+                        htmlFor={`input-${col.id}`}
+                        className="font-semibold text-slate-700 flex items-center gap-1"
+                      >
+                        <span>{col.nombre}</span>
+                        {isBlocked && (
+                          <span title="Campo bloqueado para edición">
+                            <Lock className="w-3 h-3 text-slate-400 inline" />
+                          </span>
+                        )}
+                      </label>
+                      <span className="text-[10px] font-mono text-slate-400">COP</span>
+                    </div>
+
+                    <div className="relative">
+                      <span className="absolute left-3 top-2 font-mono text-xs text-slate-400 pointer-events-none">
+                        $
+                      </span>
+                      <input
+                        id={`input-${col.id}`}
+                        type="number"
+                        inputMode="numeric"
+                        disabled={isBlocked}
+                        value={localValues[col.id] === 0 ? '' : localValues[col.id] ?? ''}
+                        placeholder="0"
+                        onChange={(e) => handleInputChange(col.id, e.target.value)}
+                        className={`w-full pl-7 pr-3 py-2 bg-white border rounded-lg text-right font-mono font-bold text-sm text-slate-900 transition-colors focus:outline-none ${
+                          isBlocked
+                            ? 'border-slate-200 bg-slate-50 text-slate-400 cursor-not-allowed'
+                            : 'border-slate-300 focus:border-indigo-600 focus:ring-1 focus:ring-indigo-600/30'
+                        }`}
+                      />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* TARJETA 4: CÁLCULOS (SOLO LECTURA) */}
         <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-xs space-y-3">
           <div className="flex items-center justify-between border-b border-slate-100 pb-2">
             <h2 className="text-xs font-bold uppercase tracking-wider text-blue-700 flex items-center gap-1.5">
               <Layers className="w-3.5 h-3.5 text-blue-600" />
-              3. Cálculos y Saldo
+              4. Cálculos y Saldo
             </h2>
             <span className="text-[10px] text-slate-500 font-medium">Automático</span>
           </div>
