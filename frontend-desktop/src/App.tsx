@@ -1451,73 +1451,57 @@ export default function App() {
           </button>
         </div>
 
-        {/* Navigation Sections */}
-        <div className="flex-1 overflow-y-auto p-3 space-y-5">
-          {/* Section: PRINCIPAL */}
-          <div className="space-y-1">
-            <div className="px-3">
-              <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest block">
-                Principal
-              </span>
-            </div>
-
-            {isTesorero && (
-              <button
-                onClick={() => setActiveTab('dashboard')}
-                className={`w-full px-3 py-2 rounded-xl text-xs font-semibold flex items-center justify-between transition-all duration-150 cursor-pointer ${
-                  activeTab === 'dashboard'
-                    ? 'bg-indigo-50 text-indigo-800 font-extrabold border border-indigo-200 dark:bg-indigo-600 dark:text-white dark:border-transparent dark:shadow-md'
-                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-900/80'
-                }`}
-              >
-                <div className="flex items-center gap-2.5">
-                  <TrendingUp className={`w-4 h-4 ${activeTab === 'dashboard' ? 'text-indigo-600 dark:text-amber-300' : 'text-slate-400'}`} />
-                  <span>Tablero Ejecutivo</span>
-                </div>
-                {activeTab === 'dashboard' && <ChevronRight className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-200" />}
-              </button>
-            )}
-
-            <button
-              onClick={() => setActiveTab('sheet')}
-              className={`w-full px-3 py-2 rounded-xl text-xs font-semibold flex items-center justify-between transition-all duration-150 cursor-pointer ${
-                activeTab === 'sheet'
-                  ? 'bg-indigo-50 text-indigo-800 font-extrabold border border-indigo-200 dark:bg-indigo-600 dark:text-white dark:border-transparent dark:shadow-md'
-                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-900/80'
-              }`}
-            >
-              <div className="flex items-center gap-2.5">
-                <FileSpreadsheet className={`w-4 h-4 ${activeTab === 'sheet' ? 'text-indigo-600 dark:text-white' : 'text-slate-400'}`} />
-                <span>{isTesorero ? 'Planilla Contable' : 'Mi Reporte'}</span>
-              </div>
-              {activeTab === 'sheet' && <ChevronRight className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-200" />}
-            </button>
-
-            <button
-              onClick={() => setActiveTab('reportes')}
-              className={`w-full px-3 py-2 rounded-xl text-xs font-semibold flex items-center justify-between transition-all duration-150 cursor-pointer ${
-                activeTab === 'reportes'
-                  ? 'bg-indigo-50 text-indigo-800 font-extrabold border border-indigo-200 dark:bg-indigo-600 dark:text-white dark:border-transparent dark:shadow-md'
-                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-900/80'
-              }`}
-            >
-              <div className="flex items-center gap-2.5">
-                <FileText className={`w-4 h-4 ${activeTab === 'reportes' ? 'text-indigo-600 dark:text-white' : 'text-slate-400'}`} />
-                <span>Reportes</span>
-              </div>
-              {activeTab === 'reportes' && <ChevronRight className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-200" />}
-            </button>
-          </div>
-
-          {/* Section: GESTIÓN & ADMINISTRACIÓN */}
+        {/* Navigation Items (Single Word & Minimalist) */}
+        <div className="flex-1 overflow-y-auto p-3 space-y-1">
           {isTesorero && (
-            <div className="space-y-1">
-              <div className="px-3">
-                <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest block">
-                  Gestión
-                </span>
+            <button
+              onClick={() => setActiveTab('dashboard')}
+              className={`w-full px-3 py-2 rounded-xl text-xs font-semibold flex items-center justify-between transition-all duration-150 cursor-pointer ${
+                activeTab === 'dashboard'
+                  ? 'bg-indigo-50 text-indigo-800 font-extrabold border border-indigo-200 dark:bg-indigo-600 dark:text-white dark:border-transparent dark:shadow-md'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-900/80'
+              }`}
+            >
+              <div className="flex items-center gap-2.5">
+                <TrendingUp className={`w-4 h-4 ${activeTab === 'dashboard' ? 'text-indigo-600 dark:text-amber-300' : 'text-slate-400'}`} />
+                <span>Tablero</span>
               </div>
+              {activeTab === 'dashboard' && <ChevronRight className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-200" />}
+            </button>
+          )}
 
+          <button
+            onClick={() => setActiveTab('sheet')}
+            className={`w-full px-3 py-2 rounded-xl text-xs font-semibold flex items-center justify-between transition-all duration-150 cursor-pointer ${
+              activeTab === 'sheet'
+                ? 'bg-indigo-50 text-indigo-800 font-extrabold border border-indigo-200 dark:bg-indigo-600 dark:text-white dark:border-transparent dark:shadow-md'
+                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-900/80'
+            }`}
+          >
+            <div className="flex items-center gap-2.5">
+              <FileSpreadsheet className={`w-4 h-4 ${activeTab === 'sheet' ? 'text-indigo-600 dark:text-white' : 'text-slate-400'}`} />
+              <span>{isTesorero ? 'Planilla' : 'Reporte'}</span>
+            </div>
+            {activeTab === 'sheet' && <ChevronRight className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-200" />}
+          </button>
+
+          <button
+            onClick={() => setActiveTab('reportes')}
+            className={`w-full px-3 py-2 rounded-xl text-xs font-semibold flex items-center justify-between transition-all duration-150 cursor-pointer ${
+              activeTab === 'reportes'
+                ? 'bg-indigo-50 text-indigo-800 font-extrabold border border-indigo-200 dark:bg-indigo-600 dark:text-white dark:border-transparent dark:shadow-md'
+                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-900/80'
+            }`}
+          >
+            <div className="flex items-center gap-2.5">
+              <FileText className={`w-4 h-4 ${activeTab === 'reportes' ? 'text-indigo-600 dark:text-white' : 'text-slate-400'}`} />
+              <span>Reportes</span>
+            </div>
+            {activeTab === 'reportes' && <ChevronRight className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-200" />}
+          </button>
+
+          {isTesorero && (
+            <>
               <button
                 onClick={() => setActiveTab('iglesias')}
                 className={`w-full px-3 py-2 rounded-xl text-xs font-semibold flex items-center justify-between transition-all duration-150 cursor-pointer ${
@@ -1528,7 +1512,7 @@ export default function App() {
               >
                 <div className="flex items-center gap-2.5">
                   <Building2 className={`w-4 h-4 ${activeTab === 'iglesias' ? 'text-indigo-600 dark:text-white' : 'text-slate-400'}`} />
-                  <span>Congregaciones</span>
+                  <span>Iglesias</span>
                 </div>
                 {activeTab === 'iglesias' && <ChevronRight className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-200" />}
               </button>
@@ -1543,7 +1527,7 @@ export default function App() {
               >
                 <div className="flex items-center gap-2.5">
                   <Layers className={`w-4 h-4 ${activeTab === 'campos' ? 'text-indigo-600 dark:text-white' : 'text-slate-400'}`} />
-                  <span>Columnas & Fórmulas</span>
+                  <span>Columnas</span>
                 </div>
                 {activeTab === 'campos' && <ChevronRight className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-200" />}
               </button>
@@ -1558,7 +1542,7 @@ export default function App() {
               >
                 <div className="flex items-center gap-2.5">
                   <Users className={`w-4 h-4 ${activeTab === 'usuarios' ? 'text-indigo-600 dark:text-white' : 'text-slate-400'}`} />
-                  <span>Usuarios y Roles</span>
+                  <span>Usuarios</span>
                 </div>
                 {activeTab === 'usuarios' && <ChevronRight className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-200" />}
               </button>
@@ -1573,8 +1557,9 @@ export default function App() {
               >
                 <div className="flex items-center gap-2.5">
                   <History className={`w-4 h-4 ${activeTab === 'historial' ? 'text-indigo-600 dark:text-white' : 'text-slate-400'}`} />
-                  <span>Registro Auditoría</span>
+                  <span>Auditoría</span>
                 </div>
+                {activeTab === 'historial' && <ChevronRight className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-200" />}
               </button>
 
               <button
@@ -1595,7 +1580,7 @@ export default function App() {
                   </span>
                 )}
               </button>
-            </div>
+            </>
           )}
         </div>
 
