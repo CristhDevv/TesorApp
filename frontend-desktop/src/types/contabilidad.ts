@@ -31,6 +31,7 @@ export interface Campo {
   tipo_redondeo: TipoRedondeo;
   multiplo_redondeo: number;
   es_acumulable: boolean;
+  es_fondo: boolean;
   seccion: SeccionCampo;
   seccion_iglesia: SeccionCampo;
   seccion_tesorero: SeccionCampo;
@@ -108,6 +109,7 @@ export interface ColumnaGrid {
   seccion_tesorero?: string;
   formula: string | null;
   es_acumulable: boolean;
+  es_fondo?: boolean;
   tipo_redondeo: TipoRedondeo;
   multiplo_redondeo: number;
 }

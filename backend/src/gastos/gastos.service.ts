@@ -45,9 +45,9 @@ export class GastosService {
       priorPeriodIds.push(periodoId);
     }
 
-    // 2. Fetch all active monetary fields
-    const camposMoneda = await this.prisma.campoPlantilla.findMany({
-      where: { tipo: "moneda", activo: true },
+    // 2. Fetch all active designated fund fields (es_fondo: true)
+    const camposFondo = await this.prisma.campoPlantilla.findMany({
+      where: { es_fondo: true, activo: true },
       select: { id: true, nombre: true, slug: true, es_acumulable: true, seccion: true, orden: true },
       orderBy: [{ seccion: "asc" }, { orden: "asc" }],
     });
@@ -89,8 +89,8 @@ export class GastosService {
       ]),
     );
 
-    // 7. Map each monetary field to its summary
-    return camposMoneda.map((f) => {
+    // 7. Map each fund field to its summary
+    return camposFondo.map((f) => {
       const curVal = currentValMap.get(f.id);
       const fondoPeriodo = Number(curVal?._sum.valor_manual ?? 0) + Number(curVal?._sum.valor_calculado ?? 0);
       const gastosPeriodo = periodGastosMap.get(f.id) || 0;
@@ -157,6 +157,7 @@ export class GastosService {
 
     const campo = await this.prisma.campoPlantilla.findUnique({ where: { id: data.campo_fondo_id } });
     if (!campo) throw new NotFoundException("Campo fondo no encontrado.");
+    if (!campo.es_fondo) throw new BadRequestException("La columna seleccionada no está configurada como un fondo de tesorería.");
 
     if (data.monto <= 0) throw new BadRequestException("El monto del gasto debe ser mayor a cero.");
 
@@ -204,6 +205,7 @@ export class GastosService {
       if (data.campo_fondo_id) {
         const campo = await tx.campoPlantilla.findUnique({ where: { id: data.campo_fondo_id } });
         if (!campo) throw new NotFoundException("Campo fondo no encontrado.");
+        if (!campo.es_fondo) throw new BadRequestException("La columna seleccionada no está configurada como un fondo de tesorería.");
       }
 
       if (data.monto !== undefined && data.monto <= 0) throw new BadRequestException("El monto debe ser mayor a cero.");

@@ -424,8 +424,20 @@ export function GastosPanel({
             })}
           </div>
         ) : (
-          <div className="p-8 text-center bg-white rounded-2xl border border-slate-200 text-slate-500 text-xs">
-            No se encontraron fondos con el filtro seleccionado.
+          <div className="p-10 text-center bg-white rounded-2xl border border-slate-200 shadow-xs flex flex-col items-center justify-center">
+            <div className="p-3 bg-indigo-50 text-indigo-600 rounded-2xl mb-3">
+              <Wallet className="w-6 h-6" />
+            </div>
+            <p className="text-sm font-bold text-slate-800">
+              {resumen.length === 0
+                ? "No hay columnas configuradas como Fondos de Tesorería"
+                : "No se encontraron fondos con el filtro de búsqueda"}
+            </p>
+            <p className="text-xs text-slate-500 mt-1 max-w-md leading-relaxed">
+              {resumen.length === 0
+                ? "Para designar qué columnas funcionarán como fondos para registrar gastos y controlar saldos, dirígete al menú «Columnas & Fórmulas», abre la columna que desees y activa la opción «Habilitar como Fondo de Tesorería»."
+                : "Intenta cambiar el filtro o el término de búsqueda para ver otros fondos."}
+            </p>
           </div>
         )}
 

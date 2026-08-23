@@ -8,6 +8,7 @@ interface Campo {
   nombre: string;
   tipo: string;
   es_acumulable?: boolean;
+  es_fondo?: boolean;
 }
 
 interface GastoModalData {
@@ -51,7 +52,7 @@ export function GastoModal({
 }: GastoModalProps) {
   if (!isOpen) return null;
 
-  const campasMoneda = campos.filter((c) => c.tipo === "moneda");
+  const fondosDisponibles = campos.filter((c) => c.es_fondo);
 
   // Find info about the currently selected fund
   const selectedResumen = resumen.find((r) => r.campo_fondo_id === data.campo_fondo_id);
@@ -94,11 +95,11 @@ export function GastoModal({
           {/* Fondo selection */}
           <div>
             <label className={LABEL_CLS}>Fondo (Columna a deducir)</label>
-            {campasMoneda.length === 0 ? (
-              <div className="flex items-center gap-2 p-3 bg-amber-50 border border-amber-200 rounded-lg">
-                <AlertTriangle className="w-4 h-4 text-amber-500 flex-shrink-0" />
-                <p className="text-xs text-amber-700">
-                  No hay campos monetarios disponibles. Crea una columna de tipo moneda primero.
+            {fondosDisponibles.length === 0 ? (
+              <div className="flex items-start gap-2 p-3 bg-amber-50 border border-amber-200 rounded-xl">
+                <AlertTriangle className="w-4 h-4 text-amber-500 flex-shrink-0 mt-0.5" />
+                <p className="text-xs text-amber-800 leading-relaxed">
+                  No hay columnas configuradas como <strong>Fondos de Tesorería</strong>. Ve a <strong>Columnas &amp; Fórmulas</strong>, edita la columna deseada y activa <em>«Habilitar como Fondo de Tesorería»</em>.
                 </p>
               </div>
             ) : (
@@ -109,7 +110,7 @@ export function GastoModal({
                 required
               >
                 <option value="">— Seleccionar fondo de tesorería —</option>
-                {campasMoneda.map((c) => {
+                {fondosDisponibles.map((c) => {
                   const r = resumen.find((item) => item.campo_fondo_id === c.id);
                   const isAcum = r?.es_acumulable ?? c.es_acumulable;
                   const saldo = r ? (isAcum ? r.saldo_acumulado : r.saldo_periodo) : null;
@@ -248,7 +249,7 @@ export function GastoModal({
             </button>
             <button
               type="submit"
-              disabled={saving || campasMoneda.length === 0}
+              disabled={saving || fondosDisponibles.length === 0}
               className="px-5 py-2 text-xs font-bold text-white bg-indigo-600 rounded-xl hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed active:scale-95 transition shadow-sm flex items-center gap-2 cursor-pointer"
             >
               {saving ? (

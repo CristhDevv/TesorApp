@@ -63,22 +63,37 @@ export class FormulasService {
     if (!formula) return '';
     let sanitized = formula.trim();
 
-    // 1. If allFields list is available, map any field names or old slugs
+    // 1. If allFields list is available, map any field names or old slugs (longest names first)
     if (allFields && allFields.length > 0) {
-      for (const field of allFields) {
+      const sortedFields = [...allFields].sort(
+        (a, b) => (b.nombre?.length || 0) - (a.nombre?.length || 0),
+      );
+
+      for (const field of sortedFields) {
         if (!field.slug) continue;
         if (field.nombre) {
           const escapedName = field.nombre.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-          const nameRegex = new RegExp(`(?<=\\b|\\s|\\(|\\+|-|\\*|\\/)${escapedName}(?=\\b|\\s|\\)|\\+|-|\\*|\\/|$)`, 'gi');
+          const nameRegex = new RegExp(
+            `(?<=^|\\b|\\s|\\(|\\+|-|\\*|\\/)${escapedName}(?=$|\\b|\\s|\\)|\\+|-|\\*|\\/)`,
+            'gi',
+          );
           sanitized = sanitized.replace(nameRegex, field.slug);
         }
       }
     }
 
-    // 2. Automatically transform percentage notations (e.g. "10%" -> "c_10_porciento", "3%" -> "c_3_porciento")
-    sanitized = sanitized.replace(/\b([0-9]+(?:\.[0-9]+)?)%(?!\s*\*)/g, (_match, p1) => {
+    // 2. Handle percentage notations:
+    // If a column exists with slug "c_XX_porciento", map stand-alone "XX%" to that slug if not multiplying
+    // Otherwise convert "XX%" to decimal (e.g. "10%" -> 0.10, "3.5%" -> 0.035)
+    sanitized = sanitized.replace(/\b([0-9]+(?:\.[0-9]+)?)%/g, (_match, p1) => {
       const cleanNum = p1.replace('.', '_');
-      return `c_${cleanNum}_porciento`;
+      const slugCandidate = `c_${cleanNum}_porciento`;
+      const hasColumn = allFields?.some((f) => f.slug === slugCandidate);
+      if (hasColumn) {
+        return slugCandidate;
+      }
+      const decimalVal = parseFloat(p1) / 100;
+      return `${decimalVal}`;
     });
 
     return sanitized;

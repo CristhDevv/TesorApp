@@ -66,6 +66,7 @@ export class CamposService {
       tipo_redondeo?: any;
       multiplo_redondeo?: number;
       es_acumulable?: boolean;
+      es_fondo?: boolean;
       seccion: string;
       seccion_iglesia?: string;
       seccion_tesorero?: string;
@@ -115,6 +116,7 @@ export class CamposService {
           tipo_redondeo: data.tipo_redondeo || 'ninguno',
           multiplo_redondeo: data.multiplo_redondeo !== undefined ? Number(data.multiplo_redondeo) : 1,
           es_acumulable: data.es_acumulable ?? false,
+          es_fondo: data.es_fondo ?? false,
           seccion: data.seccion,
           seccion_iglesia: data.seccion_iglesia || data.seccion,
           seccion_tesorero: data.seccion_tesorero || data.seccion,
@@ -123,7 +125,7 @@ export class CamposService {
           visible_para_iglesia: data.visible_para_iglesia ?? true,
           visible_para_tesorero: data.visible_para_tesorero ?? true,
           es_temporal: data.es_temporal ?? false,
-          periodo_id: data.es_temporal ? (data.periodo_id || null) : null,
+          periodo_id: data.es_temporal && data.periodo_id && data.periodo_id.trim() !== '' ? data.periodo_id : null,
         },
         include: {
           periodo: {
@@ -134,7 +136,7 @@ export class CamposService {
 
       // Manage specific churches association if not global
       if (!data.aplica_a_todas_las_iglesias && data.iglesias_especificas) {
-        for (const iglesiaId of data.iglesias_especificas) {
+        for (const iglesiaId of data.iglesias_especificas.filter(Boolean)) {
           await tx.camposPorIglesia.create({
             data: {
               campo_id: campo.id,
@@ -171,7 +173,11 @@ export class CamposService {
       return campo;
     });
 
-    await this.valoresService.recalculateAllOpenPeriods(realizadoPor);
+    try {
+      await this.valoresService.recalculateAllOpenPeriods(realizadoPor);
+    } catch (err) {
+      console.error('Error recalculando periodos abiertos tras crear columna:', err);
+    }
     return res;
   }
 
@@ -185,6 +191,7 @@ export class CamposService {
       tipo_redondeo?: any;
       multiplo_redondeo?: number;
       es_acumulable?: boolean;
+      es_fondo?: boolean;
       seccion?: string;
       seccion_iglesia?: string;
       seccion_tesorero?: string;
@@ -238,7 +245,7 @@ export class CamposService {
 
       const isTemporal = data.es_temporal !== undefined ? data.es_temporal : original.es_temporal;
       const finalPeriodoId = isTemporal 
-        ? (data.periodo_id !== undefined ? data.periodo_id : original.periodo_id)
+        ? (data.periodo_id !== undefined ? (data.periodo_id && data.periodo_id.trim() !== '' ? data.periodo_id : null) : original.periodo_id)
         : null;
 
       const campo = await tx.campoPlantilla.update({
@@ -252,6 +259,7 @@ export class CamposService {
           tipo_redondeo: data.tipo_redondeo !== undefined ? data.tipo_redondeo : original.tipo_redondeo,
           multiplo_redondeo: data.multiplo_redondeo !== undefined ? Number(data.multiplo_redondeo) : original.multiplo_redondeo,
           es_acumulable: data.es_acumulable,
+          es_fondo: data.es_fondo,
           seccion: data.seccion,
           seccion_iglesia: data.seccion_iglesia,
           seccion_tesorero: data.seccion_tesorero,

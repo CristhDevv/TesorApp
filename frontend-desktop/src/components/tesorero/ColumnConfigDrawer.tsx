@@ -1,5 +1,5 @@
 import React from 'react';
-import { X, CheckCircle2, Columns } from 'lucide-react';
+import { X, CheckCircle2, Columns, Wallet } from 'lucide-react';
 import type { Periodo } from '../../types/contabilidad';
 
 interface FieldModalData {
@@ -11,6 +11,7 @@ interface FieldModalData {
   tipo_redondeo: 'ninguno' | 'arriba' | 'abajo' | 'estandar';
   multiplo_redondeo: number;
   es_acumulable: boolean;
+  es_fondo: boolean;
   seccion: string;
   seccion_iglesia: string;
   seccion_tesorero: string;
@@ -751,7 +752,7 @@ export function ColumnConfigDrawer({
           </div>
 
           {/* ── Acumulable ── */}
-          <label className="flex items-center gap-2.5 cursor-pointer p-2 bg-slate-50 rounded-lg border border-slate-200 hover:bg-slate-100 transition">
+          <label className="flex items-center gap-2.5 cursor-pointer p-2.5 bg-slate-50 rounded-lg border border-slate-200 hover:bg-slate-100 transition">
             <input
               type="checkbox"
               checked={fieldModalData.es_acumulable}
@@ -764,6 +765,36 @@ export function ColumnConfigDrawer({
               </span>
               <span className="text-[10px] text-slate-500">
                 Traslada saldos automáticamente al siguiente periodo
+              </span>
+            </div>
+          </label>
+
+          {/* ── Control de Fondos y Gastos ── */}
+          <label className={`flex items-start gap-2.5 cursor-pointer p-2.5 rounded-lg border transition ${
+            fieldModalData.es_fondo
+              ? 'bg-indigo-50/70 border-indigo-300 ring-1 ring-indigo-500/20'
+              : 'bg-slate-50 border-slate-200 hover:bg-slate-100'
+          }`}>
+            <input
+              type="checkbox"
+              checked={fieldModalData.es_fondo}
+              onChange={(e) => update({ es_fondo: e.target.checked })}
+              className="accent-indigo-600 w-4 h-4 mt-0.5"
+            />
+            <div className="flex-1">
+              <div className="flex items-center gap-1.5">
+                <Wallet className={`w-3.5 h-3.5 ${fieldModalData.es_fondo ? 'text-indigo-600' : 'text-slate-500'}`} />
+                <span className="font-bold text-slate-800 text-xs">
+                  Habilitar como Fondo de Tesorería
+                </span>
+                {fieldModalData.es_fondo && (
+                  <span className="text-[9px] font-black uppercase tracking-wider bg-indigo-100 text-indigo-700 px-1.5 py-0.5 rounded">
+                    Activo
+                  </span>
+                )}
+              </div>
+              <span className="text-[10px] text-slate-500 block mt-0.5 leading-relaxed">
+                Permite controlar el recaudo, saldo disponible y registrar salidas de dinero (gastos) contra esta columna en el módulo de Gastos.
               </span>
             </div>
           </label>

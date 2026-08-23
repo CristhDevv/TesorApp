@@ -32,6 +32,7 @@ export class CamposController {
       tipo_redondeo?: any;
       multiplo_redondeo?: number;
       es_acumulable?: boolean;
+      es_fondo?: boolean;
       seccion: string;
       seccion_iglesia?: string;
       seccion_tesorero?: string;
@@ -61,6 +62,7 @@ export class CamposController {
       tipo_redondeo?: any;
       multiplo_redondeo?: number;
       es_acumulable?: boolean;
+      es_fondo?: boolean;
       seccion?: string;
       seccion_iglesia?: string;
       seccion_tesorero?: string;
