@@ -1590,7 +1590,7 @@ export default function App() {
               onSelectPeriodo={setSelectedPeriodoId}
               tablas={tablas}
               selectedTablaId={selectedTablaId}
-              onSelectTabla={setSelectedTablaId}
+              onSelectTabla={handleTableChange}
               iglesias={iglesias}
               onOpenCopilot={() => setShowAICopilot(true)}
               onOpenPDF={() => setShowExecutivePDF(true)}

@@ -121,6 +121,7 @@ export function TableFilterToolbar({
                   value={selectedTablaId}
                   onChange={(e) => onTablaChange(e.target.value)}
                 >
+                  <option value="all">🌐 Consolidado General (Todas las Tablas)</option>
                   {tablas.map((t) => (
                     <option key={t.id} value={t.id}>
                       {t.nombre} ({t.iglesias?.length ?? 0} ig, {t.campos?.length ?? 0} cols)
@@ -132,9 +133,9 @@ export function TableFilterToolbar({
 
               <button
                 onClick={onOpenTableConfig}
-                disabled={!selectedTablaId}
+                disabled={!selectedTablaId || selectedTablaId === 'all'}
                 className="p-1 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded border border-slate-300 transition disabled:opacity-40"
-                title="Configurar columnas de la tabla activa"
+                title={selectedTablaId === 'all' ? 'El consolidado general muestra todas las columnas activas' : 'Configurar columnas de la tabla activa'}
               >
                 <Sliders className="w-3.5 h-3.5" />
               </button>

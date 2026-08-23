@@ -11,7 +11,15 @@ import {
   ArrowDownRight,
   PieChart as PieChartIcon,
   BarChart3,
-  Search
+  Search,
+  Layers,
+  Calendar,
+  ChevronDown,
+  CheckCircle2,
+  Clock,
+  Send,
+  ShieldCheck,
+  AlertTriangle
 } from 'lucide-react';
 import { Doughnut, Bar } from 'react-chartjs-2';
 import {
@@ -48,6 +56,10 @@ export function ExecutiveDashboard({
   gridData,
   periodos,
   selectedPeriodoId,
+  onSelectPeriodo,
+  tablas = [],
+  selectedTablaId = 'all',
+  onSelectTabla,
   iglesias,
   onOpenCopilot,
   onOpenPDF,
@@ -56,42 +68,62 @@ export function ExecutiveDashboard({
   onOpenChurchDetail,
 }: ExecutiveDashboardProps) {
   const [healthFilter, setHealthFilter] = useState<'all' | 'green' | 'yellow' | 'red'>('all');
+  const [workflowFilter, setWorkflowFilter] = useState<'all' | 'borrador' | 'enviado' | 'en_revision' | 'aprobado' | 'consolidado'>('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedChurchModal, setSelectedChurchModal] = useState<any | null>(null);
 
-  const currentPeriod = periodos.find(p => p.id === selectedPeriodoId);
+  const currentPeriod = periodos.find((p) => p.id === selectedPeriodoId);
   const rows = gridData?.filas || [];
   const columns = gridData?.columnas || [];
+
+  const isAllTablesSelected = selectedTablaId === 'all' || !selectedTablaId;
+  const currentTableObj = tablas.find((t) => t.id === selectedTablaId);
 
   // Calculate Metrics
   const metrics = useMemo(() => {
     let totalConsolidado = 0;
+    let totalIngresos = 0;
+    let totalEgresos = 0;
     let totalMisiones = 0;
     let totalConstruccion = 0;
     let totalOperativo = 0;
     let reportedChurches = 0;
 
+    let countBorrador = 0;
+    let countEnviado = 0;
+    let countEnRevision = 0;
+    let countAprobado = 0;
+    let countConsolidado = 0;
+
     const churchStats = rows.map((r: any) => {
-      const igDetails = iglesias.find(i => i.id === r.iglesia_id) || {};
+      const igDetails = iglesias.find((i) => i.id === r.iglesia_id) || {};
       let churchTotal = 0;
+      let churchIngresos = 0;
+      let churchEgresos = 0;
       let manualFieldsCount = 0;
       let filledFieldsCount = 0;
 
       columns.forEach((col: any) => {
         const valObj = r.valores?.find((v: any) => v.campo_id === col.id);
         const isCalc = valObj?.modo_calculo === 'calculado';
-        const numVal = isCalc ? (valObj?.valor_calculado || 0) : (valObj?.valor_manual || 0);
+        const numVal = Number(isCalc ? (valObj?.valor_calculado || 0) : (valObj?.valor_manual || 0));
 
         if (!isCalc && col.tipo === 'moneda') {
           manualFieldsCount++;
           if (numVal > 0) filledFieldsCount++;
         }
 
-        // Categorize by section / name
         const colName = (col.nombre || '').toLowerCase();
         const secName = (col.seccion || '').toLowerCase();
+        const secTesorero = (col.seccion_tesorero || '').toLowerCase();
 
-        if (colName.includes('total') || secName.includes('total')) {
+        if (secName === 'ingresos' || secTesorero === 'ingresos') {
+          churchIngresos += numVal;
+        } else if (secName === 'egresos' || secTesorero === 'egresos') {
+          churchEgresos += numVal;
+        }
+
+        if (colName.includes('total') || secName.includes('total') || colName.includes('consolidado')) {
           churchTotal = Math.max(churchTotal, numVal);
         }
 
@@ -104,16 +136,36 @@ export function ExecutiveDashboard({
         }
       });
 
+      // If no explicit total column was highest, sum churchIngresos
+      if (churchTotal === 0 && churchIngresos > 0) {
+        churchTotal = churchIngresos;
+      }
+
       totalConsolidado += churchTotal;
+      totalIngresos += churchIngresos;
+      totalEgresos += churchEgresos;
 
       const completionRate = manualFieldsCount > 0 ? (filledFieldsCount / manualFieldsCount) * 100 : 100;
       if (completionRate > 60) reportedChurches++;
+
+      const st = r.estado_informe || 'borrador';
+      if (st === 'enviado') countEnviado++;
+      else if (st === 'en_revision') countEnRevision++;
+      else if (st === 'aprobado') countAprobado++;
+      else if (st === 'consolidado') countConsolidado++;
+      else countBorrador++;
 
       // Health status calculation
       let status: 'green' | 'yellow' | 'red' = 'green';
       let statusReason = 'Planilla al día con balance óptimo';
 
-      if (completionRate === 0) {
+      if (st === 'aprobado' || st === 'consolidado') {
+        status = 'green';
+        statusReason = `Informe ${st === 'aprobado' ? 'Aprobado' : 'Consolidado'} oficialmente`;
+      } else if (st === 'enviado') {
+        status = 'green';
+        statusReason = 'Informe enviado por la iglesia (listo para aprobar)';
+      } else if (completionRate === 0) {
         status = 'red';
         statusReason = 'Sin registrar datos este mes';
       } else if (completionRate < 70) {
@@ -128,6 +180,8 @@ export function ExecutiveDashboard({
         ...r,
         ...igDetails,
         total: churchTotal,
+        ingresos: churchIngresos,
+        egresos: churchEgresos,
         completionRate: Math.round(completionRate),
         status,
         statusReason,
@@ -138,13 +192,20 @@ export function ExecutiveDashboard({
     const complianceRate = totalChurches > 0 ? Math.round((reportedChurches / totalChurches) * 100) : 0;
 
     return {
-      totalConsolidado: totalConsolidado || (totalMisiones + totalConstruccion + totalOperativo),
+      totalConsolidado: totalConsolidado || totalIngresos || 0,
+      totalIngresos: totalIngresos || totalConsolidado || 0,
+      totalEgresos: totalEgresos || 0,
       totalMisiones,
       totalConstruccion,
       totalOperativo,
       reportedChurches,
       totalChurches,
       complianceRate,
+      countBorrador,
+      countEnviado,
+      countEnRevision,
+      countAprobado,
+      countConsolidado,
       churchStats,
     };
   }, [rows, columns, iglesias]);
@@ -152,15 +213,17 @@ export function ExecutiveDashboard({
   // Filtered churches list
   const filteredChurches = useMemo(() => {
     return metrics.churchStats.filter((c: any) => {
-      const matchesFilter = healthFilter === 'all' || c.status === healthFilter;
+      const matchesHealth = healthFilter === 'all' || c.status === healthFilter;
+      const matchesWorkflow = workflowFilter === 'all' || (c.estado_informe || 'borrador') === workflowFilter;
       const matchesSearch = 
         !searchTerm.trim() ||
         c.iglesia_nombre?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         c.identificador_interno?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        c.nombre_pastor?.toLowerCase().includes(searchTerm.toLowerCase());
-      return matchesFilter && matchesSearch;
+        c.nombre_pastor?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (c.codigo && c.codigo.toLowerCase().includes(searchTerm.toLowerCase()));
+      return matchesHealth && matchesWorkflow && matchesSearch;
     });
-  }, [metrics.churchStats, healthFilter, searchTerm]);
+  }, [metrics.churchStats, healthFilter, workflowFilter, searchTerm]);
 
   // Chart 1: Donut breakdown
   const doughnutData = {
@@ -168,9 +231,9 @@ export function ExecutiveDashboard({
     datasets: [
       {
         data: [
-          metrics.totalOperativo || 60,
-          metrics.totalMisiones || 25,
-          metrics.totalConstruccion || 15,
+          metrics.totalOperativo || metrics.totalIngresos || 60,
+          metrics.totalMisiones || Math.round(metrics.totalConsolidado * 0.25) || 25,
+          metrics.totalConstruccion || Math.round(metrics.totalConsolidado * 0.15) || 15,
         ],
         backgroundColor: ['#4f46e5', '#10b981', '#f59e0b'],
         borderWidth: 0,
@@ -198,57 +261,115 @@ export function ExecutiveDashboard({
 
   return (
     <div className="flex-1 overflow-y-auto bg-slate-50 p-6 space-y-6 animate-fade-in font-sans">
-      {/* ── HEADER EXECUTIVE CONTROLS ── */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-5 rounded-2xl border border-slate-200 shadow-xs">
-        <div>
-          <div className="flex items-center gap-2">
-            <div className="p-2 bg-indigo-50 text-indigo-600 rounded-xl border border-indigo-100">
-              <TrendingUp className="w-5 h-5" />
+      {/* ── HEADER EXECUTIVE CONTROLS WITH SCOPE SELECTORS ── */}
+      <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs space-y-4">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 bg-indigo-50 text-indigo-600 rounded-2xl border border-indigo-100 shadow-2xs">
+              <TrendingUp className="w-6 h-6" />
             </div>
             <div>
-              <h1 className="text-lg font-extrabold text-slate-900 tracking-tight">
-                Tablero de Control Financiero & Salud Contable
-              </h1>
-              <p className="text-xs text-slate-500">
-                Consolidado gerencial del periodo <span className="font-bold text-slate-800">{currentPeriod?.nombre}</span>
+              <div className="flex items-center gap-2">
+                <h1 className="text-lg font-extrabold text-slate-900 tracking-tight">
+                  Tablero de Control Financiero & Salud Contable
+                </h1>
+                <span className="px-2 py-0.5 text-[10px] font-black uppercase tracking-wider bg-indigo-50 text-indigo-700 rounded-full border border-indigo-200">
+                  {isAllTablesSelected ? 'Consolidado General' : currentTableObj?.nombre || 'Tabla'}
+                </span>
+              </div>
+              <p className="text-xs text-slate-500 mt-0.5">
+                Métricas gerenciales y estado contable en tiempo real para{' '}
+                <span className="font-bold text-slate-800">{currentPeriod?.nombre}</span>
               </p>
             </div>
           </div>
+
+          {/* Action Buttons: Copilot, PDF, Simulator, Boardroom */}
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              onClick={onOpenCopilot}
+              className="px-3.5 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-xs transition transform active:scale-95 cursor-pointer"
+            >
+              <Sparkles className="w-4 h-4 text-amber-300" />
+              <span>Asistente IA</span>
+            </button>
+
+            <button
+              onClick={onOpenPDF}
+              className="px-3.5 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-xs transition cursor-pointer"
+            >
+              <FileDown className="w-4 h-4 text-slate-300" />
+              <span>Informe PDF de Junta</span>
+            </button>
+
+            <button
+              onClick={onOpenSimulator}
+              className="px-3.5 py-2 bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 rounded-xl text-xs font-bold flex items-center gap-1.5 transition cursor-pointer"
+            >
+              <Sliders className="w-4 h-4 text-indigo-500" />
+              <span>Simulador</span>
+            </button>
+
+            <button
+              onClick={onOpenPresentation}
+              className="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-xl text-xs font-bold flex items-center gap-1.5 transition cursor-pointer"
+            >
+              <Maximize2 className="w-4 h-4 text-slate-600" />
+              <span>Modo Sala de Juntas</span>
+            </button>
+          </div>
         </div>
 
-        {/* Action Buttons: Copilot, PDF, Simulator, Boardroom */}
-        <div className="flex flex-wrap items-center gap-2">
-          <button
-            onClick={onOpenCopilot}
-            className="px-3.5 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-xs transition transform active:scale-95 cursor-pointer"
-          >
-            <Sparkles className="w-4 h-4 text-amber-300" />
-            <span>Asistente IA</span>
-          </button>
+        {/* Scope Selectors: Table & Period Navigation */}
+        <div className="pt-3 border-t border-slate-100 flex flex-wrap items-center justify-between gap-3 bg-slate-50/80 -mx-5 -mb-5 p-4 rounded-b-2xl">
+          <div className="flex flex-wrap items-center gap-3">
+            {/* Table Scope Selector */}
+            <div className="flex items-center gap-2">
+              <span className="text-slate-500 font-bold text-[10px] uppercase tracking-wider flex items-center gap-1">
+                <Layers className="w-3.5 h-3.5 text-indigo-600" /> Alcance de Tabla:
+              </span>
+              <div className="relative">
+                <select
+                  className="bg-white border border-slate-300 rounded-xl px-3 pr-8 py-1.5 font-bold text-slate-800 text-xs focus:outline-none focus:border-indigo-600 appearance-none cursor-pointer hover:border-slate-400 shadow-2xs"
+                  value={selectedTablaId || 'all'}
+                  onChange={(e) => onSelectTabla && onSelectTabla(e.target.value)}
+                >
+                  <option value="all">🌐 Consolidado General (Todas las Tablas)</option>
+                  {tablas.map((t) => (
+                    <option key={t.id} value={t.id}>
+                      📁 {t.nombre} ({t.iglesias?.length ?? 0} sedes)
+                    </option>
+                  ))}
+                </select>
+                <ChevronDown className="w-3.5 h-3.5 absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none" />
+              </div>
+            </div>
 
-          <button
-            onClick={onOpenPDF}
-            className="px-3.5 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-xs transition cursor-pointer"
-          >
-            <FileDown className="w-4 h-4 text-slate-300" />
-            <span>Informe PDF de Junta</span>
-          </button>
+            {/* Period Selector */}
+            <div className="flex items-center gap-2">
+              <span className="text-slate-500 font-bold text-[10px] uppercase tracking-wider flex items-center gap-1">
+                <Calendar className="w-3.5 h-3.5 text-indigo-600" /> Período:
+              </span>
+              <div className="relative">
+                <select
+                  className="bg-white border border-slate-300 rounded-xl px-3 pr-8 py-1.5 font-bold text-slate-800 text-xs focus:outline-none focus:border-indigo-600 appearance-none cursor-pointer hover:border-slate-400 shadow-2xs"
+                  value={selectedPeriodoId}
+                  onChange={(e) => onSelectPeriodo && onSelectPeriodo(e.target.value)}
+                >
+                  {periodos.map((pe) => (
+                    <option key={pe.id} value={pe.id}>
+                      {pe.nombre} {pe.estado === 'abierto' ? '● Abierto' : '● Cerrado'}
+                    </option>
+                  ))}
+                </select>
+                <ChevronDown className="w-3.5 h-3.5 absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none" />
+              </div>
+            </div>
+          </div>
 
-          <button
-            onClick={onOpenSimulator}
-            className="px-3.5 py-2 bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 rounded-xl text-xs font-bold flex items-center gap-1.5 transition cursor-pointer"
-          >
-            <Sliders className="w-4 h-4 text-indigo-500" />
-            <span>Simulador</span>
-          </button>
-
-          <button
-            onClick={onOpenPresentation}
-            className="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-xl text-xs font-bold flex items-center gap-1.5 transition cursor-pointer"
-          >
-            <Maximize2 className="w-4 h-4 text-slate-600" />
-            <span>Modo Sala de Juntas</span>
-          </button>
+          <div className="text-xs font-semibold text-slate-500">
+            Mostrando <span className="font-bold text-slate-800">{rows.length}</span> sedes en el análisis
+          </div>
         </div>
       </div>
 
@@ -266,7 +387,9 @@ export function ExecutiveDashboard({
             <div className="text-2xl font-extrabold text-slate-900 font-mono tracking-tight">
               {formatCOP(metrics.totalConsolidado)}
             </div>
-            <p className="text-[11px] text-slate-400 mt-1">Total recaudado en todas las sedes</p>
+            <p className="text-[11px] text-slate-400 mt-1">
+              {isAllTablesSelected ? 'Total de todas las tablas y congregaciones' : `Total tabla ${currentTableObj?.nombre || ''}`}
+            </p>
           </div>
           <div className="w-full bg-slate-100 h-1 rounded-full mt-3 overflow-hidden">
             <div className="bg-emerald-500 h-1 rounded-full" style={{ width: '85%' }}></div>
@@ -304,7 +427,7 @@ export function ExecutiveDashboard({
             <div className="text-2xl font-extrabold text-indigo-600 font-mono tracking-tight">
               {formatCOP(metrics.totalMisiones || metrics.totalConsolidado * 0.25)}
             </div>
-            <p className="text-[11px] text-slate-400 mt-1">25% destinado a misiones y extensión</p>
+            <p className="text-[11px] text-slate-400 mt-1">Destinado a misiones y obra distrital</p>
           </div>
           <div className="w-full bg-slate-100 h-1 rounded-full mt-3 overflow-hidden">
             <div className="bg-indigo-500 h-1 rounded-full" style={{ width: '75%' }}></div>
@@ -331,6 +454,120 @@ export function ExecutiveDashboard({
         </div>
       </div>
 
+      {/* ── WORKFLOW & APPROVAL STATUS SUMMARY ── */}
+      <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs">
+        <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
+          <div>
+            <h3 className="text-xs font-black uppercase tracking-wider text-slate-800 flex items-center gap-1.5">
+              <ShieldCheck className="w-4 h-4 text-indigo-600" /> Estado de Informes y Aprobación
+            </h3>
+            <p className="text-[11px] text-slate-500">
+              Resumen del flujo de digitación, recepción y aprobación de las congregaciones
+            </p>
+          </div>
+          <span className="text-xs font-semibold text-slate-400">
+            Filtrar haciendo clic en cualquier estado:
+          </span>
+        </div>
+
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2.5">
+          {/* Aprobados */}
+          <button
+            type="button"
+            onClick={() => setWorkflowFilter(workflowFilter === 'aprobado' ? 'all' : 'aprobado')}
+            className={`p-3 rounded-xl border text-left transition cursor-pointer ${
+              workflowFilter === 'aprobado'
+                ? 'bg-emerald-100 border-emerald-500 ring-2 ring-emerald-500/20'
+                : 'bg-emerald-50/60 border-emerald-200 hover:bg-emerald-100/60'
+            }`}
+          >
+            <div className="flex items-center justify-between text-emerald-700 font-bold text-xs">
+              <span className="flex items-center gap-1">
+                <CheckCircle2 className="w-3.5 h-3.5" /> Aprobados
+              </span>
+              <span className="font-mono text-sm font-black">{metrics.countAprobado}</span>
+            </div>
+            <p className="text-[10px] text-emerald-600/80 mt-1">Verificados por tesorería</p>
+          </button>
+
+          {/* Enviados */}
+          <button
+            type="button"
+            onClick={() => setWorkflowFilter(workflowFilter === 'enviado' ? 'all' : 'enviado')}
+            className={`p-3 rounded-xl border text-left transition cursor-pointer ${
+              workflowFilter === 'enviado'
+                ? 'bg-indigo-100 border-indigo-500 ring-2 ring-indigo-500/20'
+                : 'bg-indigo-50/60 border-indigo-200 hover:bg-indigo-100/60'
+            }`}
+          >
+            <div className="flex items-center justify-between text-indigo-700 font-bold text-xs">
+              <span className="flex items-center gap-1">
+                <Send className="w-3.5 h-3.5" /> Enviados
+              </span>
+              <span className="font-mono text-sm font-black">{metrics.countEnviado}</span>
+            </div>
+            <p className="text-[10px] text-indigo-600/80 mt-1">Listos para revisión</p>
+          </button>
+
+          {/* En Revisión */}
+          <button
+            type="button"
+            onClick={() => setWorkflowFilter(workflowFilter === 'en_revision' ? 'all' : 'en_revision')}
+            className={`p-3 rounded-xl border text-left transition cursor-pointer ${
+              workflowFilter === 'en_revision'
+                ? 'bg-amber-100 border-amber-500 ring-2 ring-amber-500/20'
+                : 'bg-amber-50/60 border-amber-200 hover:bg-amber-100/60'
+            }`}
+          >
+            <div className="flex items-center justify-between text-amber-700 font-bold text-xs">
+              <span className="flex items-center gap-1">
+                <Clock className="w-3.5 h-3.5" /> En Revisión
+              </span>
+              <span className="font-mono text-sm font-black">{metrics.countEnRevision}</span>
+            </div>
+            <p className="text-[10px] text-amber-600/80 mt-1">En validación contable</p>
+          </button>
+
+          {/* Consolidados */}
+          <button
+            type="button"
+            onClick={() => setWorkflowFilter(workflowFilter === 'consolidado' ? 'all' : 'consolidado')}
+            className={`p-3 rounded-xl border text-left transition cursor-pointer ${
+              workflowFilter === 'consolidado'
+                ? 'bg-purple-100 border-purple-500 ring-2 ring-purple-500/20'
+                : 'bg-purple-50/60 border-purple-200 hover:bg-purple-100/60'
+            }`}
+          >
+            <div className="flex items-center justify-between text-purple-700 font-bold text-xs">
+              <span className="flex items-center gap-1">
+                <ShieldCheck className="w-3.5 h-3.5" /> Consolidados
+              </span>
+              <span className="font-mono text-sm font-black">{metrics.countConsolidado}</span>
+            </div>
+            <p className="text-[10px] text-purple-600/80 mt-1">Cierre definitivo</p>
+          </button>
+
+          {/* Borradores / Pendientes */}
+          <button
+            type="button"
+            onClick={() => setWorkflowFilter(workflowFilter === 'borrador' ? 'all' : 'borrador')}
+            className={`p-3 rounded-xl border text-left transition cursor-pointer ${
+              workflowFilter === 'borrador'
+                ? 'bg-slate-200 border-slate-400 ring-2 ring-slate-400/20'
+                : 'bg-slate-50 border-slate-200 hover:bg-slate-100'
+            }`}
+          >
+            <div className="flex items-center justify-between text-slate-700 font-bold text-xs">
+              <span className="flex items-center gap-1">
+                <AlertTriangle className="w-3.5 h-3.5 text-slate-400" /> Borradores
+              </span>
+              <span className="font-mono text-sm font-black">{metrics.countBorrador}</span>
+            </div>
+            <p className="text-[10px] text-slate-500 mt-1">En proceso o pendientes</p>
+          </button>
+        </div>
+      </div>
+
       {/* ── CHARTS ROW: DONUT & TOP BARS ── */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Doughnut: Distribución */}
@@ -342,7 +579,7 @@ export function ExecutiveDashboard({
                 Distribución de Fondos
               </h3>
             </div>
-            <span className="text-[10px] text-slate-400 font-semibold">Mes actual</span>
+            <span className="text-[10px] text-slate-400 font-semibold">{currentPeriod?.nombre}</span>
           </div>
           <div className="flex-1 flex items-center justify-center min-h-[220px]">
             <Doughnut 
@@ -367,7 +604,9 @@ export function ExecutiveDashboard({
                 Top 5 Congregaciones con Mayor Recaudo
               </h3>
             </div>
-            <span className="text-[10px] text-slate-400 font-semibold">Consolidado periodo</span>
+            <span className="text-[10px] text-slate-400 font-semibold">
+              {isAllTablesSelected ? 'Consolidado General' : currentTableObj?.nombre}
+            </span>
           </div>
           <div className="flex-1 min-h-[220px]">
             <Bar 
@@ -461,6 +700,7 @@ export function ExecutiveDashboard({
             filteredChurches.map((ch: any) => {
               const isGreen = ch.status === 'green';
               const isYellow = ch.status === 'yellow';
+              const st = ch.estado_informe || 'borrador';
 
               return (
                 <div
@@ -494,12 +734,24 @@ export function ExecutiveDashboard({
                       </div>
                     </div>
 
-                    <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full border ${
-                      isGreen ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
-                      isYellow ? 'bg-amber-50 text-amber-700 border-amber-200' : 'bg-rose-50 text-rose-700 border-rose-200'
-                    }`}>
-                      {isGreen ? 'Al día' : isYellow ? 'Revisión' : 'Retraso'}
-                    </span>
+                    <div className="flex flex-col items-end gap-1">
+                      <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full border ${
+                        isGreen ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
+                        isYellow ? 'bg-amber-50 text-amber-700 border-amber-200' : 'bg-rose-50 text-rose-700 border-rose-200'
+                      }`}>
+                        {isGreen ? 'Al día' : isYellow ? 'Revisión' : 'Retraso'}
+                      </span>
+                      {st !== 'borrador' && (
+                        <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider ${
+                          st === 'aprobado' ? 'bg-emerald-100 text-emerald-800' :
+                          st === 'enviado' ? 'bg-indigo-100 text-indigo-800' :
+                          st === 'en_revision' ? 'bg-amber-100 text-amber-800' :
+                          'bg-purple-100 text-purple-800'
+                        }`}>
+                          {st === 'en_revision' ? 'En Revisión' : st}
+                        </span>
+                      )}
+                    </div>
                   </div>
 
                   {/* Progress & Value */}

@@ -496,24 +496,44 @@ export class ValoresService {
     userIglesiaId?: string,
     mostrarTodos?: boolean,
   ) {
-    // 1. Fetch table configuration
-    const tabla = await this.prisma.tabla.findUnique({
-      where: { id: tablaId },
-      include: {
-        iglesias: true,
-        campos: {
-          orderBy: { orden: 'asc' },
-          include: { campo: true },
-        },
-      },
-    });
-    if (!tabla) throw new NotFoundException('Tabla no encontrada');
+    const isAllTables = tablaId === 'all' || tablaId === 'todas' || tablaId === 'consolidado';
 
     const periodo = await this.prisma.periodo.findUnique({ where: { id: periodoId } });
     if (!periodo) throw new NotFoundException('Periodo no encontrado');
 
+    let tabla: any = null;
+    let activeChurches: any[] = [];
+
+    // 1. Fetch table configuration or all churches if consolidated
+    if (isAllTables) {
+      activeChurches = await this.prisma.iglesia.findMany({
+        where: { estado: 'activa' },
+        orderBy: { nombre: 'asc' },
+      });
+      tabla = {
+        id: 'all',
+        nombre: 'Consolidado General (Todas las Tablas)',
+        iglesias: activeChurches,
+        campos: [],
+      };
+    } else {
+      tabla = await this.prisma.tabla.findUnique({
+        where: { id: tablaId },
+        include: {
+          iglesias: {
+            orderBy: { nombre: 'asc' },
+          },
+          campos: {
+            orderBy: { orden: 'asc' },
+            include: { campo: true },
+          },
+        },
+      });
+      if (!tabla) throw new NotFoundException('Tabla no encontrada');
+      activeChurches = tabla.iglesias;
+    }
+
     // 2. Filter churches based on user role (if 'iglesia', only return their own church)
-    let activeChurches = tabla.iglesias;
     if (userRol === 'iglesia') {
       activeChurches = activeChurches.filter((c) => c.id === userIglesiaId);
       if (activeChurches.length === 0 && userIglesiaId) {
@@ -553,10 +573,10 @@ export class ValoresService {
       permissionsMap.set(`${p.iglesia_id}_${p.campo_id}`, p.editable_por_iglesia);
     }
 
-    // Separate logic: Iglesia role always sees their full church form fields, while Tesorero sees their configured table columns
+    // Separate logic: Iglesia role or Consolidated/mostrarTodos sees all fields, while specific table view sees table columns
     let rawFields: any[] = [];
-    if (userRol === 'iglesia') {
-      const churchId = userIglesiaId || (churchIds.length > 0 ? churchIds[0] : null);
+    if (userRol === 'iglesia' || isAllTables || mostrarTodos) {
+      const churchId = userRol === 'iglesia' ? (userIglesiaId || (churchIds.length > 0 ? churchIds[0] : null)) : null;
       rawFields = await this.prisma.campoPlantilla.findMany({
         where: {
           activo: true,
@@ -578,7 +598,7 @@ export class ValoresService {
         orderBy: [{ seccion: 'asc' }, { orden: 'asc' }],
       });
     } else {
-      rawFields = tabla.campos.map((ct) => ct.campo);
+      rawFields = tabla.campos.map((ct: any) => ct.campo);
     }
 
     const fields = rawFields.filter((f) => {
