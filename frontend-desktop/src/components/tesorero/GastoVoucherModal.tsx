@@ -328,8 +328,10 @@ export function GastoVoucherModal({ isOpen, onClose, gasto }: GastoVoucherModalP
     });
     const pdfFile = new File([pdfBlob], fileName, { type: 'application/pdf' });
 
-    // Try native Web Share API with attached PDF file (Supported on Mobile devices / Tablets / Compatible browsers)
-    if (navigator.canShare && navigator.canShare({ files: [pdfFile] })) {
+    const isMobileDevice = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent || '');
+
+    // On mobile devices (Android / iPhone), Web Share API opens WhatsApp app and attaches the file directly:
+    if (isMobileDevice && navigator.canShare && navigator.canShare({ files: [pdfFile] })) {
       try {
         await navigator.share({
           title: `Comprobante de Egreso ${voucherNumber}`,
@@ -344,7 +346,7 @@ export function GastoVoucherModal({ isOpen, onClose, gasto }: GastoVoucherModalP
       }
     }
 
-    // Fallback: Automatically download the generated PDF & open WhatsApp Web/App
+    // On PC / Desktop: Download PDF instantly & open WhatsApp Web
     handleDownloadPDF();
 
     const text = `🏛️ *COMPROBANTE DE EGRESO - TESORERÍA*\n` +
@@ -356,7 +358,7 @@ export function GastoVoucherModal({ isOpen, onClose, gasto }: GastoVoucherModalP
       `🔤 *Son:* ${montoLetras}\n` +
       `👤 *Autorizado por:* ${gasto.creado_por_nombre || 'Tesorero'} — Tesorería Zona 52\n` +
       `━━━━━━━━━━━━━━━━━━━━━━━━\n` +
-      `📎 _El documento oficial '${fileName}' se ha generado y descargado para adjuntar en esta conversación._`;
+      `📎 _El comprobante PDF '${fileName}' se ha generado y descargado para adjuntar en este chat._`;
 
     const encoded = encodeURIComponent(text);
     window.open(`https://wa.me/?text=${encoded}`, '_blank');

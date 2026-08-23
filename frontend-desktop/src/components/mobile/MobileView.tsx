@@ -853,7 +853,9 @@ export function MobileView({
                         });
                         const pdfFile = new File([pdfBlob], fileName, { type: 'application/pdf' });
 
-                        if (navigator.canShare && navigator.canShare({ files: [pdfFile] })) {
+                        const isMobileDevice = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent || '');
+
+                        if (isMobileDevice && navigator.canShare && navigator.canShare({ files: [pdfFile] })) {
                           try {
                             await navigator.share({
                               title: `Comprobante de Egreso ${voucherNum}`,
