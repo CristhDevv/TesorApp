@@ -1,4 +1,4 @@
-﻿import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo } from "react";
 import axios from "axios";
 import {
   Download,
@@ -8,10 +8,7 @@ import {
   Wallet,
   Coins,
   BarChart3,
-  Sliders,
-  Maximize2,
   RefreshCw,
-  Printer,
   Layers,
 } from "lucide-react";
 import { Line } from "react-chartjs-2";
@@ -33,9 +30,6 @@ interface ReportsPanelProps {
   gastosResumen: ResumenFondo[];
   isTesorero: boolean;
   user: any;
-  onOpenExecutivePDF: () => void;
-  onOpenSimulator: () => void;
-  onOpenPresentation: () => void;
 }
 
 export function ReportsPanel({
@@ -52,9 +46,6 @@ export function ReportsPanel({
   gastosResumen,
   isTesorero,
   user,
-  onOpenExecutivePDF,
-  onOpenSimulator,
-  onOpenPresentation,
 }: ReportsPanelProps) {
   const [reportType, setReportType] = useState<"consolidado" | "comparativo" | "fondos" | "individual">("consolidado");
   const [downloadingExcel, setDownloadingExcel] = useState(false);
@@ -302,41 +293,7 @@ export function ReportsPanel({
             <span>{downloadingExcel ? "Exportando..." : "Excel"}</span>
           </button>
 
-          {isTesorero && (
-            <button
-              type="button"
-              onClick={onOpenExecutivePDF}
-              className="flex items-center gap-1 px-2.5 py-1 bg-slate-800 hover:bg-slate-900 text-white rounded-lg text-[11px] font-bold transition shadow-2xs cursor-pointer active:scale-95"
-              title="Generar PDF formal de Junta"
-            >
-              <Printer className="w-3 h-3 text-indigo-300" />
-              <span>PDF Junta</span>
-            </button>
-          )}
-
-          {isTesorero && (
-            <>
-              <button
-                type="button"
-                onClick={onOpenSimulator}
-                className="flex items-center gap-1 px-2.5 py-1 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-lg text-[11px] font-bold transition cursor-pointer"
-                title="Simulador de proyecciones presupuestales"
-              >
-                <Sliders className="w-3 h-3 text-emerald-600" />
-                <span>Simulador</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={onOpenPresentation}
-                className="flex items-center gap-1 px-2.5 py-1 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-lg text-[11px] font-bold transition cursor-pointer"
-                title="Modo Sala de Juntas en Pantalla Completa"
-              >
-                <Maximize2 className="w-3 h-3 text-purple-600" />
-                <span>Sala Juntas</span>
-              </button>
-            </>
-          )}
+          {/* Excel Export is kept */}
         </div>
       </div>
 

@@ -3,9 +3,6 @@ import {
   TrendingUp, 
   Building2, 
   Sparkles, 
-  FileDown, 
-  Sliders, 
-  Maximize2, 
   User, 
   ArrowUpRight, 
   ArrowDownRight,
@@ -19,7 +16,8 @@ import {
   Clock,
   Send,
   ShieldCheck,
-  AlertTriangle
+  AlertTriangle,
+  Scale
 } from 'lucide-react';
 import { Doughnut, Bar } from 'react-chartjs-2';
 import {
@@ -46,9 +44,6 @@ interface ExecutiveDashboardProps {
   onSelectTabla?: (id: string) => void;
   iglesias: any[];
   onOpenCopilot: () => void;
-  onOpenPDF: () => void;
-  onOpenSimulator: () => void;
-  onOpenPresentation: () => void;
   onOpenChurchDetail: (iglesiaId: string) => void;
 }
 
@@ -62,9 +57,6 @@ export function ExecutiveDashboard({
   onSelectTabla,
   iglesias,
   onOpenCopilot,
-  onOpenPDF,
-  onOpenSimulator,
-  onOpenPresentation,
   onOpenChurchDetail,
 }: ExecutiveDashboardProps) {
   const [healthFilter, setHealthFilter] = useState<'all' | 'green' | 'yellow' | 'red'>('all');
@@ -81,12 +73,8 @@ export function ExecutiveDashboard({
 
   // Calculate Metrics
   const metrics = useMemo(() => {
-    let totalConsolidado = 0;
     let totalIngresos = 0;
     let totalEgresos = 0;
-    let totalMisiones = 0;
-    let totalConstruccion = 0;
-    let totalOperativo = 0;
     let reportedChurches = 0;
 
     let countBorrador = 0;
@@ -97,7 +85,6 @@ export function ExecutiveDashboard({
 
     const churchStats = rows.map((r: any) => {
       const igDetails = iglesias.find((i) => i.id === r.iglesia_id) || {};
-      let churchTotal = 0;
       let churchIngresos = 0;
       let churchEgresos = 0;
       let manualFieldsCount = 0;
@@ -121,33 +108,24 @@ export function ExecutiveDashboard({
           churchIngresos += numVal;
         } else if (secName === 'egresos' || secTesorero === 'egresos') {
           churchEgresos += numVal;
-        }
-
-        if (colName.includes('total') || secName.includes('total') || colName.includes('consolidado')) {
-          churchTotal = Math.max(churchTotal, numVal);
-        }
-
-        if (colName.includes('mision') || colName.includes('nacional')) {
-          totalMisiones += numVal;
-        } else if (colName.includes('templo') || colName.includes('construc') || colName.includes('bien')) {
-          totalConstruccion += numVal;
         } else {
-          totalOperativo += numVal;
+          // If no section defined, check column name
+          if (colName.includes('ingreso') || colName.includes('diezmo') || colName.includes('ofrenda')) {
+            churchIngresos += numVal;
+          } else if (colName.includes('egreso') || colName.includes('gasto') || colName.includes('aporte')) {
+            churchEgresos += numVal;
+          } else {
+            churchIngresos += numVal;
+          }
         }
       });
 
-      // If no explicit total column was highest, sum churchIngresos
-      if (churchTotal === 0 && churchIngresos > 0) {
-        churchTotal = churchIngresos;
-      }
-
-      totalConsolidado += churchTotal;
+      const churchTotal = churchIngresos;
       totalIngresos += churchIngresos;
       totalEgresos += churchEgresos;
 
-      const completionRate = manualFieldsCount > 0 ? (filledFieldsCount / manualFieldsCount) * 100 : 100;
-      if (completionRate > 60) reportedChurches++;
-
+      const completionRate = manualFieldsCount > 0 ? (filledFieldsCount / manualFieldsCount) * 100 : (churchTotal > 0 ? 100 : 0);
+      
       const st = r.estado_informe || 'borrador';
       if (st === 'enviado') countEnviado++;
       else if (st === 'en_revision') countEnRevision++;
@@ -162,18 +140,23 @@ export function ExecutiveDashboard({
       if (st === 'aprobado' || st === 'consolidado') {
         status = 'green';
         statusReason = `Informe ${st === 'aprobado' ? 'Aprobado' : 'Consolidado'} oficialmente`;
+        reportedChurches++;
       } else if (st === 'enviado') {
         status = 'green';
-        statusReason = 'Informe enviado por la iglesia (listo para aprobar)';
-      } else if (completionRate === 0) {
+        statusReason = 'Informe enviado a tesorería (listo para revisar/aprobar)';
+        reportedChurches++;
+      } else if (completionRate >= 80) {
+        status = 'green';
+        statusReason = `Planilla completada (${Math.round(completionRate)}%)`;
+        reportedChurches++;
+      } else if (completionRate > 0 || churchTotal > 0 || st === 'en_revision') {
+        status = 'yellow';
+        statusReason = st === 'en_revision' 
+          ? 'En revisión por tesorería' 
+          : `En digitación (${Math.round(completionRate)}% avance)`;
+      } else {
         status = 'red';
-        statusReason = 'Sin registrar datos este mes';
-      } else if (completionRate < 70) {
-        status = 'yellow';
-        statusReason = `Planilla incompleta (${Math.round(completionRate)}% avance)`;
-      } else if (churchTotal === 0) {
-        status = 'yellow';
-        statusReason = 'Valores reportados en cero';
+        statusReason = 'Sin registrar datos este mes (Pendiente)';
       }
 
       return {
@@ -190,14 +173,12 @@ export function ExecutiveDashboard({
 
     const totalChurches = rows.length;
     const complianceRate = totalChurches > 0 ? Math.round((reportedChurches / totalChurches) * 100) : 0;
+    const balanceNeto = totalIngresos - totalEgresos;
 
     return {
-      totalConsolidado: totalConsolidado || totalIngresos || 0,
-      totalIngresos: totalIngresos || totalConsolidado || 0,
-      totalEgresos: totalEgresos || 0,
-      totalMisiones,
-      totalConstruccion,
-      totalOperativo,
+      totalIngresos,
+      totalEgresos,
+      balanceNeto,
       reportedChurches,
       totalChurches,
       complianceRate,
@@ -213,36 +194,76 @@ export function ExecutiveDashboard({
   // Filtered churches list
   const filteredChurches = useMemo(() => {
     return metrics.churchStats.filter((c: any) => {
-      const matchesHealth = healthFilter === 'all' || c.status === healthFilter;
-      const matchesWorkflow = workflowFilter === 'all' || (c.estado_informe || 'borrador') === workflowFilter;
-      const matchesSearch = 
-        !searchTerm.trim() ||
-        c.iglesia_nombre?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        c.identificador_interno?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        c.nombre_pastor?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (c.codigo && c.codigo.toLowerCase().includes(searchTerm.toLowerCase()));
-      return matchesHealth && matchesWorkflow && matchesSearch;
+      let matches = true;
+
+      if (healthFilter !== 'all') {
+        matches = matches && c.status === healthFilter;
+      }
+
+      if (workflowFilter !== 'all') {
+        matches = matches && (c.estado_informe || 'borrador') === workflowFilter;
+      }
+
+      if (searchTerm.trim()) {
+        const term = searchTerm.toLowerCase();
+        const matchesSearch = 
+          c.iglesia_nombre?.toLowerCase().includes(term) ||
+          c.identificador_interno?.toLowerCase().includes(term) ||
+          c.nombre_pastor?.toLowerCase().includes(term) ||
+          (c.codigo && c.codigo.toLowerCase().includes(term));
+        matches = matches && matchesSearch;
+      }
+
+      return matches;
     });
   }, [metrics.churchStats, healthFilter, workflowFilter, searchTerm]);
 
-  // Chart 1: Donut breakdown
-  const doughnutData = {
-    labels: ['Fondos Operativos / Diezmos', 'Misiones y Obra Nacional', 'Fondo Pro-Templo / Edificación'],
-    datasets: [
-      {
-        data: [
-          metrics.totalOperativo || metrics.totalIngresos || 60,
-          metrics.totalMisiones || Math.round(metrics.totalConsolidado * 0.25) || 25,
-          metrics.totalConstruccion || Math.round(metrics.totalConsolidado * 0.15) || 15,
-        ],
-        backgroundColor: ['#4f46e5', '#10b981', '#f59e0b'],
-        borderWidth: 0,
-        hoverOffset: 4,
-      },
-    ],
-  };
+  // Section Breakdown for Dynamic Doughnut Chart
+  const sectionBreakdown = useMemo(() => {
+    const secTotals: Record<string, number> = {};
+    for (const r of rows) {
+      for (const col of columns) {
+        const valObj = r.valores?.find((v: any) => v.campo_id === col.id);
+        const isCalc = valObj?.modo_calculo === 'calculado';
+        const numVal = Number(isCalc ? (valObj?.valor_calculado || 0) : (valObj?.valor_manual || 0));
+        if (numVal <= 0) continue;
 
-  // Chart 2: Top 5 contributing churches
+        const sec = col.seccion || col.seccion_tesorero || 'Ingresos Generales';
+        secTotals[sec] = (secTotals[sec] || 0) + numVal;
+      }
+    }
+
+    const labels = Object.keys(secTotals);
+    const data = Object.values(secTotals);
+
+    if (labels.length === 0) {
+      return {
+        labels: ['Ingresos del Período'],
+        datasets: [
+          {
+            data: [metrics.totalIngresos || 1],
+            backgroundColor: ['#4f46e5', '#10b981', '#f59e0b', '#8b5cf6'],
+            borderWidth: 0,
+          },
+        ],
+      };
+    }
+
+    const colors = ['#4f46e5', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899', '#06b6d4'];
+    return {
+      labels,
+      datasets: [
+        {
+          data,
+          backgroundColor: colors.slice(0, labels.length),
+          borderWidth: 0,
+          hoverOffset: 4,
+        },
+      ],
+    };
+  }, [rows, columns, metrics.totalIngresos]);
+
+  // Top 5 contributing churches
   const topChurches = [...metrics.churchStats]
     .sort((a: any, b: any) => b.total - a.total)
     .slice(0, 5);
@@ -259,11 +280,25 @@ export function ExecutiveDashboard({
     ],
   };
 
+  const handleSetHealthFilter = (filter: 'all' | 'green' | 'yellow' | 'red') => {
+    setHealthFilter(filter);
+    setWorkflowFilter('all');
+  };
+
+  const handleSetWorkflowFilter = (wf: 'all' | 'borrador' | 'enviado' | 'en_revision' | 'aprobado' | 'consolidado') => {
+    if (workflowFilter === wf) {
+      setWorkflowFilter('all');
+    } else {
+      setWorkflowFilter(wf);
+      setHealthFilter('all');
+    }
+  };
+
   return (
     <div className="flex-1 overflow-y-auto bg-slate-50 p-6 space-y-6 animate-fade-in font-sans">
       {/* ── HEADER EXECUTIVE CONTROLS WITH SCOPE SELECTORS ── */}
       <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs space-y-4">
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <div className="p-2.5 bg-indigo-50 text-indigo-600 rounded-2xl border border-indigo-100 shadow-2xs">
               <TrendingUp className="w-6 h-6" />
@@ -284,38 +319,14 @@ export function ExecutiveDashboard({
             </div>
           </div>
 
-          {/* Action Buttons: Copilot, PDF, Simulator, Boardroom */}
-          <div className="flex flex-wrap items-center gap-2">
+          {/* Action Button: Asistente IA */}
+          <div className="flex items-center gap-2">
             <button
               onClick={onOpenCopilot}
-              className="px-3.5 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-xs transition transform active:scale-95 cursor-pointer"
+              className="px-4 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white rounded-xl text-xs font-bold flex items-center gap-2 shadow-xs transition transform active:scale-95 cursor-pointer"
             >
               <Sparkles className="w-4 h-4 text-amber-300" />
-              <span>Asistente IA</span>
-            </button>
-
-            <button
-              onClick={onOpenPDF}
-              className="px-3.5 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-xs transition cursor-pointer"
-            >
-              <FileDown className="w-4 h-4 text-slate-300" />
-              <span>Informe PDF de Junta</span>
-            </button>
-
-            <button
-              onClick={onOpenSimulator}
-              className="px-3.5 py-2 bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 rounded-xl text-xs font-bold flex items-center gap-1.5 transition cursor-pointer"
-            >
-              <Sliders className="w-4 h-4 text-indigo-500" />
-              <span>Simulador</span>
-            </button>
-
-            <button
-              onClick={onOpenPresentation}
-              className="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-xl text-xs font-bold flex items-center gap-1.5 transition cursor-pointer"
-            >
-              <Maximize2 className="w-4 h-4 text-slate-600" />
-              <span>Modo Sala de Juntas</span>
+              <span>Asistente IA Copilot</span>
             </button>
           </div>
         </div>
@@ -368,38 +379,76 @@ export function ExecutiveDashboard({
           </div>
 
           <div className="text-xs font-semibold text-slate-500">
-            Mostrando <span className="font-bold text-slate-800">{rows.length}</span> sedes en el análisis
+            Analizando <span className="font-bold text-slate-900">{rows.length}</span> sedes en este informe
           </div>
         </div>
       </div>
 
       {/* ── TOP KPI CARDS ── */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* KPI 1: Total Consolidado */}
+        {/* KPI 1: Total Ingresos */}
         <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs relative overflow-hidden flex flex-col justify-between">
           <div className="flex items-center justify-between">
-            <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Recaudo Consolidado</span>
+            <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Total Ingresos</span>
             <span className="p-1.5 bg-emerald-50 text-emerald-600 rounded-lg text-xs font-bold flex items-center gap-0.5">
-              <ArrowUpRight className="w-3.5 h-3.5" /> +14.2%
+              <ArrowUpRight className="w-3.5 h-3.5" /> Recaudo
             </span>
           </div>
           <div className="mt-3">
             <div className="text-2xl font-extrabold text-slate-900 font-mono tracking-tight">
-              {formatCOP(metrics.totalConsolidado)}
+              {formatCOP(metrics.totalIngresos)}
             </div>
             <p className="text-[11px] text-slate-400 mt-1">
-              {isAllTablesSelected ? 'Total de todas las tablas y congregaciones' : `Total tabla ${currentTableObj?.nombre || ''}`}
+              {isAllTablesSelected ? 'Total recaudado en todas las tablas' : `Total tabla ${currentTableObj?.nombre || ''}`}
             </p>
           </div>
           <div className="w-full bg-slate-100 h-1 rounded-full mt-3 overflow-hidden">
-            <div className="bg-emerald-500 h-1 rounded-full" style={{ width: '85%' }}></div>
+            <div className="bg-emerald-500 h-1 rounded-full" style={{ width: '100%' }}></div>
           </div>
         </div>
 
-        {/* KPI 2: Cumplimiento de Sedes */}
+        {/* KPI 2: Total Egresos / Aportes */}
         <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs flex flex-col justify-between">
           <div className="flex items-center justify-between">
-            <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Cumplimiento de Reporte</span>
+            <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Total Egresos & Aportes</span>
+            <span className="p-1.5 bg-rose-50 text-rose-600 rounded-lg text-xs font-bold flex items-center gap-0.5">
+              <ArrowDownRight className="w-3.5 h-3.5" /> Salidas
+            </span>
+          </div>
+          <div className="mt-3">
+            <div className="text-2xl font-extrabold text-rose-600 font-mono tracking-tight">
+              {formatCOP(metrics.totalEgresos)}
+            </div>
+            <p className="text-[11px] text-slate-400 mt-1">Egresos y deducciones registradas</p>
+          </div>
+          <div className="w-full bg-slate-100 h-1 rounded-full mt-3 overflow-hidden">
+            <div className="bg-rose-500 h-1 rounded-full" style={{ width: metrics.totalIngresos > 0 ? `${Math.min(100, Math.round((metrics.totalEgresos / metrics.totalIngresos) * 100))}%` : '0%' }}></div>
+          </div>
+        </div>
+
+        {/* KPI 3: Balance Neto */}
+        <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs flex flex-col justify-between">
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Balance Neto en Caja</span>
+            <span className="p-1.5 bg-indigo-50 text-indigo-600 rounded-lg text-xs font-bold flex items-center gap-0.5">
+              <Scale className="w-3.5 h-3.5" /> Neto
+            </span>
+          </div>
+          <div className="mt-3">
+            <div className="text-2xl font-extrabold text-indigo-600 font-mono tracking-tight">
+              {formatCOP(metrics.balanceNeto)}
+            </div>
+            <p className="text-[11px] text-slate-400 mt-1">Ingresos menos egresos del período</p>
+          </div>
+          <div className="w-full bg-slate-100 h-1 rounded-full mt-3 overflow-hidden">
+            <div className="bg-indigo-500 h-1 rounded-full" style={{ width: '100%' }}></div>
+          </div>
+        </div>
+
+        {/* KPI 4: Cumplimiento de Sedes */}
+        <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs flex flex-col justify-between">
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Cumplimiento de Reportes</span>
             <span className="text-xs font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-full">
               {metrics.complianceRate}%
             </span>
@@ -408,48 +457,10 @@ export function ExecutiveDashboard({
             <div className="text-2xl font-extrabold text-slate-900 font-mono tracking-tight">
               {metrics.reportedChurches} <span className="text-sm font-semibold text-slate-400">/ {metrics.totalChurches} Sedes</span>
             </div>
-            <p className="text-[11px] text-slate-400 mt-1">Sedes con planilla completa al día</p>
+            <p className="text-[11px] text-slate-400 mt-1">Sedes con planilla completa o enviada</p>
           </div>
           <div className="w-full bg-slate-100 h-1 rounded-full mt-3 overflow-hidden">
             <div className="bg-indigo-600 h-1 rounded-full" style={{ width: `${metrics.complianceRate}%` }}></div>
-          </div>
-        </div>
-
-        {/* KPI 3: Fondos Misioneros */}
-        <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs flex flex-col justify-between">
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Obra Misionera & Nacional</span>
-            <span className="p-1.5 bg-indigo-50 text-indigo-600 rounded-lg text-xs font-bold flex items-center gap-0.5">
-              <ArrowUpRight className="w-3.5 h-3.5" /> +8.7%
-            </span>
-          </div>
-          <div className="mt-3">
-            <div className="text-2xl font-extrabold text-indigo-600 font-mono tracking-tight">
-              {formatCOP(metrics.totalMisiones || metrics.totalConsolidado * 0.25)}
-            </div>
-            <p className="text-[11px] text-slate-400 mt-1">Destinado a misiones y obra distrital</p>
-          </div>
-          <div className="w-full bg-slate-100 h-1 rounded-full mt-3 overflow-hidden">
-            <div className="bg-indigo-500 h-1 rounded-full" style={{ width: '75%' }}></div>
-          </div>
-        </div>
-
-        {/* KPI 4: Fondo Pro-Templo */}
-        <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs flex flex-col justify-between">
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Fondo Pro-Templo & Bienes</span>
-            <span className="p-1.5 bg-amber-50 text-amber-600 rounded-lg text-xs font-bold flex items-center gap-0.5">
-              <ArrowDownRight className="w-3.5 h-3.5" /> -2.1%
-            </span>
-          </div>
-          <div className="mt-3">
-            <div className="text-2xl font-extrabold text-amber-600 font-mono tracking-tight">
-              {formatCOP(metrics.totalConstruccion || metrics.totalConsolidado * 0.15)}
-            </div>
-            <p className="text-[11px] text-slate-400 mt-1">Reserva para infraestructura y sedes</p>
-          </div>
-          <div className="w-full bg-slate-100 h-1 rounded-full mt-3 overflow-hidden">
-            <div className="bg-amber-500 h-1 rounded-full" style={{ width: '60%' }}></div>
           </div>
         </div>
       </div>
@@ -466,7 +477,7 @@ export function ExecutiveDashboard({
             </p>
           </div>
           <span className="text-xs font-semibold text-slate-400">
-            Filtrar haciendo clic en cualquier estado:
+            Haz clic para filtrar sedes por estado:
           </span>
         </div>
 
@@ -474,7 +485,7 @@ export function ExecutiveDashboard({
           {/* Aprobados */}
           <button
             type="button"
-            onClick={() => setWorkflowFilter(workflowFilter === 'aprobado' ? 'all' : 'aprobado')}
+            onClick={() => handleSetWorkflowFilter('aprobado')}
             className={`p-3 rounded-xl border text-left transition cursor-pointer ${
               workflowFilter === 'aprobado'
                 ? 'bg-emerald-100 border-emerald-500 ring-2 ring-emerald-500/20'
@@ -493,7 +504,7 @@ export function ExecutiveDashboard({
           {/* Enviados */}
           <button
             type="button"
-            onClick={() => setWorkflowFilter(workflowFilter === 'enviado' ? 'all' : 'enviado')}
+            onClick={() => handleSetWorkflowFilter('enviado')}
             className={`p-3 rounded-xl border text-left transition cursor-pointer ${
               workflowFilter === 'enviado'
                 ? 'bg-indigo-100 border-indigo-500 ring-2 ring-indigo-500/20'
@@ -512,7 +523,7 @@ export function ExecutiveDashboard({
           {/* En Revisión */}
           <button
             type="button"
-            onClick={() => setWorkflowFilter(workflowFilter === 'en_revision' ? 'all' : 'en_revision')}
+            onClick={() => handleSetWorkflowFilter('en_revision')}
             className={`p-3 rounded-xl border text-left transition cursor-pointer ${
               workflowFilter === 'en_revision'
                 ? 'bg-amber-100 border-amber-500 ring-2 ring-amber-500/20'
@@ -531,7 +542,7 @@ export function ExecutiveDashboard({
           {/* Consolidados */}
           <button
             type="button"
-            onClick={() => setWorkflowFilter(workflowFilter === 'consolidado' ? 'all' : 'consolidado')}
+            onClick={() => handleSetWorkflowFilter('consolidado')}
             className={`p-3 rounded-xl border text-left transition cursor-pointer ${
               workflowFilter === 'consolidado'
                 ? 'bg-purple-100 border-purple-500 ring-2 ring-purple-500/20'
@@ -550,7 +561,7 @@ export function ExecutiveDashboard({
           {/* Borradores / Pendientes */}
           <button
             type="button"
-            onClick={() => setWorkflowFilter(workflowFilter === 'borrador' ? 'all' : 'borrador')}
+            onClick={() => handleSetWorkflowFilter('borrador')}
             className={`p-3 rounded-xl border text-left transition cursor-pointer ${
               workflowFilter === 'borrador'
                 ? 'bg-slate-200 border-slate-400 ring-2 ring-slate-400/20'
@@ -570,20 +581,20 @@ export function ExecutiveDashboard({
 
       {/* ── CHARTS ROW: DONUT & TOP BARS ── */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Doughnut: Distribución */}
+        {/* Doughnut: Distribución por Secciones */}
         <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs flex flex-col">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
               <PieChartIcon className="w-4 h-4 text-indigo-600" />
               <h3 className="text-xs font-extrabold text-slate-900 uppercase tracking-wider">
-                Distribución de Fondos
+                Distribución por Conceptos
               </h3>
             </div>
             <span className="text-[10px] text-slate-400 font-semibold">{currentPeriod?.nombre}</span>
           </div>
           <div className="flex-1 flex items-center justify-center min-h-[220px]">
             <Doughnut 
-              data={doughnutData} 
+              data={sectionBreakdown} 
               options={{
                 responsive: true,
                 maintainAspectRatio: false,
@@ -655,15 +666,17 @@ export function ExecutiveDashboard({
             {/* Filter Pills */}
             <div className="flex items-center bg-slate-100 p-0.5 rounded-xl border border-slate-200 text-xs">
               <button
-                onClick={() => setHealthFilter('all')}
+                onClick={() => handleSetHealthFilter('all')}
                 className={`px-2.5 py-1 rounded-lg font-bold transition cursor-pointer ${
-                  healthFilter === 'all' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-500 hover:text-slate-800'
+                  healthFilter === 'all' && workflowFilter === 'all'
+                    ? 'bg-white text-slate-900 shadow-xs'
+                    : 'text-slate-500 hover:text-slate-800'
                 }`}
               >
                 Todas
               </button>
               <button
-                onClick={() => setHealthFilter('green')}
+                onClick={() => handleSetHealthFilter('green')}
                 className={`px-2.5 py-1 rounded-lg font-bold transition flex items-center gap-1 cursor-pointer ${
                   healthFilter === 'green' ? 'bg-emerald-500 text-white shadow-xs' : 'text-emerald-700 hover:bg-emerald-50'
                 }`}
@@ -671,15 +684,15 @@ export function ExecutiveDashboard({
                 🟢 Al día
               </button>
               <button
-                onClick={() => setHealthFilter('yellow')}
+                onClick={() => handleSetHealthFilter('yellow')}
                 className={`px-2.5 py-1 rounded-lg font-bold transition flex items-center gap-1 cursor-pointer ${
                   healthFilter === 'yellow' ? 'bg-amber-500 text-white shadow-xs' : 'text-amber-700 hover:bg-amber-50'
                 }`}
               >
-                🟡 En revisión
+                🟡 En proceso
               </button>
               <button
-                onClick={() => setHealthFilter('red')}
+                onClick={() => handleSetHealthFilter('red')}
                 className={`px-2.5 py-1 rounded-lg font-bold transition flex items-center gap-1 cursor-pointer ${
                   healthFilter === 'red' ? 'bg-rose-500 text-white shadow-xs' : 'text-rose-700 hover:bg-rose-50'
                 }`}
@@ -739,7 +752,7 @@ export function ExecutiveDashboard({
                         isGreen ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
                         isYellow ? 'bg-amber-50 text-amber-700 border-amber-200' : 'bg-rose-50 text-rose-700 border-rose-200'
                       }`}>
-                        {isGreen ? 'Al día' : isYellow ? 'Revisión' : 'Retraso'}
+                        {isGreen ? 'Al día' : isYellow ? 'En proceso' : 'Retraso'}
                       </span>
                       {st !== 'borrador' && (
                         <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider ${

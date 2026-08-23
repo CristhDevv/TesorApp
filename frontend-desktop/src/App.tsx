@@ -78,10 +78,7 @@ import { MobileView } from './components/mobile/MobileView';
 // WOW Features Components
 import { ExecutiveDashboard } from './components/analytics/ExecutiveDashboard';
 import { AICopilotDrawer } from './components/ai/AICopilotDrawer';
-import { ExecutivePDFModal } from './components/reports/ExecutivePDFModal';
 import { ReceiptViewerModal, ReceiptItem } from './components/attachments/ReceiptViewerModal';
-import { BudgetSimulator } from './components/forecasting/BudgetSimulator';
-import { BoardroomPresentationModal } from './components/presentation/BoardroomPresentationModal';
 import { NotificationCenter } from './components/notifications/NotificationCenter';
 
 // Gastos Feature
@@ -118,11 +115,8 @@ export default function App() {
     });
   };
 
-  // WOW Features State
-  const [showExecutivePDF, setShowExecutivePDF] = useState(false);
+  // Assistant & Vault State
   const [showAICopilot, setShowAICopilot] = useState(false);
-  const [showSimulator, setShowSimulator] = useState(false);
-  const [showPresentation, setShowPresentation] = useState(false);
   const [showNotificationCenter, setShowNotificationCenter] = useState(false);
   const [receiptVaultState, setReceiptVaultState] = useState<{ open: boolean; churchId: string; churchName: string }>({
     open: false,
@@ -458,14 +452,61 @@ export default function App() {
   };
 
   const fetchGridValues = async () => {
-    if (!selectedTablaId || !selectedPeriodoId) return;
+    if (!selectedPeriodoId) return;
     try {
-      const res = await axios.get(
-        `${API_BASE}/valores?tabla_id=${selectedTablaId}&periodo_id=${selectedPeriodoId}${
-          showAllColumns ? '&mostrar_todos=true' : ''
-        }`
-      );
-      setGridData(res.data);
+      if (selectedTablaId === 'all' || !selectedTablaId) {
+        let tableList = tablas;
+        if (!tableList || tableList.length === 0) {
+          const tabRes = await axios.get(`${API_BASE}/tablas`);
+          tableList = tabRes.data || [];
+        }
+
+        if (tableList.length > 0) {
+          const responses = await Promise.all(
+            tableList.map((t: any) =>
+              axios
+                .get(
+                  `${API_BASE}/valores?tabla_id=${t.id}&periodo_id=${selectedPeriodoId}&mostrar_todos=true`
+                )
+                .catch(() => ({ data: { filas: [], columnas: [] } }))
+            )
+          );
+
+          const filasMap = new Map<string, any>();
+          let combinedCols: any[] = [];
+
+          for (const r of responses) {
+            if (r.data?.columnas && r.data.columnas.length > combinedCols.length) {
+              combinedCols = r.data.columnas;
+            }
+            for (const f of r.data?.filas || []) {
+              filasMap.set(f.iglesia_id, f);
+            }
+          }
+
+          const periodObj = periodos.find((p) => p.id === selectedPeriodoId);
+          setGridData({
+            tabla_id: 'all',
+            tabla_nombre: 'Consolidado General (Todas las Tablas)',
+            periodo_id: selectedPeriodoId,
+            periodo_nombre: periodObj?.nombre || 'Periodo',
+            columnas: combinedCols,
+            filas: Array.from(filasMap.values()),
+          });
+        } else {
+          const res = await axios.get(
+            `${API_BASE}/valores?tabla_id=all&periodo_id=${selectedPeriodoId}&mostrar_todos=true`
+          );
+          setGridData(res.data);
+        }
+      } else {
+        const res = await axios.get(
+          `${API_BASE}/valores?tabla_id=${selectedTablaId}&periodo_id=${selectedPeriodoId}${
+            showAllColumns ? '&mostrar_todos=true' : ''
+          }`
+        );
+        setGridData(res.data);
+      }
     } catch (err) {
       console.error(err);
       triggerToast('No se pudieron cargar los valores', 'error');
@@ -1593,9 +1634,6 @@ export default function App() {
               onSelectTabla={handleTableChange}
               iglesias={iglesias}
               onOpenCopilot={() => setShowAICopilot(true)}
-              onOpenPDF={() => setShowExecutivePDF(true)}
-              onOpenSimulator={() => setShowSimulator(true)}
-              onOpenPresentation={() => setShowPresentation(true)}
               onOpenChurchDetail={(_iglesiaId) => {
                 setActiveTab('sheet');
               }}
@@ -2408,9 +2446,6 @@ export default function App() {
           gastosResumen={gastosResumen}
           isTesorero={isTesorero}
           user={user}
-          onOpenExecutivePDF={() => setShowExecutivePDF(true)}
-          onOpenSimulator={() => setShowSimulator(true)}
-          onOpenPresentation={() => setShowPresentation(true)}
         />
       )}
 
@@ -2846,24 +2881,12 @@ export default function App() {
           setShowAICopilot(false);
         }}
         onOpenModal={(modal) => {
-          if (modal === 'pdf') setShowExecutivePDF(true);
-          else if (modal === 'simulator') setShowSimulator(true);
-          else if (modal === 'boardroom') setShowPresentation(true);
-          else if (modal === 'whatsapp') setShowNotificationCenter(true);
+          if (modal === 'whatsapp') setShowNotificationCenter(true);
           setShowAICopilot(false);
         }}
       />
 
-      {/* ── MODAL WOW 2: INFORME EJECUTIVO PDF DE JUNTA ── */}
-      <ExecutivePDFModal
-        isOpen={showExecutivePDF}
-        onClose={() => setShowExecutivePDF(false)}
-        gridData={gridData}
-        currentPeriod={periodos.find((p) => p.id === selectedPeriodoId)}
-        user={user}
-      />
-
-      {/* ── MODAL WOW 3: BÓVEDA DE COMPROBANTES BANCARIOS ── */}
+      {/* ── BÓVEDA DE COMPROBANTES BANCARIOS ── */}
       <ReceiptViewerModal
         isOpen={receiptVaultState.open}
         onClose={() => setReceiptVaultState({ open: false, churchId: '', churchName: '' })}
@@ -2875,23 +2898,6 @@ export default function App() {
         onAddReceipt={handleAddReceipt}
         onDeleteReceipt={handleDeleteReceipt}
         onToggleVerify={handleToggleVerifyReceipt}
-      />
-
-      {/* ── MODAL WOW 4: SIMULADOR DE PRESUPUESTO & FORECASTING ── */}
-      <BudgetSimulator
-        isOpen={showSimulator}
-        onClose={() => setShowSimulator(false)}
-        currentTotal={50000000}
-        periodName={periodos.find((p) => p.id === selectedPeriodoId)?.nombre || 'Actual'}
-      />
-
-      {/* ── MODAL WOW 5: MODO PRESENTACIÓN SALA DE JUNTAS ── */}
-      <BoardroomPresentationModal
-        isOpen={showPresentation}
-        onClose={() => setShowPresentation(false)}
-        gridData={gridData}
-        currentPeriod={periodos.find((p) => p.id === selectedPeriodoId)}
-        user={user}
       />
 
       {/* ── MODAL WOW 6: CENTRO DE NOTIFICACIONES & WHATSAPP ── */}
