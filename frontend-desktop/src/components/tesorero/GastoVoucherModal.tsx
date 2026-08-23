@@ -270,10 +270,10 @@ export function GastoVoucherModal({ isOpen, onClose, gasto }: GastoVoucherModalP
             <div class="auth-box">
               <span class="cell-label">Autorizado y Expedido por</span>
               <div class="cell-value" style="font-size: 13px;">
-                ${gasto.creado_por_nombre || 'Tesorero Oficial'}
+                ${gasto.creado_por_nombre || 'Tesorero'} — Tesorería Zona 52
               </div>
               <div style="font-size: 10px; color: #6b7280; margin-top: 2px;">
-                Tesorería Oficial • Registro Aprobado en Sistema
+                Tesorería Zona 52 • Registro Oficial Aprobado en Sistema
               </div>
             </div>
 
@@ -301,7 +301,7 @@ export function GastoVoucherModal({ isOpen, onClose, gasto }: GastoVoucherModalP
       `📝 *Concepto:* ${gasto.descripcion}\n` +
       `💰 *Monto:* ${formatCOP(gasto.monto)} COP\n` +
       `🔤 *Son:* ${montoLetras}\n` +
-      `👤 *Autorizado por:* ${gasto.creado_por_nombre || 'Tesorería'}\n` +
+      `👤 *Autorizado por:* ${gasto.creado_por_nombre || 'Tesorero'} — Tesorería Zona 52\n` +
       `━━━━━━━━━━━━━━━━━━━━━━━━\n` +
       `_Documento oficial generado por TesorApp_`;
 
@@ -426,10 +426,10 @@ export function GastoVoucherModal({ isOpen, onClose, gasto }: GastoVoucherModalP
                 Autorizado y Expedido por
               </span>
               <div className="font-bold text-slate-900 text-xs">
-                {gasto.creado_por_nombre || 'Tesorero Oficial'}
+                {gasto.creado_por_nombre || 'Tesorero'} — Tesorería Zona 52
               </div>
               <div className="text-[10px] text-slate-500 mt-0.5">
-                Tesorería Oficial • Registro Aprobado en Sistema
+                Tesorería Zona 52 • Registro Oficial Aprobado en Sistema
               </div>
             </div>
 
