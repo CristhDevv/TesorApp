@@ -1,4 +1,6 @@
-{
+﻿{
+  "buildCommand": "cd frontend-desktop && npm install && npm run build",
+  "outputDirectory": "frontend-desktop/dist",
   "rewrites": [
     {
       "source": "/auth/:path*",
