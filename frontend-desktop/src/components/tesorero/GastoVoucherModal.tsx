@@ -349,16 +349,16 @@ export function GastoVoucherModal({ isOpen, onClose, gasto }: GastoVoucherModalP
     // On PC / Desktop: Download PDF instantly & open WhatsApp Web
     handleDownloadPDF();
 
-    const text = `🏛️ *COMPROBANTE DE EGRESO - TESORERÍA*\n` +
-      `━━━━━━━━━━━━━━━━━━━━━━━━\n` +
-      `📄 *No. Comprobante:* ${voucherNumber}\n` +
-      `📅 *Fecha:* ${fechaFormateada}\n` +
-      `📝 *Concepto:* ${gasto.descripcion}\n` +
-      `💰 *Monto:* ${formatCOP(gasto.monto)} COP\n` +
-      `🔤 *Son:* ${montoLetras}\n` +
-      `👤 *Autorizado por:* ${gasto.creado_por_nombre || 'Tesorero'} — Tesorería Zona 52\n` +
-      `━━━━━━━━━━━━━━━━━━━━━━━━\n` +
-      `📎 _El comprobante PDF '${fileName}' se ha generado y descargado para adjuntar en este chat._`;
+    const text = `*COMPROBANTE DE EGRESO — TESORERÍA ZONA 52*\n` +
+      `----------------------------------------\n` +
+      `• *No. Comprobante:* ${voucherNumber}\n` +
+      `• *Fecha:* ${fechaFormateada}\n` +
+      `• *Concepto:* ${gasto.descripcion}\n` +
+      `• *Monto:* ${formatCOP(gasto.monto)} COP\n` +
+      `• *Son:* ${montoLetras}\n` +
+      `• *Autorizado por:* ${gasto.creado_por_nombre || 'Tesorero'} — Tesorería Zona 52\n` +
+      `----------------------------------------\n` +
+      `_Documento oficial generado por TesorApp_`;
 
     const encoded = encodeURIComponent(text);
     window.open(`https://wa.me/?text=${encoded}`, '_blank');

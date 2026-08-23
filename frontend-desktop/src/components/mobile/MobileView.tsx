@@ -878,7 +878,15 @@ export function MobileView({
                         document.body.removeChild(a);
                         URL.revokeObjectURL(url);
 
-                        const text = `🏛️ *COMPROBANTE DE EGRESO*\nConcepto: ${g.descripcion}\nMonto: ${formatCOP(g.monto)} COP\nFecha: ${new Date(g.fecha).toLocaleDateString('es-CO')}\nAutorizado por: ${g.creado_por?.nombre_completo || 'Tesorero'} - Tesorería Zona 52\n📎 _Comprobante oficial PDF generado._`;
+                        const text = `*COMPROBANTE DE EGRESO — TESORERÍA ZONA 52*\n` +
+                          `----------------------------------------\n` +
+                          `• *No. Comprobante:* ${voucherNum}\n` +
+                          `• *Concepto:* ${g.descripcion}\n` +
+                          `• *Monto:* ${formatCOP(g.monto)} COP\n` +
+                          `• *Fecha:* ${new Date(g.fecha).toLocaleDateString('es-CO')}\n` +
+                          `• *Autorizado por:* ${g.creado_por?.nombre_completo || 'Tesorero'} — Tesorería Zona 52\n` +
+                          `----------------------------------------\n` +
+                          `_Comprobante oficial generado por TesorApp_`;
                         window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
                       }}
                       className="text-[10px] font-bold text-emerald-700 flex items-center gap-0.5 mt-0.5 cursor-pointer ml-auto bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200 hover:bg-emerald-100"
