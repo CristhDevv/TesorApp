@@ -11,7 +11,6 @@ import {
   Search,
   X,
   Layers,
-  Key,
   Users,
   FileSpreadsheet,
   CheckCircle2,
@@ -101,7 +100,7 @@ export default function App() {
 
   const [token, setToken] = useState<string | null>(localStorage.getItem('token'));
   const [user, setUser] = useState<any>(null);
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'sheet' | 'iglesias' | 'campos' | 'permisos' | 'usuarios' | 'historial' | 'gastos' | 'reportes'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'sheet' | 'iglesias' | 'campos' | 'usuarios' | 'historial' | 'gastos' | 'reportes'>('dashboard');
   const [loading, setLoading] = useState(false);
   const [toast, setToast] = useState<{ msg: string; type: 'success' | 'error' } | null>(null);
 
@@ -290,8 +289,6 @@ export default function App() {
     activo: true,
   });
 
-  const [selectedPermissionChurch, setSelectedPermissionChurch] = useState<string>('');
-  const [churchPermissions, setChurchPermissions] = useState<any[]>([]);
   const [confirmConfig, setConfirmConfig] = useState<{
     isOpen: boolean;
     title: string;
@@ -972,33 +969,6 @@ export default function App() {
     });
   };
 
-  // ─── Permissions ───────────────────────────────────────────────────────
-  useEffect(() => {
-    if (selectedPermissionChurch) {
-      axios
-        .get(`${API_BASE}/permisos/${selectedPermissionChurch}`)
-        .then((res) => setChurchPermissions(res.data))
-        .catch((err) => console.error(err));
-    } else {
-      setChurchPermissions([]);
-    }
-  }, [selectedPermissionChurch]);
-
-  const togglePermission = async (campoId: string, currentVal: boolean) => {
-    const updated = churchPermissions.map((p) =>
-      p.campo_id === campoId ? { ...p, editable_por_iglesia: !currentVal } : p
-    );
-    setChurchPermissions(updated);
-    try {
-      await axios.put(`${API_BASE}/permisos/${selectedPermissionChurch}`, {
-        permisos: updated.map((p) => ({ campo_id: p.campo_id, editable_por_iglesia: p.editable_por_iglesia })),
-      });
-      triggerToast('Permiso actualizado');
-    } catch (err: any) {
-      triggerToast(err.response?.data?.message || 'Error guardando permiso', 'error');
-    }
-  };
-
   // ─── Period Actions ────────────────────────────────────────────────────
   const handleCreatePeriod = () => {
     setShowPeriodCreateModal(true);
@@ -1471,20 +1441,6 @@ export default function App() {
               </button>
 
               <button
-                onClick={() => setActiveTab('permisos')}
-                className={`w-full px-3 py-2 rounded-xl text-xs font-semibold flex items-center justify-between transition-all duration-150 cursor-pointer ${
-                  activeTab === 'permisos'
-                    ? 'bg-indigo-600 text-white font-bold shadow-md shadow-indigo-600/30'
-                    : 'text-slate-400 hover:text-white hover:bg-slate-900/80'
-                }`}
-              >
-                <div className="flex items-center gap-2.5">
-                  <Key className={`w-4 h-4 ${activeTab === 'permisos' ? 'text-white' : 'text-slate-400'}`} />
-                  <span>Permisos de Acceso</span>
-                </div>
-              </button>
-
-              <button
                 onClick={() => setActiveTab('usuarios')}
                 className={`w-full px-3 py-2 rounded-xl text-xs font-semibold flex items-center justify-between transition-all duration-150 cursor-pointer ${
                   activeTab === 'usuarios'
@@ -1594,7 +1550,6 @@ export default function App() {
               {activeTab === 'sheet' && 'Planilla Contable General'}
               {activeTab === 'iglesias' && 'Directorio de Congregaciones'}
               {activeTab === 'campos' && 'Estructura de Columnas & Fórmulas'}
-              {activeTab === 'permisos' && 'Matriz de Permisos & Seguridad'}
               {activeTab === 'usuarios' && 'Gestión de Usuarios & Accesos'}
               {activeTab === 'historial' && 'Auditoría & Trazabilidad de Cambios'}
               {activeTab === 'gastos' && 'Gastos & Control de Fondos'}
@@ -2211,87 +2166,6 @@ export default function App() {
             buildDiffFormula={buildDiffFormula}
             getFormulaExplanation={getFormulaExplanation}
           />
-        </div>
-      )}
-
-      {/* ── TAB 4: PERMISOS ── */}
-      {activeTab === 'permisos' && (
-        <div className="flex-1 flex flex-col min-h-0 overflow-hidden bg-white">
-          <div className="h-[42px] px-3 bg-slate-50 border-b border-slate-200 flex items-center justify-between shrink-0">
-            <div className="flex items-center gap-2">
-              <span className="font-bold text-slate-700 text-xs">Seleccione Iglesia:</span>
-              <select
-                className="bg-white border border-slate-300 rounded px-2.5 py-1 text-xs text-slate-900 font-bold focus:outline-none focus:border-indigo-600"
-                value={selectedPermissionChurch}
-                onChange={(e) => setSelectedPermissionChurch(e.target.value)}
-              >
-                <option value="">-- Seleccione una Iglesia --</option>
-                {iglesias.map((i) => (
-                  <option key={i.id} value={i.id}>
-                    {i.nombre}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <span className="text-[11px] text-slate-500">
-              Autorice qué campos manuales pueden editar los representantes.
-            </span>
-          </div>
-          <div className="flex-1 min-h-0 overflow-auto">
-            {!selectedPermissionChurch ? (
-              <div className="h-full flex items-center justify-center text-slate-500 text-xs">
-                Seleccione una iglesia en el selector superior para gestionar sus permisos.
-              </div>
-            ) : (
-              <table className="w-full border-collapse text-left text-xs">
-                <thead className="sticky top-0 bg-slate-100 border-b border-slate-300 z-10">
-                  <tr className="text-[10px] font-extrabold text-slate-600 uppercase tracking-wider">
-                    <th className="px-3 py-2 border-r border-slate-200">Columna</th>
-                    <th className="px-2.5 py-2 border-r border-slate-200">Modo</th>
-                    <th className="px-3 py-2 text-center">Permiso Escritura (Rol Iglesia)</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-200">
-                  {churchPermissions.map((p) => {
-                    const campoNombre = p.nombre || p.campo?.nombre || p.slug || 'Columna';
-                    const modoCalculo = p.modo_calculo || p.campo?.modo_calculo || 'manual';
-                    const isManual = modoCalculo === 'manual';
-                    return (
-                      <tr key={p.campo_id} className="hover:bg-slate-50 transition">
-                        <td className="px-3 py-2 font-bold text-slate-900 border-r border-slate-200">
-                          {campoNombre}
-                          <span className="block text-[10px] font-mono text-slate-500 font-normal">
-                            {p.slug || p.campo?.slug}
-                          </span>
-                        </td>
-                        <td className="px-2.5 py-2 border-r border-slate-200">
-                          <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase bg-slate-100 text-slate-700 border border-slate-200">
-                            {modoCalculo}
-                          </span>
-                        </td>
-                        <td className="px-3 py-2 text-center">
-                          {isManual ? (
-                            <button
-                              onClick={() => togglePermission(p.campo_id, p.editable_por_iglesia)}
-                              className={`px-3 py-1 rounded text-xs font-bold transition ${
-                                p.editable_por_iglesia
-                                  ? 'bg-emerald-600 hover:bg-emerald-700 text-white'
-                                  : 'bg-slate-100 hover:bg-slate-200 text-slate-600 border border-slate-300'
-                              }`}
-                            >
-                              {p.editable_por_iglesia ? '✓ Autorizado' : 'Bloqueado'}
-                            </button>
-                          ) : (
-                            <span className="text-slate-400 text-[11px] italic">Calculado — no editable</span>
-                          )}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            )}
-          </div>
         </div>
       )}
 
