@@ -49,6 +49,14 @@ export class HistorialService {
           select: {
             nombre_completo: true,
             correo: true,
+            rol: true,
+          },
+        },
+        valor: {
+          include: {
+            iglesia: { select: { id: true, nombre: true, codigo: true } },
+            campo: { select: { id: true, nombre: true, slug: true } },
+            periodo: { select: { id: true, nombre: true } },
           },
         },
       },

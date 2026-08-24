@@ -2189,6 +2189,7 @@ export default function App() {
                     ['seccion', 'Sección'],
                     ['tipo', 'Tipo'],
                     ['modo_calculo', 'Cálculo / Fórmula'],
+                    ['es_fondo', 'Destino Contable'],
                     ['es_acumulable', 'Acumulable'],
                   ].map(([key, label]) => (
                     <th
@@ -2251,6 +2252,23 @@ export default function App() {
                         ) : (
                           <span className="px-1.5 py-0.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded text-[9px] font-semibold border border-slate-200 dark:border-slate-700">
                             Manual
+                          </span>
+                        )}
+                      </td>
+                      <td className="px-2.5 py-2 border-r border-slate-200 dark:border-slate-800">
+                        {field.es_fondo ? (
+                          field.es_transito ? (
+                            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-amber-50 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border border-amber-300 dark:border-amber-800 rounded text-[10px] font-bold" title={`Giro a: ${field.ente_superior_nombre || 'Ente Superior'}`}>
+                              🚀 Tránsito {field.ente_superior_nombre ? `(${field.ente_superior_nombre})` : ''}
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 rounded text-[10px] font-bold">
+                              🏛️ Propio (Caja)
+                            </span>
+                          )
+                        ) : (
+                          <span className="px-1.5 py-0.5 bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 rounded text-[9px] font-medium border border-slate-200 dark:border-slate-700">
+                            Informativo
                           </span>
                         )}
                       </td>
@@ -2454,14 +2472,14 @@ export default function App() {
                 <Search className="w-3.5 h-3.5 absolute left-2 top-2.5 text-slate-400 pointer-events-none" />
                 <input
                   type="text"
-                  placeholder="Filtrar por usuario o entidad..."
+                  placeholder="Filtrar por usuario, detalle o entidad..."
                   value={auditSearch}
                   onChange={(e) => setAuditSearch(e.target.value)}
-                  className="w-56 pl-7 pr-2 py-1 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded text-slate-900 dark:text-slate-100 text-xs placeholder-slate-400 focus:outline-none focus:border-indigo-600"
+                  className="w-64 pl-7 pr-2 py-1 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded text-slate-900 dark:text-slate-100 text-xs placeholder-slate-400 focus:outline-none focus:border-indigo-600"
                 />
               </div>
             </div>
-            <span className="text-[11px] text-slate-500 dark:text-slate-400">Registro inalterable con transacciones de base de datos</span>
+            <span className="text-[11px] text-slate-500 dark:text-slate-400">Registro inalterable con trazabilidad total de base de datos</span>
           </div>
           <div className="flex-1 min-h-0 overflow-auto">
             <table className="w-full border-collapse text-left text-xs">
@@ -2469,9 +2487,9 @@ export default function App() {
                 <tr className="text-[10px] font-extrabold text-slate-600 dark:text-slate-300 uppercase tracking-wider">
                   {[
                     ['realizado_en', 'Fecha y Hora'],
-                    ['usuario', 'Usuario'],
+                    ['usuario', 'Responsable'],
                     ['accion', 'Acción'],
-                    ['entidad', 'Entidad'],
+                    ['entidad', 'Módulo / Entidad'],
                   ].map(([key, label]) => (
                     <th
                       key={key}
@@ -2481,7 +2499,7 @@ export default function App() {
                       <div className="flex items-center justify-between gap-1">
                         <span>{label}</span>
                         {auditSort.colKey === key ? (
-                          auditSort.direction === 'asc' ? (
+                          fieldSort.direction === 'asc' ? (
                             <ArrowUp className="w-3 h-3 text-indigo-600 dark:text-indigo-400" />
                           ) : (
                             <ArrowDown className="w-3 h-3 text-indigo-600 dark:text-indigo-400" />
@@ -2492,40 +2510,206 @@ export default function App() {
                       </div>
                     </th>
                   ))}
-                  <th className="px-3 py-2 text-right">Detalle</th>
+                  <th className="px-3 py-2 text-left">Detalle Completo del Movimiento</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
                 {sortedAuditorias.map((log) => (
                   <tr key={log.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition">
-                    <td className="px-3 py-2 font-mono text-[11px] text-slate-500 dark:text-slate-400 border-r border-slate-200 dark:border-slate-800">
-                      {new Date(log.realizado_en).toLocaleString('es-CO')}
+                    <td className="px-3 py-2 font-mono text-[11px] text-slate-500 dark:text-slate-400 border-r border-slate-200 dark:border-slate-800 whitespace-nowrap">
+                      {new Date(log.realizado_en).toLocaleString('es-CO', {
+                        day: '2-digit',
+                        month: '2-digit',
+                        year: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        second: '2-digit',
+                      })}
                     </td>
-                    <td className="px-2.5 py-2 font-bold text-slate-900 dark:text-white border-r border-slate-200 dark:border-slate-800">
-                      {log.usuario?.nombre_completo || 'Sistema'}
+                    <td className="px-2.5 py-2 font-bold text-slate-900 dark:text-white border-r border-slate-200 dark:border-slate-800 whitespace-nowrap">
+                      <div className="flex flex-col">
+                        <span>{log.usuario?.nombre_completo || 'Sistema'}</span>
+                        <span className="text-[10px] text-slate-400 font-normal">{log.usuario?.correo || ''}</span>
+                      </div>
                     </td>
-                    <td className="px-2.5 py-2 border-r border-slate-200 dark:border-slate-800">
-                      <span className="px-1.5 py-0.5 rounded text-[10px] font-bold uppercase bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-slate-700">
-                        {log.accion}
+                    <td className="px-2.5 py-2 border-r border-slate-200 dark:border-slate-800 whitespace-nowrap">
+                      <span className={`px-2 py-0.5 rounded text-[10px] font-extrabold uppercase border ${
+                        log.accion === 'creacion'
+                          ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800'
+                          : log.accion === 'eliminacion'
+                          ? 'bg-rose-50 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 border-rose-200 dark:border-rose-800'
+                          : log.accion === 'cierre_periodo' || log.accion === 'reapertura_periodo'
+                          ? 'bg-amber-50 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border-amber-300 dark:border-amber-700'
+                          : 'bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border-indigo-200 dark:border-indigo-800'
+                      }`}>
+                        {log.accion.replace('_', ' ')}
                       </span>
                     </td>
-                    <td className="px-2.5 py-2 font-mono text-[11px] capitalize text-slate-600 dark:text-slate-400 border-r border-slate-200 dark:border-slate-800">
-                      {log.entidad}
+                    <td className="px-2.5 py-2 font-mono text-[11px] capitalize text-slate-600 dark:text-slate-400 border-r border-slate-200 dark:border-slate-800 whitespace-nowrap">
+                      <span className="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-[10px] font-semibold">
+                        {log.entidad.replace('_', ' ')}
+                      </span>
                     </td>
-                    <td className="px-3 py-2 font-mono text-[11px] text-right">
-                      {log.accion === 'actualizacion' && log.valor_anterior && log.valor_nuevo ? (
-                        <div className="flex items-center justify-end gap-1.5 text-slate-600 dark:text-slate-400">
-                          <span className="bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded border border-slate-200 dark:border-slate-700">
-                            {formatCOP(log.valor_anterior.valor_manual || log.valor_anterior.valor_calculado)}
+                    <td className="px-3 py-2 text-xs">
+                      {(() => {
+                        const accion = log.accion;
+                        const entidad = log.entidad;
+                        const ant = log.valor_anterior;
+                        const neu = log.valor_nuevo;
+                        const data = neu || ant || {};
+
+                        if (entidad === 'gasto') {
+                          if (accion === 'creacion') {
+                            return (
+                              <div className="flex items-center gap-1.5 text-emerald-800 dark:text-emerald-300 font-medium">
+                                <span>➕ Registrado gasto:</span>
+                                <strong className="text-slate-900 dark:text-white">"{data.concepto || 'Sin concepto'}"</strong>
+                                <span>por</span>
+                                <strong className="font-mono font-black text-emerald-900 dark:text-emerald-200">{formatCOP(data.monto || 0)}</strong>
+                                {data.comprobante_numero ? <span className="text-[11px] text-slate-500">(Comp: #{data.comprobante_numero})</span> : ''}
+                                {data.beneficiario ? <span className="text-[11px] text-slate-500">a {data.beneficiario}</span> : ''}
+                              </div>
+                            );
+                          }
+                          if (accion === 'eliminacion') {
+                            return (
+                              <div className="flex items-center gap-1.5 text-rose-800 dark:text-rose-300 font-medium">
+                                <span>🗑️ Eliminado gasto:</span>
+                                <strong className="text-slate-900 dark:text-white">"{data.concepto || 'Gasto'}"</strong>
+                                <span>por</span>
+                                <strong className="font-mono font-black">{formatCOP(data.monto || 0)}</strong>
+                                {data.comprobante_numero ? <span className="text-[11px] text-slate-500">(Comp: #{data.comprobante_numero})</span> : ''}
+                              </div>
+                            );
+                          }
+                          if (accion === 'actualizacion') {
+                            return (
+                              <div className="flex items-center gap-1.5 text-slate-700 dark:text-slate-300 font-medium">
+                                <span>✏️ Modificado gasto:</span>
+                                <strong className="text-slate-900 dark:text-white">"{ant?.concepto || neu?.concepto || 'Gasto'}"</strong>
+                                <span className="font-mono line-through text-slate-400">{formatCOP(ant?.monto || 0)}</span>
+                                <ArrowRight className="w-3 h-3 text-slate-400" />
+                                <strong className="font-mono text-emerald-700 dark:text-emerald-400 font-black">{formatCOP(neu?.monto || 0)}</strong>
+                              </div>
+                            );
+                          }
+                        }
+
+                        if (entidad === 'usuario') {
+                          if (accion === 'creacion') {
+                            return (
+                              <div className="text-emerald-800 dark:text-emerald-300">
+                                👤 Creado usuario: <strong className="text-slate-900 dark:text-white">{data.nombre_completo}</strong> ({data.correo}) — Rol: <strong className="uppercase">{data.rol}</strong>
+                              </div>
+                            );
+                          }
+                          if (accion === 'eliminacion') {
+                            return (
+                              <div className="text-rose-800 dark:text-rose-300">
+                                🗑️ Eliminado usuario: <strong className="text-slate-900 dark:text-white">{data.nombre_completo}</strong> ({data.correo})
+                              </div>
+                            );
+                          }
+                          return (
+                            <div className="text-slate-700 dark:text-slate-300">
+                              ✏️ Actualizado usuario: <strong className="text-slate-900 dark:text-white">{data.nombre_completo}</strong> ({data.correo}) {data.rol ? `[Rol: ${data.rol}]` : ''}
+                            </div>
+                          );
+                        }
+
+                        if (entidad === 'campo_plantilla') {
+                          if (accion === 'creacion') {
+                            return (
+                              <div className="text-emerald-800 dark:text-emerald-300">
+                                ➕ Creada columna: <strong className="text-slate-900 dark:text-white">"{data.nombre}"</strong> ({data.slug}) — Modo: <strong>{data.modo_calculo}</strong> {data.formula ? `[${data.formula}]` : ''}
+                              </div>
+                            );
+                          }
+                          if (accion === 'eliminacion') {
+                            return (
+                              <div className="text-rose-800 dark:text-rose-300">
+                                🗑️ Eliminada columna: <strong className="text-slate-900 dark:text-white">"{data.nombre}"</strong> ({data.slug})
+                              </div>
+                            );
+                          }
+                          const diffs: string[] = [];
+                          if (ant && neu) {
+                            if (ant.nombre !== neu.nombre) diffs.push(`Nombre: "${ant.nombre}" → "${neu.nombre}"`);
+                            if (ant.formula !== neu.formula) diffs.push(`Fórmula: "${ant.formula || 'manual'}" → "${neu.formula || 'manual'}"`);
+                            if (ant.es_fondo !== neu.es_fondo) diffs.push(`Fondo: ${neu.es_fondo ? 'Activado' : 'Desactivado'}`);
+                            if (ant.es_transito !== neu.es_transito) diffs.push(`Tránsito: ${neu.es_transito ? 'Sí' : 'No'}`);
+                            if (ant.seccion !== neu.seccion) diffs.push(`Sección: ${ant.seccion} → ${neu.seccion}`);
+                          }
+                          return (
+                            <div className="text-indigo-800 dark:text-indigo-300">
+                              ✏️ Columna: <strong className="text-slate-900 dark:text-white">"{data.nombre || 'Columna'}"</strong> {diffs.length > 0 ? `(${diffs.join(' | ')})` : '(Propiedades actualizadas)'}
+                            </div>
+                          );
+                        }
+
+                        if (entidad === 'informe_periodo') {
+                          return (
+                            <div className="flex items-center gap-1.5 text-indigo-800 dark:text-indigo-300">
+                              <span>📑 Estado de informe:</span>
+                              <span className="uppercase px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-[10px] font-bold">{ant?.estado || 'borrador'}</span>
+                              <ArrowRight className="w-3 h-3 text-slate-400" />
+                              <span className="uppercase px-1.5 py-0.5 rounded bg-emerald-100 dark:bg-emerald-950/80 text-emerald-950 dark:text-emerald-200 border border-emerald-300 dark:border-emerald-800 text-[10px] font-black">{neu?.estado || 'aprobado'}</span>
+                              {neu?.observaciones ? <span className="text-slate-500 italic">— "{neu.observaciones}"</span> : ''}
+                            </div>
+                          );
+                        }
+
+                        if (entidad === 'valor') {
+                          const church = log.valor?.iglesia?.nombre || 'Sede';
+                          const field = log.valor?.campo?.nombre || 'Valor';
+                          const valAnt = ant?.valor_manual ?? ant?.valor_calculado ?? 0;
+                          const valNeu = neu?.valor_manual ?? neu?.valor_calculado ?? 0;
+                          return (
+                            <div className="flex items-center gap-1.5 text-slate-700 dark:text-slate-300">
+                              <span className="font-bold text-slate-900 dark:text-white">{church}</span>
+                              <span className="text-slate-400">›</span>
+                              <span className="font-bold text-indigo-700 dark:text-indigo-400">{field}:</span>
+                              <span className="bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded font-mono text-[11px] text-slate-500 line-through">
+                                {formatCOP(valAnt)}
+                              </span>
+                              <ArrowRight className="w-3 h-3 text-slate-400" />
+                              <span className="bg-emerald-50 dark:bg-emerald-950/60 text-emerald-900 dark:text-emerald-200 px-1.5 py-0.5 rounded font-mono text-[11px] font-black border border-emerald-300 dark:border-emerald-700">
+                                {formatCOP(valNeu)}
+                              </span>
+                            </div>
+                          );
+                        }
+
+                        if (entidad === 'periodo') {
+                          return (
+                            <div className="text-amber-800 dark:text-amber-300 font-bold">
+                              🗓️ Periodo: <strong>{data.nombre || 'Periodo'}</strong> — {accion === 'cierre_periodo' ? '🔒 Cerrado' : accion === 'reapertura_periodo' ? '🔓 Reabierto' : accion}
+                            </div>
+                          );
+                        }
+
+                        if (entidad === 'iglesia') {
+                          return (
+                            <div className="text-indigo-800 dark:text-indigo-300">
+                              ⛪ Congregación: <strong className="text-slate-900 dark:text-white">{data.nombre}</strong> {data.codigo ? `(#${data.codigo})` : ''} {data.nombre_pastor ? `(Pastor: ${data.nombre_pastor})` : ''}
+                            </div>
+                          );
+                        }
+
+                        if (entidad === 'tabla') {
+                          return (
+                            <div className="text-slate-700 dark:text-slate-300">
+                              📊 Tabla: <strong className="text-slate-900 dark:text-white">{data.nombre}</strong>
+                            </div>
+                          );
+                        }
+
+                        return (
+                          <span className="text-slate-500 font-mono">
+                            {JSON.stringify(data).slice(0, 80)}
                           </span>
-                          <ArrowRight className="w-3 h-3 text-slate-400" />
-                          <span className="bg-amber-50 dark:bg-amber-950/60 text-amber-900 dark:text-amber-300 px-1.5 py-0.5 rounded border border-amber-200 dark:border-amber-800 font-bold">
-                            {formatCOP(log.valor_nuevo.valor_manual || log.valor_nuevo.valor_calculado)}
-                          </span>
-                        </div>
-                      ) : (
-                        <span className="text-slate-400 dark:text-slate-500">Operación exitosa</span>
-                      )}
+                        );
+                      })()}
                     </td>
                   </tr>
                 ))}

@@ -1,5 +1,4 @@
-import React from 'react';
-import { X, CheckCircle2, Columns, Wallet, Building2, Send } from 'lucide-react';
+import { X, CheckCircle2, Columns, Building2, Send, FileText } from 'lucide-react';
 import type { Periodo } from '../../types/contabilidad';
 import { HelpTooltip } from '../common/HelpTooltip';
 
@@ -790,108 +789,111 @@ export function ColumnConfigDrawer({
             />
           </div>
 
-          {/* ── Control de Fondos y Gastos ── */}
-          <div className={`p-2.5 rounded-lg border transition ${
-            fieldModalData.es_fondo
-              ? 'bg-indigo-50/70 border-indigo-300 ring-1 ring-indigo-500/20'
-              : 'bg-slate-50 border-slate-200'
-          }`}>
-            <div className="flex items-start justify-between">
-              <label className="flex items-start gap-2.5 cursor-pointer flex-1">
-                <input
-                  type="checkbox"
-                  checked={fieldModalData.es_fondo}
-                  onChange={(e) => update({ es_fondo: e.target.checked })}
-                  className="accent-indigo-600 w-4 h-4 mt-0.5"
-                />
-                <div className="flex-1">
-                  <div className="flex items-center gap-1.5">
-                    <Wallet className={`w-3.5 h-3.5 ${fieldModalData.es_fondo ? 'text-indigo-600' : 'text-slate-500'}`} />
-                    <span className="font-bold text-slate-800 text-xs">
-                      Habilitar como Fondo de Tesorería
-                    </span>
-                    {fieldModalData.es_fondo && (
-                      <span className="text-[9px] font-black uppercase tracking-wider bg-indigo-100 text-indigo-700 px-1.5 py-0.5 rounded">
-                        Activo
-                      </span>
-                    )}
-                  </div>
-                  <span className="text-[10px] text-slate-500 block mt-0.5 leading-relaxed">
-                    Permite controlar el recaudo, saldo disponible y salidas de dinero de esta columna.
-                  </span>
-                </div>
+          {/* ── DESTINO Y CONTROL CONTABLE DEL DINERO (Propio vs Tránsito vs Informativo) ── */}
+          <div className="p-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl space-y-2.5">
+            <div className="flex items-center justify-between">
+              <label className="block text-[11px] font-extrabold uppercase tracking-wider text-slate-800 dark:text-slate-200">
+                💰 Control Contable & Destino del Dinero
               </label>
               <HelpTooltip
-                title="Fondos de Tesorería"
-                text="Convierte este concepto en una 'bolsa' o cuenta controlada en el panel de Gastos. Te permitirá registrar egresos directamente contra este dinero y generar comprobantes oficiales."
+                title="Destino Contable del Dinero"
+                text="Define si el dinero de esta columna permanece en la tesorería local para gastos, si es un recaudo que viaja íntegro a un ente superior (Tránsito), o si es meramente informativo para la planilla."
               />
             </div>
 
-            {/* Selector de Destino Contable del Fondo */}
-            {fieldModalData.es_fondo && (
-              <div className="mt-3 pt-3 border-t border-indigo-200/80 dark:border-indigo-800/80 space-y-2">
-                <div className="flex items-center justify-between">
-                  <label className="block text-[10px] font-extrabold uppercase tracking-wider text-slate-700 dark:text-slate-300">
-                    Destino Contable del Dinero Recaudado
-                  </label>
-                  <HelpTooltip
-                    title="Fondo Propio vs En Tránsito"
-                    text="🏛️ Fondo Propio: Dinero que permanece en la Zona 52 para gastos locales y suma al saldo de caja zonal.\n\n🚀 En Tránsito: Dinero que se recauda pero viaja íntegramente a un ente superior (Directiva Nacional, etc.). Se contabiliza pero no infla el saldo de caja local."
-                  />
-                </div>
-                
-                <div className="grid grid-cols-2 gap-2">
-                  <button
-                    type="button"
-                    onClick={() => update({ es_transito: false })}
-                    className={`p-2 rounded-lg border text-left transition cursor-pointer ${
-                      !fieldModalData.es_transito
-                        ? 'border-indigo-600 dark:border-indigo-500 bg-white dark:bg-slate-800 text-indigo-950 dark:text-indigo-200 font-bold shadow-xs'
-                        : 'border-slate-200 dark:border-slate-700 bg-slate-50/70 dark:bg-slate-800/50 text-slate-600 dark:text-slate-400 hover:bg-white dark:hover:bg-slate-800'
-                    }`}
-                  >
-                    <div className="flex items-center gap-1.5 text-xs">
-                      <Building2 className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
-                      <span>🏛️ Fondo Propio</span>
-                    </div>
-                    <p className="text-[10px] text-slate-500 dark:text-slate-400 font-normal mt-1 leading-tight">
-                      Queda en caja de la Zona 52 para gastos locales.
-                    </p>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => update({ es_transito: true })}
-                    className={`p-2 rounded-lg border text-left transition cursor-pointer ${
-                      fieldModalData.es_transito
-                        ? 'border-indigo-600 dark:border-indigo-500 bg-white dark:bg-slate-800 text-indigo-950 dark:text-indigo-200 font-bold shadow-xs'
-                        : 'border-slate-200 dark:border-slate-700 bg-slate-50/70 dark:bg-slate-800/50 text-slate-600 dark:text-slate-400 hover:bg-white dark:hover:bg-slate-800'
-                    }`}
-                  >
-                    <div className="flex items-center gap-1.5 text-xs">
-                      <Send className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
-                      <span>🚀 En Tránsito</span>
-                    </div>
-                    <p className="text-[10px] text-slate-500 dark:text-slate-400 font-normal mt-1 leading-tight">
-                      Viaja / Se gira a un ente superior (no infla caja).
-                    </p>
-                  </button>
-                </div>
-
-                {fieldModalData.es_transito && (
-                  <div className="pt-1.5">
-                    <label className="block text-[10px] font-bold text-slate-700 dark:text-slate-300 mb-1">
-                      Ente Superior Destinatario (Opcional):
-                    </label>
-                    <input
-                      type="text"
-                      placeholder="Ej: Sede Nacional, Fondo Pensional Central..."
-                      value={fieldModalData.ente_superior_nombre || ''}
-                      onChange={(e) => update({ ente_superior_nombre: e.target.value })}
-                      className="w-full px-2.5 py-1.5 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg text-xs text-slate-900 dark:text-slate-100 focus:outline-none focus:border-indigo-600 shadow-2xs"
-                    />
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+              {/* Option 1: Fondo Propio */}
+              <button
+                type="button"
+                onClick={() => update({ es_fondo: true, es_transito: false })}
+                className={`p-2.5 rounded-lg border text-left transition cursor-pointer flex flex-col justify-between ${
+                  fieldModalData.es_fondo && !fieldModalData.es_transito
+                    ? 'border-indigo-600 dark:border-indigo-500 bg-indigo-50/80 dark:bg-indigo-950/60 text-indigo-950 dark:text-indigo-200 ring-1 ring-indigo-500/30'
+                    : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/80'
+                }`}
+              >
+                <div>
+                  <div className="flex items-center gap-1.5 text-xs font-bold">
+                    <Building2 className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400 shrink-0" />
+                    <span>🏛️ Fondo Propio</span>
                   </div>
+                  <p className="text-[10px] text-slate-500 dark:text-slate-400 font-normal mt-1 leading-tight">
+                    Se queda en tesorería para cubrir gastos locales.
+                  </p>
+                </div>
+                {fieldModalData.es_fondo && !fieldModalData.es_transito && (
+                  <span className="text-[9px] font-black uppercase text-indigo-700 dark:text-indigo-300 mt-1.5">
+                    ✓ En Caja
+                  </span>
                 )}
+              </button>
+
+              {/* Option 2: En Tránsito */}
+              <button
+                type="button"
+                onClick={() => update({ es_fondo: true, es_transito: true })}
+                className={`p-2.5 rounded-lg border text-left transition cursor-pointer flex flex-col justify-between ${
+                  fieldModalData.es_fondo && fieldModalData.es_transito
+                    ? 'border-amber-500 dark:border-amber-500 bg-amber-50/80 dark:bg-amber-950/60 text-amber-950 dark:text-amber-200 ring-1 ring-amber-500/30'
+                    : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/80'
+                }`}
+              >
+                <div>
+                  <div className="flex items-center gap-1.5 text-xs font-bold">
+                    <Send className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400 shrink-0" />
+                    <span>🚀 En Tránsito</span>
+                  </div>
+                  <p className="text-[10px] text-slate-500 dark:text-slate-400 font-normal mt-1 leading-tight">
+                    No se queda: se transfiere al ente superior.
+                  </p>
+                </div>
+                {fieldModalData.es_fondo && fieldModalData.es_transito && (
+                  <span className="text-[9px] font-black uppercase text-amber-700 dark:text-amber-300 mt-1.5">
+                    ✓ Por Girar
+                  </span>
+                )}
+              </button>
+
+              {/* Option 3: Solo Informativo */}
+              <button
+                type="button"
+                onClick={() => update({ es_fondo: false, es_transito: false, ente_superior_nombre: '' })}
+                className={`p-2.5 rounded-lg border text-left transition cursor-pointer flex flex-col justify-between ${
+                  !fieldModalData.es_fondo
+                    ? 'border-slate-400 dark:border-slate-500 bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-slate-100 ring-1 ring-slate-400/30'
+                    : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/80'
+                }`}
+              >
+                <div>
+                  <div className="flex items-center gap-1.5 text-xs font-bold">
+                    <FileText className="w-3.5 h-3.5 text-slate-500 shrink-0" />
+                    <span>⚪ Informativo</span>
+                  </div>
+                  <p className="text-[10px] text-slate-500 dark:text-slate-400 font-normal mt-1 leading-tight">
+                    Solo para cálculos de planilla / no genera fondo.
+                  </p>
+                </div>
+                {!fieldModalData.es_fondo && (
+                  <span className="text-[9px] font-black uppercase text-slate-600 dark:text-slate-400 mt-1.5">
+                    ✓ Solo Cálculo
+                  </span>
+                )}
+              </button>
+            </div>
+
+            {/* Input Ente Superior si es En Tránsito */}
+            {fieldModalData.es_fondo && fieldModalData.es_transito && (
+              <div className="pt-2 border-t border-amber-200 dark:border-amber-900/60">
+                <label className="block text-[10px] font-bold text-amber-900 dark:text-amber-300 mb-1">
+                  Ente Superior Destinatario (a quién se gira):
+                </label>
+                <input
+                  type="text"
+                  placeholder="Ej: Consistorio Nacional, Misiones Nacionales, DIAN..."
+                  value={fieldModalData.ente_superior_nombre || ''}
+                  onChange={(e) => update({ ente_superior_nombre: e.target.value })}
+                  className="w-full px-2.5 py-1.5 bg-white dark:bg-slate-800 border border-amber-300 dark:border-amber-700 rounded-lg text-xs text-slate-900 dark:text-slate-100 focus:outline-none focus:border-amber-600 shadow-2xs font-semibold"
+                />
               </div>
             )}
           </div>
