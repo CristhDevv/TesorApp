@@ -2,52 +2,108 @@
   "outputDirectory": "frontend-desktop/dist",
   "rewrites": [
     {
+      "source": "/auth",
+      "destination": "https://backend-zeta-rouge-39.vercel.app/auth"
+    },
+    {
       "source": "/auth/:path*",
       "destination": "https://backend-zeta-rouge-39.vercel.app/auth/:path*"
+    },
+    {
+      "source": "/valores",
+      "destination": "https://backend-zeta-rouge-39.vercel.app/valores"
     },
     {
       "source": "/valores/:path*",
       "destination": "https://backend-zeta-rouge-39.vercel.app/valores/:path*"
     },
     {
+      "source": "/iglesias",
+      "destination": "https://backend-zeta-rouge-39.vercel.app/iglesias"
+    },
+    {
       "source": "/iglesias/:path*",
       "destination": "https://backend-zeta-rouge-39.vercel.app/iglesias/:path*"
+    },
+    {
+      "source": "/campos",
+      "destination": "https://backend-zeta-rouge-39.vercel.app/campos"
     },
     {
       "source": "/campos/:path*",
       "destination": "https://backend-zeta-rouge-39.vercel.app/campos/:path*"
     },
     {
+      "source": "/tablas",
+      "destination": "https://backend-zeta-rouge-39.vercel.app/tablas"
+    },
+    {
       "source": "/tablas/:path*",
       "destination": "https://backend-zeta-rouge-39.vercel.app/tablas/:path*"
+    },
+    {
+      "source": "/usuarios",
+      "destination": "https://backend-zeta-rouge-39.vercel.app/usuarios"
     },
     {
       "source": "/usuarios/:path*",
       "destination": "https://backend-zeta-rouge-39.vercel.app/usuarios/:path*"
     },
     {
+      "source": "/periodos",
+      "destination": "https://backend-zeta-rouge-39.vercel.app/periodos"
+    },
+    {
       "source": "/periodos/:path*",
       "destination": "https://backend-zeta-rouge-39.vercel.app/periodos/:path*"
+    },
+    {
+      "source": "/permisos",
+      "destination": "https://backend-zeta-rouge-39.vercel.app/permisos"
     },
     {
       "source": "/permisos/:path*",
       "destination": "https://backend-zeta-rouge-39.vercel.app/permisos/:path*"
     },
     {
+      "source": "/reportes",
+      "destination": "https://backend-zeta-rouge-39.vercel.app/reportes"
+    },
+    {
       "source": "/reportes/:path*",
       "destination": "https://backend-zeta-rouge-39.vercel.app/reportes/:path*"
+    },
+    {
+      "source": "/historial",
+      "destination": "https://backend-zeta-rouge-39.vercel.app/historial"
     },
     {
       "source": "/historial/:path*",
       "destination": "https://backend-zeta-rouge-39.vercel.app/historial/:path*"
     },
     {
+      "source": "/gastos",
+      "destination": "https://backend-zeta-rouge-39.vercel.app/gastos"
+    },
+    {
       "source": "/gastos/:path*",
       "destination": "https://backend-zeta-rouge-39.vercel.app/gastos/:path*"
     },
     {
+      "source": "/informes",
+      "destination": "https://backend-zeta-rouge-39.vercel.app/informes"
+    },
+    {
       "source": "/informes/:path*",
       "destination": "https://backend-zeta-rouge-39.vercel.app/informes/:path*"
+    },
+    {
+      "source": "/ai",
+      "destination": "https://backend-zeta-rouge-39.vercel.app/ai"
+    },
+    {
+      "source": "/ai/:path*",
+      "destination": "https://backend-zeta-rouge-39.vercel.app/ai/:path*"
     },
     {
       "source": "/(.*)",
