@@ -523,13 +523,76 @@ export default function App() {
     if (!selectedPeriodoId) return;
     try {
       const isConsolidated = selectedTablaId === 'all' || !selectedTablaId;
-      const url = isConsolidated
-        ? `${API_BASE}/valores?tabla_id=all&periodo_id=${selectedPeriodoId}&mostrar_todos=true`
-        : `${API_BASE}/valores?tabla_id=${selectedTablaId}&periodo_id=${selectedPeriodoId}${
+      if (isConsolidated) {
+        try {
+          const res = await axios.get(
+            `${API_BASE}/valores?tabla_id=all&periodo_id=${selectedPeriodoId}&mostrar_todos=true`
+          );
+          setGridData(res.data);
+          return;
+        } catch {
+          // Fallback if backend expects specific table UUID
+          if (tablas.length > 0) {
+            const list = tablas;
+            const tableResults = await Promise.all(
+              list.map((t) =>
+                axios
+                  .get(`${API_BASE}/valores?tabla_id=${t.id}&periodo_id=${selectedPeriodoId}&mostrar_todos=true`)
+                  .then((r) => r.data)
+                  .catch(() => null)
+              )
+            );
+            const valid = tableResults.filter(Boolean);
+            if (valid.length > 0) {
+              const columnMap = new Map<string, any>();
+              // If global campos is available, use global columns
+              if (campos.length > 0) {
+                for (const c of campos) columnMap.set(c.id, c);
+              }
+              for (const tableData of valid) {
+                for (const col of tableData.columnas || []) {
+                  if (!columnMap.has(col.id)) columnMap.set(col.id, col);
+                }
+              }
+
+              const churchMap = new Map<string, any>();
+              for (const tableData of valid) {
+                for (const row of tableData.filas || []) {
+                  if (!churchMap.has(row.iglesia_id)) {
+                    churchMap.set(row.iglesia_id, {
+                      ...row,
+                      valores: { ...row.valores },
+                    });
+                  } else {
+                    const existing = churchMap.get(row.iglesia_id);
+                    existing.valores = {
+                      ...existing.valores,
+                      ...row.valores,
+                    };
+                  }
+                }
+              }
+
+              setGridData({
+                tabla_id: 'all',
+                tabla_nombre: 'Consolidado General (Todas las Tablas)',
+                periodo_id: selectedPeriodoId,
+                periodo_nombre: selectedPeriodObj?.nombre || 'Periodo Actual',
+                columnas: Array.from(columnMap.values()),
+                filas: Array.from(churchMap.values()),
+              });
+              return;
+            }
+          }
+        }
+      } else {
+        const res = await axios.get(
+          `${API_BASE}/valores?tabla_id=${selectedTablaId}&periodo_id=${selectedPeriodoId}${
             showAllColumns ? '&mostrar_todos=true' : ''
-          }`;
-      const res = await axios.get(url);
-      setGridData(res.data);
+          }`
+        );
+        setGridData(res.data);
+      }
     } catch (err) {
       console.error(err);
       triggerToast('No se pudieron cargar los valores', 'error');
