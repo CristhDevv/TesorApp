@@ -474,6 +474,16 @@ export function MobileView({
                 {theme === 'dark' ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4 text-slate-700" />}
               </button>
             )}
+            {isTesorero && (
+              <button
+                onClick={onSwitchToDesktop}
+                title="Cambiar a Vista de Tesorería General"
+                className="px-2 py-1 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-[11px] font-bold flex items-center gap-1 transition cursor-pointer shadow-xs"
+              >
+                <Building2 className="w-3.5 h-3.5" />
+                <span className="hidden xs:inline">Tesorería</span>
+              </button>
+            )}
             <button
               onClick={onSwitchToDesktop}
               title="Cambiar a vista de escritorio"

@@ -29,6 +29,7 @@ import {
   Sun,
   Moon,
   HelpCircle,
+  Church,
 } from 'lucide-react';
 import {
   Chart as ChartJS,
@@ -105,6 +106,16 @@ export default function App() {
   const [activeTab, setActiveTab] = useState<'dashboard' | 'sheet' | 'iglesias' | 'campos' | 'usuarios' | 'historial' | 'gastos' | 'reportes'>('dashboard');
   const [loading, setLoading] = useState(false);
   const [toast, setToast] = useState<{ msg: string; type: 'success' | 'error' } | null>(null);
+
+  // Role View Switching State (for users who are both Tesorero and Pastor)
+  const [viewRoleMode, setViewRoleMode] = useState<'tesorero' | 'iglesia'>(() => {
+    return (localStorage.getItem('tesorapp_view_role_mode') as 'tesorero' | 'iglesia') || 'tesorero';
+  });
+
+  const handleSetViewRoleMode = (mode: 'tesorero' | 'iglesia') => {
+    setViewRoleMode(mode);
+    localStorage.setItem('tesorapp_view_role_mode', mode);
+  };
 
   // Sidebar Collapse State
   const [sidebarOpen, setSidebarOpen] = useState<boolean>(() => {
@@ -1406,14 +1417,17 @@ export default function App() {
     );
   }
 
-  // ─── ADAPTIVE MOBILE VIEW FOR MOBILE DEVICES OR OVERRIDE ─────────────
-  if (token && isMobile) {
+  // ─── ADAPTIVE MOBILE VIEW FOR MOBILE DEVICES, CHURCH USERS, OR SWITCHED MODE ─────────────
+  if (token && (isMobile || (user?.rol === 'tesorero' && !!user?.iglesia_id && viewRoleMode === 'iglesia'))) {
     return (
       <MobileView
         token={token}
         user={user}
         onLogout={handleLogout}
-        onSwitchToDesktop={() => setOverride('desktop')}
+        onSwitchToDesktop={() => {
+          handleSetViewRoleMode('tesorero');
+          setOverride('desktop');
+        }}
         API_BASE={API_BASE}
         theme={theme}
         onToggleTheme={toggleTheme}
@@ -1669,6 +1683,18 @@ export default function App() {
                 <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
                 <span>Periodo: <strong className="text-slate-900 dark:text-white">{selectedPeriodObj.nombre}</strong></span>
               </div>
+            )}
+
+            {user?.rol === 'tesorero' && user?.iglesia_id && (
+              <button
+                onClick={() => handleSetViewRoleMode('iglesia')}
+                className="px-2.5 py-1 rounded-lg bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-950/60 dark:hover:bg-indigo-900/60 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 transition cursor-pointer flex items-center gap-1.5 text-xs font-bold shadow-2xs"
+                title="Cambiar a Vista de Sede Pastoral para diligenciar su informe"
+              >
+                <Church className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
+                <span className="hidden sm:inline">Mi Sede: {iglesias.find((i) => i.id === user.iglesia_id)?.nombre || 'Pastor'}</span>
+                <span className="sm:hidden">Mi Sede</span>
+              </button>
             )}
 
             <button
@@ -2781,35 +2807,37 @@ export default function App() {
                     <option value="tesorero">Tesorero General</option>
                   </select>
                 </div>
-                {userModalData.rol === 'iglesia' && (
-                  <div>
-                    <label className="block font-bold text-slate-600 dark:text-slate-400 text-[10px] uppercase mb-1">Iglesia Asignada</label>
-                    <select
-                      required={userModalData.rol === 'iglesia'}
-                      className="w-full px-3 py-1.5 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded text-slate-900 dark:text-slate-100 focus:outline-none focus:border-indigo-600 text-xs font-semibold cursor-pointer"
-                      value={userModalData.iglesia_id}
-                      onChange={(e) => {
-                        const igId = e.target.value;
-                        const ig = iglesias.find((i) => i.id === igId);
-                        setUserModalData({
-                          ...userModalData,
-                          iglesia_id: igId,
-                          nombre_completo:
-                            userModalData.nombre_completo ||
-                            (ig?.nombre_pastor ? ig.nombre_pastor : ig ? `Encargado ${ig.nombre}` : ''),
-                          correo: userModalData.correo || ig?.correo || '',
-                        });
-                      }}
-                    >
-                      <option value="">-- Seleccionar Iglesia --</option>
-                      {iglesias.map((i) => (
-                        <option key={i.id} value={i.id}>
-                          {i.nombre} {i.codigo ? `(${i.codigo})` : ''}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                )}
+                <div>
+                  <label className="block font-bold text-slate-600 dark:text-slate-400 text-[10px] uppercase mb-1">
+                    {userModalData.rol === 'iglesia' ? 'Iglesia Asignada *' : 'Sede Pastoral (Opcional)'}
+                  </label>
+                  <select
+                    required={userModalData.rol === 'iglesia'}
+                    className="w-full px-3 py-1.5 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded text-slate-900 dark:text-slate-100 focus:outline-none focus:border-indigo-600 text-xs font-semibold cursor-pointer"
+                    value={userModalData.iglesia_id}
+                    onChange={(e) => {
+                      const igId = e.target.value;
+                      const ig = iglesias.find((i) => i.id === igId);
+                      setUserModalData({
+                        ...userModalData,
+                        iglesia_id: igId,
+                        nombre_completo:
+                          userModalData.nombre_completo ||
+                          (ig?.nombre_pastor ? ig.nombre_pastor : ig ? `Encargado ${ig.nombre}` : ''),
+                        correo: userModalData.correo || ig?.correo || '',
+                      });
+                    }}
+                  >
+                    <option value="">
+                      {userModalData.rol === 'iglesia' ? '-- Seleccionar Iglesia --' : '-- Sin sede (solo Tesorero General) --'}
+                    </option>
+                    {iglesias.map((i) => (
+                      <option key={i.id} value={i.id}>
+                        {i.nombre} {i.codigo ? `(${i.codigo})` : ''}
+                      </option>
+                    ))}
+                  </select>
+                </div>
               </div>
               <div>
                 <label className="block font-bold text-slate-600 dark:text-slate-400 text-[10px] uppercase mb-1">Nombre Completo</label>

@@ -78,7 +78,7 @@ export class UsuariosService {
           correo: data.correo,
           contrasena_hash,
           rol: data.rol,
-          iglesia_id: data.rol === 'iglesia' ? data.iglesia_id : null,
+          iglesia_id: data.iglesia_id || null,
         },
       });
 
@@ -127,11 +127,12 @@ export class UsuariosService {
         activo: data.activo,
       };
 
-      if (data.rol) {
-        updatedData.iglesia_id = data.rol === 'iglesia' ? (data.iglesia_id ?? original.iglesia_id) : null;
-        if (data.rol === 'iglesia' && !updatedData.iglesia_id) {
-          throw new BadRequestException('El rol de iglesia requiere asignar una congregación.');
-        }
+      if (data.iglesia_id !== undefined) {
+        updatedData.iglesia_id = data.iglesia_id || null;
+      }
+
+      if (data.rol === 'iglesia' && !updatedData.iglesia_id && !original.iglesia_id) {
+        throw new BadRequestException('El rol de iglesia requiere asignar una congregación.');
       }
 
       if (data.contrasena) {
