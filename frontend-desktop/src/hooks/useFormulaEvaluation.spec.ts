@@ -156,4 +156,40 @@ describe('useFormulaEvaluation hook', () => {
 
     expect(result.current.getValue('ig-3', 'f_pct')).toBe(48000);
   });
+
+  it('debe respetar override de 0 en un campo calculado sin recalcular la fórmula', () => {
+    const fields: Campo[] = [
+      { id: 'f1', nombre: 'Diezmos', slug: 'diezmos', tipo: 'moneda', modo_calculo: 'manual', formula: null } as any,
+      { id: 'f2', nombre: 'Ofrendas', slug: 'ofrendas', tipo: 'moneda', modo_calculo: 'manual', formula: null } as any,
+      { id: 'f3', nombre: '10%', slug: 'c_10_porciento', tipo: 'moneda', modo_calculo: 'calculado', formula: '(diezmos + ofrendas) * 0.1' } as any,
+      { id: 'f4', nombre: '3%', slug: 'c_3_porciento', tipo: 'moneda', modo_calculo: 'calculado', formula: '(diezmos + ofrendas) * 0.03' } as any,
+    ];
+
+    const rows: FilaGrid[] = [
+      {
+        iglesia_id: 'ig-4',
+        iglesia_nombre: 'La Paz',
+        valores: [
+          { campo_id: 'f1', slug: 'diezmos', modo_calculo: 'manual', valor_manual: 10000 },
+          { campo_id: 'f2', slug: 'ofrendas', modo_calculo: 'manual', valor_manual: 345555 },
+          // 10% is explicitly overridden to 0
+          { campo_id: 'f3', slug: 'c_10_porciento', modo_calculo: 'calculado', valor_manual: 0, valor_calculado: 0 },
+          // 3% has no override (valor_manual is null) -> should calculate 10666.65
+          { campo_id: 'f4', slug: 'c_3_porciento', modo_calculo: 'calculado', valor_manual: null, valor_calculado: 10666.65 },
+        ],
+      } as any,
+    ];
+
+    const { result } = renderHook(() =>
+      useFormulaEvaluation({
+        allFields: fields,
+        rows: rows,
+      }),
+    );
+
+    // 10% must remain 0 because it was overridden with 0, not recalculate to 35555.5
+    expect(result.current.getValue('ig-4', 'f3')).toBe(0);
+    // 3% must evaluate to 10666.65
+    expect(result.current.getValue('ig-4', 'f4')).toBe(10666.65);
+  });
 });

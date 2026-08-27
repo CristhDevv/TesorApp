@@ -44,8 +44,8 @@ export const FormulaBar = React.memo(function FormulaBar({
   const cellVal = row?.valores?.find((v) => v.campo_id === activeCell.fieldId);
 
   const isCalc = col?.modo_calculo === 'calculado' || cellVal?.modo_calculo === 'calculado';
-  const displayVal = isCalc ? cellVal?.valor_calculado : cellVal?.valor_manual;
-  const isOverridden = isCalc && cellVal?.valor_manual != null && cellVal?.valor_manual !== 0;
+  const isOverridden = isCalc && cellVal?.valor_manual !== null && cellVal?.valor_manual !== undefined;
+  const displayVal = isCalc ? (isOverridden ? Number(cellVal?.valor_manual) : cellVal?.valor_calculado) : (cellVal?.valor_manual ?? 0);
   const formula = col?.formula ?? cellVal?.formula;
 
   // Extract variables used in the formula

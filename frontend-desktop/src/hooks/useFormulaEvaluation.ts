@@ -175,10 +175,11 @@ export function useFormulaEvaluation({
       // Seed with server values
       for (const val of (Array.isArray(row.valores) ? row.valores : [])) {
         const isCalc = val.modo_calculo === 'calculado';
+        const isOverridden = isCalc && val.valor_manual !== null && val.valor_manual !== undefined;
         const num = Number(
           isCalc
-            ? (val.valor_manual != null && val.valor_manual !== 0 ? val.valor_manual : val.valor_calculado)
-            : val.valor_manual
+            ? (isOverridden ? val.valor_manual : val.valor_calculado)
+            : (val.valor_manual ?? 0)
         ) || 0;
         vars[val.slug] = num;
         vars[val.campo_id] = num;
@@ -214,7 +215,7 @@ export function useFormulaEvaluation({
         if (!field || field.modo_calculo !== 'calculado' || !field.formula) continue;
 
         const serverVal = (Array.isArray(row.valores) ? row.valores : []).find(v => v.campo_id === fId);
-        if (serverVal && serverVal.valor_manual != null && Number(serverVal.valor_manual) !== 0 && overrides[field.slug] === undefined) {
+        if (serverVal && serverVal.valor_manual !== null && serverVal.valor_manual !== undefined && overrides[field.slug] === undefined) {
           vars[field.slug] = Number(serverVal.valor_manual);
           vars[fId] = Number(serverVal.valor_manual);
           continue;

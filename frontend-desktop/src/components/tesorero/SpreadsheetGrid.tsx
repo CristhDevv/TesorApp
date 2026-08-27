@@ -76,8 +76,8 @@ const GridRow = React.memo(function GridRow({
       const val = valMap.get(col.id);
       if (val) {
         const isCalc = col.modo_calculo === 'calculado' || val.modo_calculo === 'calculado';
-        const isOverridden = isCalc && val.valor_manual != null && val.valor_manual !== 0;
-        const num = Number(isCalc ? (isOverridden ? val.valor_manual : (val.valor_calculado || 0)) : (val.valor_manual || 0));
+        const isOverridden = isCalc && val.valor_manual !== null && val.valor_manual !== undefined;
+        const num = Number(isCalc ? (isOverridden ? val.valor_manual : (val.valor_calculado || 0)) : (val.valor_manual ?? 0));
         if (!isNaN(num)) sum += num;
       }
     });
@@ -176,8 +176,8 @@ const GridRow = React.memo(function GridRow({
           activeCell?.fieldId === col.id;
         const isCalc = col.modo_calculo === 'calculado' || val.modo_calculo === 'calculado';
         const canEdit = isPeriodOpen && (isTesorero || (!isCalc && val.editable !== false));
-        const isOverridden = isCalc && val.valor_manual != null && val.valor_manual !== 0;
-        const displayVal = isCalc ? (isOverridden ? val.valor_manual : val.valor_calculado) : val.valor_manual;
+        const isOverridden = isCalc && val.valor_manual !== null && val.valor_manual !== undefined;
+        const displayVal = isCalc ? (isOverridden ? Number(val.valor_manual) : val.valor_calculado) : (val.valor_manual ?? 0);
 
         return (
           <EditableCell

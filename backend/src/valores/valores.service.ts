@@ -136,7 +136,9 @@ export class ValoresService {
         visible_para_tesorero: f.visible_para_tesorero,
         tipo_redondeo: (f as any).tipo_redondeo || 'ninguno',
         multiplo_redondeo: (f as any).multiplo_redondeo ? Number((f as any).multiplo_redondeo) : 1,
-        valor_manual: valRec ? Number(valRec.valor_manual ?? 0) : 0,
+        valor_manual: valRec && valRec.valor_manual !== null && valRec.valor_manual !== undefined
+          ? Number(valRec.valor_manual)
+          : (f.modo_calculo === ModoCalculo.manual ? 0 : null),
         valor_calculado: valRec ? Number(valRec.valor_calculado ?? 0) : 0,
         valor_acumulado: valRec ? Number(valRec.valor_acumulado ?? 0) : 0,
         actualizado_en: valRec ? valRec.actualizado_en : null,
@@ -209,7 +211,12 @@ export class ValoresService {
     ]);
 
     const variablesMap: Record<string, number> = {};
+    const manualOverridesMap = new Map<string, number>();
+
     for (const cv of currentVals) {
+      if (cv.valor_manual !== null && cv.valor_manual !== undefined) {
+        manualOverridesMap.set(cv.campo_id, Number(cv.valor_manual));
+      }
       const val = Number(cv.valor_manual ?? cv.valor_calculado ?? 0);
       variablesMap[cv.campo.slug] = val;
       variablesMap[cv.campo_id] = val;
@@ -228,6 +235,7 @@ export class ValoresService {
         variablesMap[matchedField.slug] = numVal;
       }
       variablesMap[item.campo_id] = numVal;
+      manualOverridesMap.set(item.campo_id, numVal);
 
       ops.push(
         this.prisma.valor.upsert({
@@ -259,13 +267,21 @@ export class ValoresService {
     const orderOfEvaluation = this.formulasService.topologicalSort(allFields);
 
     for (const fId of orderOfEvaluation) {
-      // If the treasurer explicitly entered a value for this calculated field, preserve it
+      // If the treasurer explicitly entered a value in this request for this calculated field, preserve it
       if (userRol === 'tesorero' && explicitCampoIds.has(fId)) {
         continue;
       }
 
       const fieldDef = allFields.find((f) => f.id === fId);
       if (!fieldDef || fieldDef.modo_calculo !== ModoCalculo.calculado || !fieldDef.formula) continue;
+
+      // If this calculated field already had an explicit manual override, preserve it!
+      if (userRol === 'tesorero' && manualOverridesMap.has(fId)) {
+        const overriddenVal = manualOverridesMap.get(fId)!;
+        variablesMap[fieldDef.slug] = overriddenVal;
+        variablesMap[fieldDef.id] = overriddenVal;
+        continue;
+      }
 
       const rawCalculated = this.formulasService.evaluate(fieldDef.formula, variablesMap, allFields);
       const calculatedVal = this.formulasService.applyRounding(
@@ -471,7 +487,7 @@ export class ValoresService {
           if (!fieldDef || !fieldDef.formula) continue;
 
           const valRec = valuesMap.get(`${periodoId}_${churchId}_${fieldDef.id}`);
-          const hasManualOverride = valRec?.valor_manual != null && Number(valRec.valor_manual) !== 0;
+          const hasManualOverride = valRec?.valor_manual !== null && valRec?.valor_manual !== undefined;
 
           let calculatedVal: number;
           if (hasManualOverride) {
@@ -729,9 +745,13 @@ export class ValoresService {
           campo_id: f.id,
           slug: f.slug,
           modo_calculo: f.modo_calculo,
-          valor_manual: valRec ? Number(valRec.valor_manual ?? 0) : 0,
+          valor_manual: valRec && valRec.valor_manual !== null && valRec.valor_manual !== undefined
+            ? Number(valRec.valor_manual)
+            : (f.modo_calculo === ModoCalculo.manual ? 0 : null),
           valor_calculado: valRec ? Number(valRec.valor_calculado ?? 0) : 0,
           valor_acumulado: valRec ? Number(valRec.valor_acumulado ?? 0) : 0,
+          actualizado_por: valRec ? valRec.actualizado_por : null,
+          actualizado_en: valRec ? valRec.actualizado_en : null,
           editable: isEditable,
         };
       });
