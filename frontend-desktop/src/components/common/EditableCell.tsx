@@ -22,6 +22,7 @@ interface EditableCellProps {
   onCommit: (val: string) => void;
   onCancel: () => void;
   onClick: () => void;
+  onNavigate?: (direction: 'next' | 'prev' | 'down' | 'up', currentVal: string) => void;
   esAcumulable?: boolean;
 }
 
@@ -49,6 +50,7 @@ export const EditableCell = React.memo(function EditableCell({
   onCommit,
   onCancel,
   onClick,
+  onNavigate,
   esAcumulable,
 }: EditableCellProps) {
   const inputRef = useRef<HTMLInputElement>(null);
@@ -114,7 +116,18 @@ export const EditableCell = React.memo(function EditableCell({
               onCancel();
             } else if (e.key === 'Enter') {
               e.preventDefault();
-              onCommit(editValue);
+              if (onNavigate) {
+                onNavigate(e.shiftKey ? 'up' : 'down', editValue);
+              } else {
+                onCommit(editValue);
+              }
+            } else if (e.key === 'Tab') {
+              e.preventDefault();
+              if (onNavigate) {
+                onNavigate(e.shiftKey ? 'prev' : 'next', editValue);
+              } else {
+                onCommit(editValue);
+              }
             }
           }}
         />

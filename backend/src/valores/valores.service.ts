@@ -462,13 +462,17 @@ export class ValoresService {
       valuesMap.set(`${v.periodo_id}_${v.iglesia_id}_${v.campo_id}`, v);
     }
 
-    // Build the list of values to persist
-    const updates: {
-      iglesia_id: string;
-      campo_id: string;
-      periodo_id: string;
-      valor_calculado: number;
-    }[] = [];
+    // Ensure realizadoPor is a valid UUID
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    let safeUserId = realizadoPor && uuidRegex.test(realizadoPor) ? realizadoPor : null;
+    if (!safeUserId) {
+      const fallbackUser = await this.prisma.usuario.findFirst({ select: { id: true } });
+      safeUserId = fallbackUser?.id || '00000000-0000-0000-0000-000000000000';
+    }
+
+    // Build the list of operations ONLY for values that actually changed or are missing
+    const updateOps: any[] = [];
+    const createOps: any[] = [];
 
     for (const periodoId of openPeriodIds) {
       for (const churchId of churchIds) {
@@ -504,44 +508,44 @@ export class ValoresService {
           variablesMap[fieldDef.slug] = calculatedVal;
           variablesMap[fieldDef.id] = calculatedVal;
 
-          updates.push({
-            iglesia_id: churchId,
-            campo_id: fieldDef.id,
-            periodo_id: periodoId,
-            valor_calculado: calculatedVal,
-          });
+          // Only write to DB if the value changed or is missing
+          if (valRec) {
+            if (Number(valRec.valor_calculado) !== calculatedVal) {
+              updateOps.push(
+                this.prisma.valor.update({
+                  where: { id: valRec.id },
+                  data: {
+                    valor_calculado: calculatedVal,
+                    actualizado_por: safeUserId,
+                  },
+                }),
+              );
+            }
+          } else {
+            createOps.push({
+              iglesia_id: churchId,
+              campo_id: fieldDef.id,
+              periodo_id: periodoId,
+              valor_calculado: calculatedVal,
+              actualizado_por: safeUserId,
+            });
+          }
         }
       }
     }
 
-    // Batch upsert in chunks to prevent database transaction limits
-    const CHUNK_SIZE = 100;
-    for (let i = 0; i < updates.length; i += CHUNK_SIZE) {
-      const chunk = updates.slice(i, i + CHUNK_SIZE);
-      await this.prisma.$transaction(
-        chunk.map((u) =>
-          this.prisma.valor.upsert({
-            where: {
-              iglesia_id_campo_id_periodo_id: {
-                iglesia_id: u.iglesia_id,
-                campo_id: u.campo_id,
-                periodo_id: u.periodo_id,
-              },
-            },
-            update: {
-              valor_calculado: u.valor_calculado,
-              actualizado_por: realizadoPor,
-            },
-            create: {
-              iglesia_id: u.iglesia_id,
-              campo_id: u.campo_id,
-              periodo_id: u.periodo_id,
-              valor_calculado: u.valor_calculado,
-              actualizado_por: realizadoPor,
-            },
-          }),
-        ),
-      );
+    if (createOps.length > 0) {
+      await this.prisma.valor.createMany({
+        data: createOps,
+        skipDuplicates: true,
+      });
+    }
+
+    if (updateOps.length > 0) {
+      const BATCH_SIZE = 25;
+      for (let i = 0; i < updateOps.length; i += BATCH_SIZE) {
+        await Promise.all(updateOps.slice(i, i + BATCH_SIZE));
+      }
     }
   }
 

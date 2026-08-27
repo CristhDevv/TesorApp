@@ -177,11 +177,13 @@ export class CamposService {
       return campo;
     });
 
-    try {
-      await this.valoresService.recalculateAllOpenPeriods(realizadoPor);
-    } catch (err) {
-      console.error('Error recalculando periodos abiertos tras crear columna:', err);
-    }
+    setImmediate(async () => {
+      try {
+        await this.valoresService.recalculateAllOpenPeriods(realizadoPor);
+      } catch (err) {
+        console.error('Error recalculando periodos abiertos tras crear columna:', err);
+      }
+    });
     return res;
   }
 
@@ -314,7 +316,13 @@ export class CamposService {
       return campo;
     });
 
-    await this.valoresService.recalculateAllOpenPeriods(realizadoPor);
+    setImmediate(async () => {
+      try {
+        await this.valoresService.recalculateAllOpenPeriods(realizadoPor);
+      } catch (err) {
+        console.error('Error recalculando periodos abiertos tras actualizar columna:', err);
+      }
+    });
     return res;
   }
 
@@ -349,7 +357,13 @@ export class CamposService {
       return deleted;
     });
 
-    await this.valoresService.recalculateAllOpenPeriods(realizadoPor);
+    setImmediate(async () => {
+      try {
+        await this.valoresService.recalculateAllOpenPeriods(realizadoPor);
+      } catch (err) {
+        console.error('Error recalculando periodos abiertos tras eliminar columna:', err);
+      }
+    });
     return res;
   }
 

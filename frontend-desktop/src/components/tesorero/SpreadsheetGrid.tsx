@@ -42,6 +42,7 @@ interface GridRowProps {
   onBeginEdit: (churchId: string, fieldId: string, currentValue: string) => void;
   onSaveCell: (churchId: string, fieldId: string, value: string) => void;
   onCancelEdit: () => void;
+  onNavigate?: (churchId: string, fieldId: string, direction: 'next' | 'prev' | 'down' | 'up', currentVal: string) => void;
   onOpenPaperModal: (row: FilaGrid) => void;
   onOpenReceipts?: (churchId: string, churchName: string) => void;
   onOpenWorkflow?: (row: FilaGrid) => void;
@@ -61,6 +62,7 @@ const GridRow = React.memo(function GridRow({
   onBeginEdit,
   onSaveCell,
   onCancelEdit,
+  onNavigate,
   onOpenPaperModal,
   onOpenReceipts,
   onOpenWorkflow,
@@ -203,6 +205,7 @@ const GridRow = React.memo(function GridRow({
             onChangeEdit={setEditValue}
             onCommit={(v) => onSaveCell(fila.iglesia_id, col.id, v)}
             onCancel={onCancelEdit}
+            onNavigate={(direction, v) => onNavigate?.(fila.iglesia_id, col.id, direction, v)}
             onClick={() =>
               setActiveCell({ churchId: fila.iglesia_id, fieldId: col.id })
             }
@@ -271,6 +274,55 @@ export const SpreadsheetGrid = React.memo(function SpreadsheetGrid({
     });
     return grandSum;
   }, [columns, columnTotals]);
+
+  const handleNavigate = React.useCallback(
+    (churchId: string, fieldId: string, direction: 'next' | 'prev' | 'down' | 'up', currentVal: string) => {
+      onSaveCell(churchId, fieldId, currentVal);
+
+      const rowIdx = rows.findIndex((r) => r.iglesia_id === churchId);
+      const colIdx = columns.findIndex((c) => c.id === fieldId);
+      if (rowIdx === -1 || colIdx === -1) return;
+
+      let nextRowIdx = rowIdx;
+      let nextColIdx = colIdx;
+
+      if (direction === 'down') {
+        if (rowIdx + 1 < rows.length) nextRowIdx = rowIdx + 1;
+      } else if (direction === 'up') {
+        if (rowIdx - 1 >= 0) nextRowIdx = rowIdx - 1;
+      } else if (direction === 'next') {
+        if (colIdx + 1 < columns.length) {
+          nextColIdx = colIdx + 1;
+        } else if (rowIdx + 1 < rows.length) {
+          nextRowIdx = rowIdx + 1;
+          nextColIdx = 0;
+        }
+      } else if (direction === 'prev') {
+        if (colIdx - 1 >= 0) {
+          nextColIdx = colIdx - 1;
+        } else if (rowIdx - 1 >= 0) {
+          nextRowIdx = rowIdx - 1;
+          nextColIdx = columns.length - 1;
+        }
+      }
+
+      const targetRow = rows[nextRowIdx];
+      const targetCol = columns[nextColIdx];
+      if (!targetRow || !targetCol) return;
+
+      const targetVal = (targetRow.valores || []).find((v) => v.campo_id === targetCol.id);
+      const targetIsCalc = targetCol.modo_calculo === 'calculado' || targetVal?.modo_calculo === 'calculado';
+      const targetIsOverridden = targetIsCalc && targetVal?.valor_manual !== null && targetVal?.valor_manual !== undefined;
+      const targetDisplay = targetIsCalc
+        ? (targetIsOverridden ? Number(targetVal?.valor_manual) : targetVal?.valor_calculado)
+        : (targetVal?.valor_manual ?? 0);
+      const valStr = String(Number(targetDisplay ?? 0) || '');
+
+      onBeginEdit(targetRow.iglesia_id, targetCol.id, valStr);
+      setActiveCell({ churchId: targetRow.iglesia_id, fieldId: targetCol.id });
+    },
+    [rows, columns, onSaveCell, onBeginEdit, setActiveCell]
+  );
 
   return (
     <div className="flex-1 min-h-0 flex flex-col bg-white dark:bg-slate-950">
@@ -351,6 +403,7 @@ export const SpreadsheetGrid = React.memo(function SpreadsheetGrid({
                 onBeginEdit={onBeginEdit}
                 onSaveCell={onSaveCell}
                 onCancelEdit={onCancelEdit}
+                onNavigate={handleNavigate}
                 onOpenPaperModal={onOpenPaperModal}
                 onOpenReceipts={onOpenReceipts}
                 onOpenWorkflow={onOpenWorkflow}

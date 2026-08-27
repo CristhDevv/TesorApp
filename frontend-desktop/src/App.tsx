@@ -759,14 +759,41 @@ export default function App() {
   // ─── Cell Editing & Overrides ──────────────────────────────────────────
   const saveCell = async (churchId: string, fieldId: string, valueStr: string) => {
     const val = valueStr === '' || isNaN(parseFloat(valueStr)) ? 0 : parseFloat(valueStr);
+    
+    // 1. Instant optimistic update so numbers and totals update in 0ms without flicker
+    setGridData((prev) => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        filas: prev.filas.map((f) => {
+          if (f.iglesia_id !== churchId) return f;
+          const updatedValores = (f.valores || []).map((v) => {
+            if (v.campo_id !== fieldId) return v;
+            const isCalc = v.modo_calculo === 'calculado';
+            return {
+              ...v,
+              valor_manual: val,
+              valor_calculado: isCalc ? val : v.valor_calculado,
+            };
+          });
+          return { ...f, valores: updatedValores };
+        }),
+      };
+    });
+
     try {
       await axios.put(`${API_BASE}/valores/${churchId}/${fieldId}/${selectedPeriodoId}`, { valor_manual: val });
-      fetchGridValues();
-      triggerToast('Guardado y recalculado');
+      // Silently fetch server calculation in background
+      if (selectedTablaId && selectedPeriodoId) {
+        const res = await axios.get(
+          `${API_BASE}/valores?tabla_id=${selectedTablaId}&periodo_id=${selectedPeriodoId}${
+            showAllColumns ? '&mostrar_todos=true' : ''
+          }`
+        );
+        setGridData(res.data);
+      }
     } catch (err: any) {
-      triggerToast(err.response?.data?.message || 'Error al guardar', 'error');
-    } finally {
-      setEditingCell(null);
+      triggerToast(err.response?.data?.message || 'Error al guardar celda', 'error');
     }
   };
 
