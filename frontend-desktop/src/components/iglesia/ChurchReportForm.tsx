@@ -140,9 +140,6 @@ export const ChurchReportForm = React.memo(function ChurchReportForm({
     (c) => (c.seccion_iglesia || c.seccion) === 'Ingresos' && c.modo_calculo === 'manual'
   );
 
-  // DEBUG: log what we received
-  const debugInfo = `Total cols: ${columns.length} | Ingresos: ${ingresosCols.length} | Secciones: ${[...new Set(columns.map(c => c.seccion_iglesia || c.seccion))].join(', ')}`;
-
 
   // 2. Egresos manuales
   const egresosCols = columns.filter(
@@ -329,10 +326,7 @@ export const ChurchReportForm = React.memo(function ChurchReportForm({
 
           <div className="space-y-3">
             {ingresosCols.length === 0 ? (
-              <>
-                <p className="text-xs text-slate-400 dark:text-slate-500 italic">No hay campos de ingresos configurados.</p>
-                <p className="text-[10px] font-mono text-red-500 bg-red-50 dark:bg-red-950/30 p-2 rounded">[DEBUG] {debugInfo}</p>
-              </>
+              <p className="text-xs text-slate-400 dark:text-slate-500 italic">No hay campos de ingresos configurados.</p>
             ) : (
               ingresosCols.map((col) => {
                 const vals = Array.isArray(row?.valores) ? row.valores : [];
