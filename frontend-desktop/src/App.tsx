@@ -1358,7 +1358,8 @@ export default function App() {
       vals.forEach((v: any) => {
         if (ingresoColIds.has(v.campo_id)) {
           const isCalc = v.modo_calculo === 'calculado';
-          const num = Number(isCalc ? (v.valor_calculado || 0) : (v.valor_manual || 0));
+          const isOverridden = isCalc && v.valor_manual !== null && v.valor_manual !== undefined;
+          const num = Number(isCalc ? (isOverridden ? v.valor_manual : (v.valor_calculado || 0)) : (v.valor_manual ?? 0));
           if (!isNaN(num)) total += num;
         }
       });
@@ -1446,7 +1447,16 @@ export default function App() {
       let sum = 0;
       sortedAndFilteredGridRows.forEach((row: any) => {
         const cell = row.valores?.find((v: any) => v.campo_id === col.id);
-        if (cell) sum += Number(cell.modo_calculo === 'calculado' ? cell.valor_calculado : cell.valor_manual) || 0;
+        if (cell) {
+          const isCalc = col.modo_calculo === 'calculado' || cell.modo_calculo === 'calculado';
+          const isOverridden = isCalc && cell.valor_manual !== null && cell.valor_manual !== undefined;
+          const num = Number(
+            isCalc
+              ? (isOverridden ? cell.valor_manual : (cell.valor_calculado || 0))
+              : (cell.valor_manual ?? 0)
+          );
+          if (!isNaN(num)) sum += num;
+        }
       });
       totals[col.id] = sum;
     });
