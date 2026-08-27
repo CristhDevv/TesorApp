@@ -414,13 +414,22 @@ export function MobileView(props: MobileViewProps) {
   const estadoInforme = currentChurchRow?.estado_informe || 'borrador';
   const isReportEditable = isPeriodOpen && (isTesorero || estadoInforme === 'borrador' || estadoInforme === 'en_revision');
 
-  // Real-time financial calculations
+  // Visible columns for the current user role
+  const visibleColumns = useMemo(() => {
+    return columns.filter((col: any) => {
+      if (!isTesorero && col.visible_para_iglesia === false) return false;
+      if (isTesorero && col.visible_para_tesorero === false) return false;
+      return true;
+    });
+  }, [columns, isTesorero]);
+
+  // Real-time financial calculations (based on visible/manual fields)
   const financialTotals = useMemo(() => {
-    if (!currentChurchRow || !columns.length) return { ingresos: 0, egresos: 0, saldoNeto: 0 };
+    if (!currentChurchRow || !visibleColumns.length) return { ingresos: 0, egresos: 0, saldoNeto: 0 };
     let ingresos = 0;
     let egresos = 0;
 
-    columns.forEach((col: any) => {
+    visibleColumns.forEach((col: any) => {
       const val = currentChurchRow.valores?.find((v: any) => v.campo_id === col.id);
       if (!val) return;
       const isCalc = val.modo_calculo === 'calculado';
@@ -438,42 +447,54 @@ export function MobileView(props: MobileViewProps) {
       egresos,
       saldoNeto: ingresos - egresos,
     };
-  }, [currentChurchRow, columns]);
+  }, [currentChurchRow, visibleColumns]);
 
-  // Emolumentos calculation specifically matching the field "Total Emolumentos"
+  // Emolumentos calculation specifically matching the field "Total Emolumentos" (even if hidden from view)
   const totalEmolumentos = useMemo(() => {
-    if (!currentChurchRow || !columns.length) return 0;
+    if (!currentChurchRow) return 0;
+    // Check in row.valores directly or via columns
+    const allVals = Array.isArray(currentChurchRow.valores) ? currentChurchRow.valores : [];
+    
+    // Look up column definition in all columns
     const emoCol = columns.find((c: any) => 
       c.slug === 'total_emolumentos' || 
       c.nombre?.trim().toLowerCase() === 'total emolumentos'
     ) || columns.find((c: any) => 
-      c.nombre?.toLowerCase().includes('total emolumento')
+      c.nombre?.toLowerCase().includes('total emolumento') ||
+      c.slug?.toLowerCase().includes('emolumento')
     );
 
     if (emoCol) {
-      const val = currentChurchRow.valores?.find((v: any) => v.campo_id === emoCol.id);
+      const val = allVals.find((v: any) => v.campo_id === emoCol.id);
       if (val) {
         const isCalc = val.modo_calculo === 'calculado';
         return Number(isCalc ? (val.valor_calculado || 0) : (val.valor_manual || 0));
       }
     }
+
+    // Direct search by slug in row values if column not mapped
+    const directVal = allVals.find((v: any) => v.slug === 'total_emolumentos' || v.slug === 'subtotal_emolumentos');
+    if (directVal) {
+      return Number(directVal.valor_calculado ?? directVal.valor_manual ?? 0);
+    }
+
     return 0;
   }, [currentChurchRow, columns]);
 
   // Filtered columns based on section tab
   const filteredColumns = useMemo(() => {
-    if (sectionFilter === 'all') return columns;
-    return columns.filter((col: any) => {
+    if (sectionFilter === 'all') return visibleColumns;
+    return visibleColumns.filter((col: any) => {
       const val = currentChurchRow?.valores?.find((v: any) => v.campo_id === col.id);
       const isCalc = val?.modo_calculo === 'calculado' || col.modo_calculo === 'calculado';
       const sec = (col.seccion_iglesia || col.seccion || '').toLowerCase();
 
       if (sectionFilter === 'calculados') return isCalc;
-      if (sectionFilter === 'ingresos') return sec === 'ingresos' || (!isCalc && !sec.includes('egreso'));
+      if (sectionFilter === 'ingresos') return sec === 'ingresos' || (!isCalc && !sec.includes('egreso') && !sec.includes('informativo'));
       if (sectionFilter === 'egresos') return sec === 'egresos' || sec.includes('aporte') || sec.includes('gasto') || sec.includes('retencion');
       return true;
     });
-  }, [columns, currentChurchRow, sectionFilter]);
+  }, [visibleColumns, currentChurchRow, sectionFilter]);
 
   const churchReceipts = receipts.filter(r => r.churchId === selectedIglesia && r.periodId === selectedPeriodo);
 
@@ -732,7 +753,7 @@ export function MobileView(props: MobileViewProps) {
                   : 'bg-white text-slate-600 border border-slate-200'
               }`}
             >
-              Todos ({columns.length})
+              Todos ({visibleColumns.length})
             </button>
             <button
               onClick={() => setSectionFilter('ingresos')}
@@ -1086,7 +1107,7 @@ export function MobileView(props: MobileViewProps) {
             <h4 className="text-xs font-extrabold text-slate-500 uppercase tracking-wider">
               Detalle de Columnas
             </h4>
-            {columns.map((col: any) => {
+            {visibleColumns.map((col: any) => {
               const val = currentChurchRow?.valores?.find((v: any) => v.campo_id === col.id);
               if (!val) return null;
               const isCalc = val.modo_calculo === 'calculado';

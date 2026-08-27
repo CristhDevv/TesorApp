@@ -57,12 +57,6 @@ export class ValoresService {
       orderBy: [{ orden: 'asc' }, { creado_en: 'asc' }],
     });
 
-    const displayFields = fields.filter((f) => {
-      if (userRol === 'iglesia') return f.visible_para_iglesia !== false;
-      if (userRol === 'tesorero') return f.visible_para_tesorero !== false;
-      return true;
-    });
-
     // Get existing value records for this church and period
     const values = await this.prisma.valor.findMany({
       where: { iglesia_id: iglesiaId, periodo_id: periodoId },
@@ -76,7 +70,11 @@ export class ValoresService {
     });
     const permissionsMap = new Map(permissions.map((p) => [p.campo_id, p.editable_por_iglesia]));
 
-    const result = displayFields.map((f) => {
+    // Return ALL fields (visible AND hidden) so formula dependencies work.
+    // The frontend uses visible_para_iglesia to decide what to show in the form.
+    // Hidden calculated fields (visible_para_iglesia=false) are still needed for
+    // calculations like EMOLUMENTOS that depend on "Total Emolumentos" etc.
+    const result = fields.map((f) => {
       const valRec = valuesMap.get(f.id);
       const hasPerm = permissionsMap.has(f.id)
         ? permissionsMap.get(f.id)
@@ -118,6 +116,7 @@ export class ValoresService {
 
     return result;
   }
+
 
   /**
    * Updates multiple manual values at once for a church (e.g. from paper report digitizing),

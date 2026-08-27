@@ -544,6 +544,10 @@ export default function App() {
           orden: v.orden,
           tipo_redondeo: v.tipo_redondeo,
           multiplo_redondeo: v.multiplo_redondeo,
+          visible_para_iglesia: v.visible_para_iglesia,
+          visible_para_tesorero: v.visible_para_tesorero,
+          es_acumulable: v.es_acumulable ?? false,
+          es_fondo: v.es_fondo ?? false,
         }));
 
         const churchRow: FilaGrid = {
@@ -839,6 +843,10 @@ export default function App() {
           seccion: v.seccion, seccion_iglesia: v.seccion_iglesia,
           seccion_tesorero: v.seccion_tesorero, orden: v.orden,
           tipo_redondeo: v.tipo_redondeo, multiplo_redondeo: v.multiplo_redondeo,
+          visible_para_iglesia: v.visible_para_iglesia,
+          visible_para_tesorero: v.visible_para_tesorero,
+          es_acumulable: v.es_acumulable ?? false,
+          es_fondo: v.es_fondo ?? false,
         }));
         setGridData((prev) => prev ? {
           ...prev,

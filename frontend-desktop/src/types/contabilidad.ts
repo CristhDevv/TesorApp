@@ -114,6 +114,8 @@ export interface ColumnaGrid {
   es_fondo?: boolean;
   tipo_redondeo: TipoRedondeo;
   multiplo_redondeo: number;
+  visible_para_iglesia?: boolean;
+  visible_para_tesorero?: boolean;
 }
 
 export interface GridData {

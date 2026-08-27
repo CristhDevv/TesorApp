@@ -134,28 +134,32 @@ export const ChurchReportForm = React.memo(function ChurchReportForm({
     }
   };
 
-  // Group columns into categories:
+  // Only show columns that are visible to the church in the form
+  const visibleColumns = columns.filter((c) => c.visible_para_iglesia !== false);
+
+  // Group columns into categories (only visible ones for display):
   // 1. Ingresos manuales
-  const ingresosCols = columns.filter(
+  const ingresosCols = visibleColumns.filter(
     (c) => (c.seccion_iglesia || c.seccion) === 'Ingresos' && c.modo_calculo === 'manual'
   );
 
-
   // 2. Egresos manuales
-  const egresosCols = columns.filter(
+  const egresosCols = visibleColumns.filter(
     (c) => (c.seccion_iglesia || c.seccion) === 'Egresos' && c.modo_calculo === 'manual'
   );
 
-  // 3. Otros campos manuales (Informativos, Aportes, Pastorales como Diezmo Personal, Ofrenda Misionera)
-  const informativosManualCols = columns.filter(
+  // 3. Otros campos manuales (Informativos)
+  const informativosManualCols = visibleColumns.filter(
     (c) =>
       c.modo_calculo === 'manual' &&
       (c.seccion_iglesia || c.seccion) !== 'Ingresos' &&
       (c.seccion_iglesia || c.seccion) !== 'Egresos'
   );
 
-  // 4. Cálculos automáticos (estrictamente modo_calculo === 'calculado')
-  const calculosCols = columns.filter((c) => c.modo_calculo === 'calculado');
+  // 4. Cálculos automáticos visibles
+  const calculosCols = visibleColumns.filter((c) => c.modo_calculo === 'calculado');
+
+
 
   return (
     <div className="flex-1 overflow-y-auto bg-slate-100 dark:bg-slate-950 p-3 sm:p-6 flex flex-col items-center">
