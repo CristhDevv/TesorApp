@@ -206,9 +206,52 @@ export function MobileView(props: MobileViewProps) {
 
   // Load actual values for selected church, table, and period
   const fetchValues = async () => {
-    if (!selectedTabla || !selectedPeriodo || !selectedIglesia) return;
+    if (!selectedPeriodo || !selectedIglesia) return;
     setLoadingValues(true);
     try {
+      if (!isTesorero) {
+        const res = await axios.get(
+          `${API_BASE}/valores?iglesia_id=${selectedIglesia}&periodo_id=${selectedPeriodo}`
+        );
+        const churchValues = res.data || [];
+        const churchObj = iglesias.find((i) => i.id === selectedIglesia);
+
+        const cols = churchValues.map((v: any) => ({
+          id: v.campo_id,
+          nombre: v.nombre,
+          slug: v.slug,
+          tipo: v.tipo,
+          modo_calculo: v.modo_calculo,
+          formula: v.formula,
+          seccion: v.seccion,
+          seccion_iglesia: v.seccion_iglesia,
+          seccion_tesorero: v.seccion_tesorero,
+          orden: v.orden,
+          tipo_redondeo: v.tipo_redondeo,
+          multiplo_redondeo: v.multiplo_redondeo,
+        }));
+
+        const curPeriod = periodos.find((p) => p.id === selectedPeriodo);
+        const churchRow = {
+          iglesia_id: selectedIglesia,
+          iglesia_nombre: churchObj?.nombre || user?.nombre || 'Mi Congregación',
+          codigo: churchObj?.codigo || '',
+          valores: churchValues,
+          estado_informe: (churchObj as any)?.estado_informe || 'borrador',
+        };
+
+        setGridData({
+          tabla_id: churchObj?.tabla_id || 'iglesia',
+          tabla_nombre: churchObj?.nombre || 'Informe Mensual',
+          periodo_id: selectedPeriodo,
+          periodo_nombre: curPeriod?.nombre || 'Período Actual',
+          columnas: cols,
+          filas: [churchRow],
+        });
+        return;
+      }
+
+      if (!selectedTabla) return;
       const res = await axios.get(`${API_BASE}/valores?tabla_id=${selectedTabla}&periodo_id=${selectedPeriodo}`);
       setGridData(res.data);
     } catch (err) {

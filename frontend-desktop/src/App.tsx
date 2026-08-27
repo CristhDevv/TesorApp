@@ -524,6 +524,47 @@ export default function App() {
   const fetchGridValues = async () => {
     if (!selectedPeriodoId) return;
     try {
+      if (user?.rol === 'iglesia' && user?.iglesia_id) {
+        const res = await axios.get(
+          `${API_BASE}/valores?iglesia_id=${user.iglesia_id}&periodo_id=${selectedPeriodoId}`
+        );
+        const churchValues = res.data || [];
+        const churchObj = iglesias.find((i) => i.id === user.iglesia_id);
+
+        const cols: ColumnaGrid[] = churchValues.map((v: any) => ({
+          id: v.campo_id,
+          nombre: v.nombre,
+          slug: v.slug,
+          tipo: v.tipo,
+          modo_calculo: v.modo_calculo,
+          formula: v.formula,
+          seccion: v.seccion,
+          seccion_iglesia: v.seccion_iglesia,
+          seccion_tesorero: v.seccion_tesorero,
+          orden: v.orden,
+          tipo_redondeo: v.tipo_redondeo,
+          multiplo_redondeo: v.multiplo_redondeo,
+        }));
+
+        const churchRow: FilaGrid = {
+          iglesia_id: user.iglesia_id,
+          iglesia_nombre: churchObj?.nombre || user.nombre || 'Mi Congregación',
+          codigo: churchObj?.codigo || '',
+          valores: churchValues,
+          estado_informe: (churchObj as any)?.estado_informe || 'borrador',
+        };
+
+        setGridData({
+          tabla_id: churchObj?.tabla_id || 'iglesia',
+          tabla_nombre: churchObj?.nombre || 'Informe Mensual',
+          periodo_id: selectedPeriodoId,
+          periodo_nombre: selectedPeriodObj?.nombre || 'Período Actual',
+          columnas: cols,
+          filas: [churchRow],
+        });
+        return;
+      }
+
       const isConsolidated = selectedTablaId === 'all' || !selectedTablaId;
       if (isConsolidated) {
         try {

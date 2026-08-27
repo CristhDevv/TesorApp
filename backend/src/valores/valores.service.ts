@@ -35,57 +35,27 @@ export class ValoresService {
     const periodo = await this.prisma.periodo.findUnique({ where: { id: periodoId } });
     if (!periodo) throw new NotFoundException('Periodo no encontrado');
 
-    // 1. Determine fields based on the church's assigned table
-    let fields: any[] = [];
-    if (iglesia.tabla_id) {
-      const camposTabla = await this.prisma.camposPorTabla.findMany({
-        where: { tabla_id: iglesia.tabla_id },
-        orderBy: { orden: 'asc' },
-        include: { campo: true },
-      });
-      if (camposTabla.length > 0) {
-        fields = camposTabla
-          .map((ct) => ct.campo)
-          .filter((f) => f.activo);
-      }
-    }
-
-    // 2. Fallback if church has no table or table has no fields configured
-    if (fields.length === 0) {
-      fields = await this.prisma.campoPlantilla.findMany({
-        where: {
-          activo: true,
-          AND: [
-            {
-              OR: [
-                { aplica_a_todas_las_iglesias: true },
-                { campos_por_iglesia: { some: { iglesia_id: iglesiaId } } },
-              ],
-            },
-            {
-              OR: [
-                { es_temporal: false },
-                { es_temporal: true, periodo_id: periodoId },
-              ],
-            },
-          ],
-        },
-        orderBy: [{ orden: 'asc' }, { creado_en: 'asc' }],
-      });
-    } else {
-      // Also append any church-specific fields that might not be in table
-      const specificChurchFields = await this.prisma.campoPlantilla.findMany({
-        where: {
-          activo: true,
-          campos_por_iglesia: { some: { iglesia_id: iglesiaId } },
-          id: { notIn: fields.map((f) => f.id) },
-        },
-        orderBy: [{ orden: 'asc' }, { creado_en: 'asc' }],
-      });
-      if (specificChurchFields.length > 0) {
-        fields = [...fields, ...specificChurchFields];
-      }
-    }
+    // 1. Load all active template fields configured for this church and period
+    const fields = await this.prisma.campoPlantilla.findMany({
+      where: {
+        activo: true,
+        AND: [
+          {
+            OR: [
+              { aplica_a_todas_las_iglesias: true },
+              { campos_por_iglesia: { some: { iglesia_id: iglesiaId } } },
+            ],
+          },
+          {
+            OR: [
+              { es_temporal: false },
+              { es_temporal: true, periodo_id: periodoId },
+            ],
+          },
+        ],
+      },
+      orderBy: [{ orden: 'asc' }, { creado_en: 'asc' }],
+    });
 
     const displayFields = fields.filter((f) => {
       if (userRol === 'iglesia') return f.visible_para_iglesia !== false;
