@@ -511,7 +511,7 @@ export default function App() {
       setTablas(tabRes.data || []);
       setAuditorias(audRes.data || []);
       if (perRes.data?.length > 0 && !selectedPeriodoId) setSelectedPeriodoId(perRes.data[0].id);
-      if (tabRes.data?.length > 0 && !selectedTablaId) {
+      if (role !== 'iglesia' && tabRes.data?.length > 0 && !selectedTablaId) {
         const savedTableId = localStorage.getItem('tesorapp_active_tabla_id');
         const validSaved = tabRes.data.find((t: any) => t.id === savedTableId);
         setSelectedTablaId(validSaved ? validSaved.id : tabRes.data[0].id);
