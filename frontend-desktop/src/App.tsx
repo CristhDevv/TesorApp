@@ -645,8 +645,11 @@ export default function App() {
   };
 
   useEffect(() => {
-    if (user && selectedTablaId && selectedPeriodoId) fetchGridValues();
+    const isIglesia = user?.rol === 'iglesia';
+    const canFetch = user && selectedPeriodoId && (isIglesia || selectedTablaId);
+    if (canFetch) fetchGridValues();
   }, [selectedTablaId, selectedPeriodoId, showAllColumns, user]);
+
 
   // ─── Gastos ───────────────────────────────────────────────────────────
   const fetchGastos = async () => {
