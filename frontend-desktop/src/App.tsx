@@ -828,7 +828,24 @@ export default function App() {
     try {
       await axios.put(`${API_BASE}/valores/${churchId}/${fieldId}/${selectedPeriodoId}`, { valor_manual: val });
       // Silently fetch server calculation in background
-      if (selectedTablaId && selectedPeriodoId) {
+      if (user?.rol === 'iglesia' && user?.iglesia_id && selectedPeriodoId) {
+        const res = await axios.get(
+          `${API_BASE}/valores?iglesia_id=${user.iglesia_id}&periodo_id=${selectedPeriodoId}`
+        );
+        const churchValues = res.data || [];
+        const cols = churchValues.map((v: any) => ({
+          id: v.campo_id, nombre: v.nombre, slug: v.slug, tipo: v.tipo,
+          modo_calculo: v.modo_calculo, formula: v.formula,
+          seccion: v.seccion, seccion_iglesia: v.seccion_iglesia,
+          seccion_tesorero: v.seccion_tesorero, orden: v.orden,
+          tipo_redondeo: v.tipo_redondeo, multiplo_redondeo: v.multiplo_redondeo,
+        }));
+        setGridData((prev) => prev ? {
+          ...prev,
+          columnas: cols,
+          filas: [{ ...prev.filas[0], valores: churchValues }],
+        } : prev);
+      } else if (selectedTablaId && selectedPeriodoId) {
         const res = await axios.get(
           `${API_BASE}/valores?tabla_id=${selectedTablaId}&periodo_id=${selectedPeriodoId}${
             showAllColumns ? '&mostrar_todos=true' : ''
