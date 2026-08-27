@@ -606,49 +606,30 @@ export class ValoresService {
       permissionsMap.set(`${p.iglesia_id}_${p.campo_id}`, p.editable_por_iglesia);
     }
 
-    // Field resolution: Iglesia role resolves fields from its assigned table; Consolidated sees all fields; Specific table sees table columns
+    // Field resolution: Iglesia role sees ALL active church template fields; Consolidated sees all fields; Specific table sees table columns
     let rawFields: any[] = [];
     if (userRol === 'iglesia') {
       const churchId = userIglesiaId || (churchIds.length > 0 ? churchIds[0] : null);
-      let churchTablaId = tablaId !== 'all' ? tablaId : null;
-      if (churchId) {
-        const church = await this.prisma.iglesia.findUnique({ where: { id: churchId } });
-        if (church?.tabla_id) churchTablaId = church.tabla_id;
-      }
-
-      if (churchTablaId) {
-        const camposTabla = await this.prisma.camposPorTabla.findMany({
-          where: { tabla_id: churchTablaId },
-          orderBy: { orden: 'asc' },
-          include: { campo: true },
-        });
-        if (camposTabla.length > 0) {
-          rawFields = camposTabla.map((ct) => ct.campo).filter((f) => f.activo);
-        }
-      }
-
-      if (rawFields.length === 0) {
-        rawFields = await this.prisma.campoPlantilla.findMany({
-          where: {
-            activo: true,
-            AND: [
-              {
-                OR: [
-                  { aplica_a_todas_las_iglesias: true },
-                  ...(churchId ? [{ campos_por_iglesia: { some: { iglesia_id: churchId } } }] : []),
-                ],
-              },
-              {
-                OR: [
-                  { es_temporal: false },
-                  { es_temporal: true, periodo_id: periodoId },
-                ],
-              },
-            ],
-          },
-          orderBy: [{ orden: 'asc' }, { creado_en: 'asc' }],
-        });
-      }
+      rawFields = await this.prisma.campoPlantilla.findMany({
+        where: {
+          activo: true,
+          AND: [
+            {
+              OR: [
+                { aplica_a_todas_las_iglesias: true },
+                ...(churchId ? [{ campos_por_iglesia: { some: { iglesia_id: churchId } } }] : []),
+              ],
+            },
+            {
+              OR: [
+                { es_temporal: false },
+                { es_temporal: true, periodo_id: periodoId },
+              ],
+            },
+          ],
+        },
+        orderBy: [{ orden: 'asc' }, { creado_en: 'asc' }],
+      });
     } else if (isAllTables || mostrarTodos) {
       rawFields = await this.prisma.campoPlantilla.findMany({
         where: {
