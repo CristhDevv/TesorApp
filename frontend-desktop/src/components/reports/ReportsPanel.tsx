@@ -107,16 +107,53 @@ export function ReportsPanel({
     }
   }, [reportType, selectedChurchForComp, selectedFieldForComp, periodos]);
 
+  // Client-side CSV export fallback if network export has an issue
+  const exportClientSideCSV = () => {
+    if (!gridData || !gridData.columnas || !gridData.filas) return;
+    const periodName = periodos.find((p) => p.id === selectedPeriodoId)?.nombre || "Periodo";
+    const headers = ["Congregación / Sede", ...gridData.columnas.map((c: any) => `"${c.nombre}"`)];
+    const rows = gridData.filas.map((row: any) => {
+      const vals = gridData.columnas.map((col: any) => {
+        const v = row.valores?.find((x: any) => x.campo_id === col.id);
+        const isCalc = v?.modo_calculo === "calculado" || col.modo_calculo === "calculado";
+        return isCalc ? (v?.valor_calculado ?? 0) : (v?.valor_manual ?? 0);
+      });
+      return [`"${row.iglesia_nombre}"`, ...vals].join(",");
+    });
+    
+    // Totals row
+    const totalsRow = ['"TOTALES GENERALES:"'];
+    gridData.columnas.forEach((col: any) => {
+      totalsRow.push(String(consolidatedTotals[col.id] || 0));
+    });
+    rows.push(totalsRow.join(","));
+
+    const csvContent = "\uFEFF" + [headers.join(","), ...rows].join("\n");
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.setAttribute("download", `Reporte_Financiero_${periodName.replace(/\s+/g, "_")}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  };
+
   // Export Excel handler
   const handleExportExcel = async () => {
     if (!selectedPeriodoId) return;
     setDownloadingExcel(true);
     try {
+      const targetTabla = selectedTablaId && selectedTablaId !== "all" ? selectedTablaId : "all";
       const response = await axios.get(
-        `${apiBase}/reportes/exportar?periodo_id=${selectedPeriodoId}&tabla_id=${selectedTablaId || ""}`,
+        `${apiBase}/reportes/exportar?periodo_id=${selectedPeriodoId}&tabla_id=${targetTabla}`,
         { responseType: "blob" }
       );
-      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const blob = new Blob([response.data], {
+        type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      });
+      const url = window.URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;
       const periodName = periodos.find((p) => p.id === selectedPeriodoId)?.nombre || "Periodo";
@@ -124,9 +161,15 @@ export function ReportsPanel({
       document.body.appendChild(link);
       link.click();
       link.remove();
+      setTimeout(() => window.URL.revokeObjectURL(url), 1000);
     } catch (err) {
-      console.error("Error descargando Excel", err);
-      alert("No se pudo generar el archivo Excel.");
+      console.error("Error descargando Excel del servidor, generando exportación local...", err);
+      try {
+        exportClientSideCSV();
+      } catch (localErr) {
+        console.error("Error en exportación local", localErr);
+        alert("No se pudo generar el archivo.");
+      }
     } finally {
       setDownloadingExcel(false);
     }
@@ -143,7 +186,8 @@ export function ReportsPanel({
     for (const col of gridData.columnas) {
       let sum = 0;
       for (const row of gridData.filas) {
-        const val = row.valores.find((v) => v.campo_id === col.id);
+        const vals = Array.isArray(row?.valores) ? row.valores : [];
+        const val = vals.find((v) => v.campo_id === col.id);
         const num = val?.modo_calculo === "calculado" ? (val.valor_calculado || 0) : (val?.valor_manual || 0);
         sum += Number(num || 0);
       }
@@ -326,7 +370,8 @@ export function ReportsPanel({
                         {row.iglesia_nombre}
                       </td>
                       {gridData.columnas.map((col) => {
-                        const val = row.valores.find((v) => v.campo_id === col.id);
+                        const vals = Array.isArray(row?.valores) ? row.valores : [];
+                        const val = vals.find((v) => v.campo_id === col.id);
                         const isCalc = col.modo_calculo === "calculado";
                         const num = isCalc ? (val?.valor_calculado || 0) : (val?.valor_manual || 0);
                         return (
@@ -573,7 +618,8 @@ export function ReportsPanel({
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                   {gridData?.columnas.map((col) => {
                     const row = gridData.filas.find((r) => r.iglesia_id === selectedChurchForIndiv);
-                    const val = row?.valores.find((v) => v.campo_id === col.id);
+                    const vals = Array.isArray(row?.valores) ? row.valores : [];
+                    const val = vals.find((v) => v.campo_id === col.id);
                     const isCalc = col.modo_calculo === "calculado";
                     const num = isCalc ? (val?.valor_calculado || 0) : (val?.valor_manual || 0);
 

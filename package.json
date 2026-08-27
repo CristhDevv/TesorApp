@@ -3,6 +3,10 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "build": "cd frontend-desktop && npm install && npm run build"
+    "build": "cd frontend-desktop && npm install && npm run build",
+    "test:backend": "cd backend && npm test",
+    "test:desktop": "cd frontend-desktop && npm test",
+    "test:mobile": "cd frontend-mobile && npm test",
+    "test": "npm run test:backend && npm run test:desktop && npm run test:mobile"
   }
 }

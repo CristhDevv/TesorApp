@@ -17,7 +17,7 @@ export const BalanceHeaderSummary = React.memo(function BalanceHeaderSummary({
   columns,
 }: BalanceHeaderSummaryProps) {
   const getVal = (colId: string): number => {
-    const cell = row.valores.find(v => v.campo_id === colId);
+    const cell = (Array.isArray(row?.valores) ? row.valores : []).find(v => v.campo_id === colId);
     if (!cell) return 0;
     return Number(cell.modo_calculo === 'calculado' ? cell.valor_calculado : cell.valor_manual) || 0;
   };

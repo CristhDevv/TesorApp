@@ -83,17 +83,22 @@ export class FormulasService {
     }
 
     // 2. Handle percentage notations:
-    // If a column exists with slug "c_XX_porciento", map stand-alone "XX%" to that slug if not multiplying
-    // Otherwise convert "XX%" to decimal (e.g. "10%" -> 0.10, "3.5%" -> 0.035)
-    sanitized = sanitized.replace(/\b([0-9]+(?:\.[0-9]+)?)%/g, (_match, p1) => {
+    // Stand-alone percentage identifiers like "10%" or "+ 10%" map to slug "c_10_porciento"
+    // While multiplication/division operations like "* 10%" or "/ 10%" convert to decimal (e.g. 0.10)
+    sanitized = sanitized.replace(/(\*|\/)\s*([0-9]+(?:\.[0-9]+)?)%/g, (_match, op, p1) => {
+      const decimalVal = parseFloat(p1) / 100;
+      return `${op} ${decimalVal}`;
+    });
+
+    sanitized = sanitized.replace(/(^|[\s\+\-\(\,\>\<\=\!\&\|])([0-9]+(?:\.[0-9]+)?)%/g, (_match, prefix, p1) => {
       const cleanNum = p1.replace('.', '_');
       const slugCandidate = `c_${cleanNum}_porciento`;
       const hasColumn = allFields?.some((f) => f.slug === slugCandidate);
-      if (hasColumn) {
-        return slugCandidate;
+      if (hasColumn || !allFields || allFields.length === 0) {
+        return `${prefix}${slugCandidate}`;
       }
       const decimalVal = parseFloat(p1) / 100;
-      return `${decimalVal}`;
+      return `${prefix}${decimalVal}`;
     });
 
     return sanitized;

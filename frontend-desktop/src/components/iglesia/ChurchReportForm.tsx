@@ -42,7 +42,8 @@ export const ChurchReportForm = React.memo(function ChurchReportForm({
 }: ChurchReportFormProps) {
   const getServerVal = useCallback(
     (colId: string) => {
-      const cell = row.valores.find((v) => v.campo_id === colId);
+      const vals = Array.isArray(row?.valores) ? row.valores : [];
+      const cell = vals.find((v) => v.campo_id === colId);
       if (!cell) return 0;
       return (
         Number(
@@ -52,7 +53,7 @@ export const ChurchReportForm = React.memo(function ChurchReportForm({
         ) || 0
       );
     },
-    [row.valores]
+    [row?.valores]
   );
 
   const [localValues, setLocalValues] = useState<Record<string, number>>(() => {
@@ -85,7 +86,7 @@ export const ChurchReportForm = React.memo(function ChurchReportForm({
     }
     setLocalValues(next);
     setSaveStatus('saved');
-  }, [row.iglesia_id, periodo?.id, row.valores.length, getServerVal, columns]);
+  }, [row?.iglesia_id, periodo?.id, row?.valores?.length, getServerVal, columns]);
 
   // Debounced auto-save function (800ms)
   const triggerAutoSave = useCallback(
@@ -327,7 +328,8 @@ export const ChurchReportForm = React.memo(function ChurchReportForm({
               <p className="text-xs text-slate-400 dark:text-slate-500 italic">No hay campos de ingresos configurados.</p>
             ) : (
               ingresosCols.map((col) => {
-                const cell = row.valores.find((v) => v.campo_id === col.id);
+                const vals = Array.isArray(row?.valores) ? row.valores : [];
+                const cell = vals.find((v) => v.campo_id === col.id);
                 const isBlocked = isFormBlocked || cell?.editable === false;
 
                 return (
@@ -395,7 +397,8 @@ export const ChurchReportForm = React.memo(function ChurchReportForm({
               <p className="text-xs text-slate-400 dark:text-slate-500 italic">No hay campos de egresos configurados.</p>
             ) : (
               egresosCols.map((col) => {
-                const cell = row.valores.find((v) => v.campo_id === col.id);
+                const vals = Array.isArray(row?.valores) ? row.valores : [];
+                const cell = vals.find((v) => v.campo_id === col.id);
                 const isBlocked = isFormBlocked || cell?.editable === false;
 
                 return (
@@ -454,7 +457,8 @@ export const ChurchReportForm = React.memo(function ChurchReportForm({
 
             <div className="space-y-3">
               {informativosManualCols.map((col) => {
-                const cell = row.valores.find((v) => v.campo_id === col.id);
+                const vals = Array.isArray(row?.valores) ? row.valores : [];
+                const cell = vals.find((v) => v.campo_id === col.id);
                 const isBlocked = isFormBlocked || cell?.editable === false;
 
                 return (
@@ -512,7 +516,8 @@ export const ChurchReportForm = React.memo(function ChurchReportForm({
 
           <div className="space-y-2">
             {calculosCols.map((col) => {
-              const cell = row.valores.find((v) => v.campo_id === col.id);
+              const vals = Array.isArray(row?.valores) ? row.valores : [];
+              const cell = vals.find((v) => v.campo_id === col.id);
               const isCalc = col.modo_calculo === 'calculado';
               const val = isCalc ? cell?.valor_calculado : cell?.valor_manual;
 

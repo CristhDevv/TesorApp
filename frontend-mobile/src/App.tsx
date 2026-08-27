@@ -386,7 +386,7 @@ export default function App() {
                       <div>
                         <h4 className="font-bold text-slate-900 text-sm">{col.nombre}</h4>
                         <span className="text-[10px] text-slate-400 capitalize mt-0.5 block font-mono">
-                          {col.seccion} • {isCalculated ? 'Fórmula' : 'Manual'}
+                          {col.seccion_iglesia || col.seccion} • {isCalculated ? 'Fórmula' : 'Manual'}
                         </span>
                       </div>
 
@@ -486,8 +486,8 @@ export default function App() {
 
           {currentChurchRow && columns.length > 0 ? (
             <div className="space-y-3">
-              {columns.map((col: any, index: number) => {
-                const val = currentChurchRow.valores[index];
+              {columns.map((col: any) => {
+                const val = (Array.isArray(currentChurchRow.valores) ? currentChurchRow.valores : []).find((v: any) => v.campo_id === col.id);
                 if (!val) return null;
                 const isCalc = val.modo_calculo === 'calculado';
                 const value = isCalc ? val.valor_calculado : val.valor_manual;

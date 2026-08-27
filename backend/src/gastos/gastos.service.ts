@@ -45,9 +45,9 @@ export class GastosService {
       priorPeriodIds.push(periodoId);
     }
 
-    // 2. Fetch all active designated fund fields (es_fondo: true)
+    // 2. Fetch all active designated fund fields (es_fondo: true, not temporal)
     const camposFondo = await this.prisma.campoPlantilla.findMany({
-      where: { es_fondo: true, activo: true },
+      where: { es_fondo: true, es_temporal: false, activo: true },
       select: { 
         id: true, 
         nombre: true, 

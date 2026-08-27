@@ -79,7 +79,7 @@ ${topChurches.map((c, i) => `${i + 1}. **${c.name}**: Total $${c.total.toLocaleS
 
     // 3. Call Google Gemini API (gemini-2.5-flash / gemini-2.5-pro)
     try {
-      const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`;
+      const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`;
       
       const contentsPayload = [
         {

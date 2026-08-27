@@ -51,6 +51,7 @@ import { TableFilterToolbar } from './components/tesorero/TableFilterToolbar';
 import { FormulaBar } from './components/tesorero/FormulaBar';
 import { SpreadsheetGrid } from './components/tesorero/SpreadsheetGrid';
 import { ColumnConfigDrawer } from './components/tesorero/ColumnConfigDrawer';
+import { ChurchViewOrganizer } from './components/tesorero/ChurchViewOrganizer';
 import { ChurchReportForm } from './components/iglesia/ChurchReportForm';
 import { QuickSearchModal } from './components/tesorero/QuickSearchModal';
 import { AuditDrawer } from './components/tesorero/AuditDrawer';
@@ -223,6 +224,7 @@ export default function App() {
   const [showAuditDrawer, setShowAuditDrawer] = useState<boolean>(false);
   const [showQuickSearch, setShowQuickSearch] = useState<boolean>(false);
   const [formulaModalColumn, setFormulaModalColumn] = useState<ColumnaGrid | null>(null);
+  const [camposSubView, setCamposSubView] = useState<'catalog' | 'church_organizer'>('catalog');
 
   // Admin search filters
   const [churchSearch, setChurchSearch] = useState<string>('');
@@ -537,7 +539,7 @@ export default function App() {
             const tableResults = await Promise.all(
               list.map((t) =>
                 axios
-                  .get(`${API_BASE}/valores?tabla_id=${t.id}&periodo_id=${selectedPeriodoId}&mostrar_todos=true`)
+                  .get(`${API_BASE}/valores?tabla_id=${t.id}&periodo_id=${selectedPeriodoId}`)
                   .then((r) => r.data)
                   .catch(() => null)
               )
@@ -545,10 +547,6 @@ export default function App() {
             const valid = tableResults.filter(Boolean);
             if (valid.length > 0) {
               const columnMap = new Map<string, any>();
-              // If global campos is available, use global columns
-              if (campos.length > 0) {
-                for (const c of campos) columnMap.set(c.id, c);
-              }
               for (const tableData of valid) {
                 for (const col of tableData.columnas || []) {
                   if (!columnMap.has(col.id)) columnMap.set(col.id, col);
@@ -558,17 +556,23 @@ export default function App() {
               const churchMap = new Map<string, any>();
               for (const tableData of valid) {
                 for (const row of tableData.filas || []) {
+                  const incomingVals = Array.isArray(row.valores) ? row.valores : [];
                   if (!churchMap.has(row.iglesia_id)) {
                     churchMap.set(row.iglesia_id, {
                       ...row,
-                      valores: { ...row.valores },
+                      valores: [...incomingVals],
                     });
                   } else {
                     const existing = churchMap.get(row.iglesia_id);
-                    existing.valores = {
-                      ...existing.valores,
-                      ...row.valores,
-                    };
+                    const existingVals = Array.isArray(existing.valores) ? existing.valores : [];
+                    const valMap = new Map<string, any>();
+                    for (const v of existingVals) {
+                      if (v && v.campo_id) valMap.set(v.campo_id, v);
+                    }
+                    for (const v of incomingVals) {
+                      if (v && v.campo_id) valMap.set(v.campo_id, v);
+                    }
+                    existing.valores = Array.from(valMap.values());
                   }
                 }
               }
@@ -1071,6 +1075,56 @@ export default function App() {
     });
   };
 
+  const fetchCampos = async () => {
+    try {
+      const campRes = await axios.get(`${API_BASE}/campos`);
+      setCampos(campRes.data || []);
+    } catch (err) {
+      console.error('Error recargando campos:', err);
+    }
+  };
+
+  const fetchTablas = async () => {
+    try {
+      const tabRes = await axios.get(`${API_BASE}/tablas`);
+      setTablas(tabRes.data || []);
+    } catch (err) {
+      console.error('Error recargando tablas:', err);
+    }
+  };
+
+  const handleSaveBatchCampos = async (
+    items: {
+      id: string;
+      orden: number;
+      nombre?: string;
+      seccion_iglesia?: string;
+      visible_para_iglesia?: boolean;
+    }[],
+    tablaId?: string,
+    campoIdsForTable?: string[]
+  ) => {
+    if (tablaId && campoIdsForTable) {
+      await axios.put(`${API_BASE}/tablas/${tablaId}`, {
+        campo_ids: campoIdsForTable,
+      });
+    }
+
+    await axios.put(`${API_BASE}/campos/reordenar-lote`, { items });
+
+    triggerToast(
+      tablaId
+        ? 'Configuración y orden de la tabla actualizados con éxito'
+        : 'Orden y configuración global actualizados para todas las iglesias'
+    );
+
+    await Promise.all([fetchCampos(), fetchTablas()]);
+
+    if (selectedPeriodoId) {
+      fetchGridValues();
+    }
+  };
+
   // ─── User CRUD ─────────────────────────────────────────────────────────
   const saveUser = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -1273,7 +1327,8 @@ export default function App() {
 
     let total = 0;
     gridData.filas.forEach((row: any) => {
-      (row.valores || []).forEach((v: any) => {
+      const vals = Array.isArray(row.valores) ? row.valores : [];
+      vals.forEach((v: any) => {
         if (ingresoColIds.has(v.campo_id)) {
           const isCalc = v.modo_calculo === 'calculado';
           const num = Number(isCalc ? (v.valor_calculado || 0) : (v.valor_manual || 0));
@@ -1410,7 +1465,8 @@ export default function App() {
     if (!gridData?.filas || !gridData?.columnas) return [];
     const order: string[] = [];
     for (const fila of sortedAndFilteredGridRows) {
-      for (const val of fila.valores) {
+      const vals = Array.isArray(fila.valores) ? fila.valores : [];
+      for (const val of vals) {
         const isCalc = val.modo_calculo === 'calculado';
         const canEdit = isPeriodOpen && (isTesorero || (!isCalc && val.editable !== false));
         if (canEdit) order.push(`${fila.iglesia_id}__${val.campo_id}`);
@@ -1741,8 +1797,8 @@ export default function App() {
           </div>
 
           <div className="flex items-center gap-2 text-xs">
-            {selectedPeriodObj && (
-              <div className="flex items-center gap-1.5 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 px-2.5 py-1 rounded-lg border border-slate-200 dark:border-slate-700 font-semibold text-[11px]">
+            {selectedPeriodObj && activeTab !== 'sheet' && (
+              <div className="flex items-center gap-1.5 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 px-2.5 py-1 rounded-lg border border-slate-200 dark:border-slate-700 font-semibold text-[11px] shrink-0">
                 <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
                 <span>Periodo: <strong className="text-slate-900 dark:text-white">{selectedPeriodObj.nombre}</strong></span>
               </div>
@@ -1751,7 +1807,7 @@ export default function App() {
             {user?.rol === 'tesorero' && user?.iglesia_id && (
               <button
                 onClick={() => handleSetViewRoleMode('iglesia')}
-                className="px-2.5 py-1 rounded-lg bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-950/60 dark:hover:bg-indigo-900/60 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 transition cursor-pointer flex items-center gap-1.5 text-xs font-bold shadow-2xs"
+                className="px-2.5 py-1 rounded-lg bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-950/60 dark:hover:bg-indigo-900/60 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 transition cursor-pointer flex items-center gap-1.5 text-xs font-bold shadow-2xs shrink-0"
                 title="Cambiar a Vista de Sede Pastoral para diligenciar su informe"
               >
                 <Church className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
@@ -1763,7 +1819,7 @@ export default function App() {
             <button
               onClick={() => setShowHelpModal(true)}
               title="Abrir Guía y Centro de Ayuda (Ctrl+H / F1)"
-              className="p-1.5 sm:px-2.5 sm:py-1 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer flex items-center gap-1.5 text-xs font-bold"
+              className="p-1.5 sm:px-2.5 sm:py-1 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer flex items-center gap-1.5 text-xs font-bold shrink-0"
             >
               <HelpCircle className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
               <span className="hidden md:inline text-[11px]">Guía / Ayuda</span>
@@ -1772,7 +1828,7 @@ export default function App() {
             <button
               onClick={toggleTheme}
               title={theme === 'dark' ? "Cambiar a Modo Claro (Fondo Blanco)" : "Cambiar a Modo Oscuro"}
-              className="p-1.5 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer flex items-center gap-1 text-xs font-semibold"
+              className="p-1.5 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer flex items-center gap-1 text-xs font-semibold shrink-0"
             >
               {theme === 'dark' ? (
                 <>
@@ -1787,7 +1843,7 @@ export default function App() {
               )}
             </button>
 
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-1 shrink-0">
               <button
                 onClick={() => setShowAICopilot(true)}
                 className="px-3 py-1 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white rounded-lg font-bold text-xs flex items-center gap-1.5 shadow-xs transition transform active:scale-95 cursor-pointer"
@@ -1833,7 +1889,6 @@ export default function App() {
               selectedPeriodoId={selectedPeriodoId}
               onTablaChange={handleTableChange}
               onPeriodoChange={setSelectedPeriodoId}
-              totalIngresosPeriodo={totalIngresosPeriodo}
               onOpenTableConfig={() => {
                 if (selectedTableObj) {
                   setTableModalData({
@@ -1853,8 +1908,6 @@ export default function App() {
               onReopenPeriod={handleReopenPeriod}
               onCreatePeriod={handleCreatePeriod}
               onExportExcel={exportExcel}
-              onToggleDrawer={() => openFieldModalForNew()}
-              onOpenAuditDrawer={() => setShowAuditDrawer(true)}
               onOpenQuickSearch={() => setShowQuickSearch(true)}
               gridSearch={gridSearch}
               onGridSearchChange={setGridSearch}
@@ -1862,9 +1915,6 @@ export default function App() {
               onToggleAllColumns={setShowAllColumns}
               onlyOverriddenFilter={onlyOverriddenFilter}
               onToggleOnlyOverridden={setOnlyOverriddenFilter}
-              showAnalytics={showAnalyticsDrawer}
-              onToggleAnalytics={() => setShowAnalyticsDrawer(!showAnalyticsDrawer)}
-              hasChart={!!chartData}
               filteredCount={sortedAndFilteredGridRows.length}
               totalCount={gridData?.filas?.length || 0}
             />
@@ -2220,28 +2270,67 @@ export default function App() {
       {/* ── TAB 3: CAMPOS ── */}
       {activeTab === 'campos' && (
         <div className="flex-1 flex flex-col min-h-0 overflow-hidden bg-white dark:bg-slate-950">
-          <div className="h-[42px] px-3 bg-slate-50 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between shrink-0">
+          <div className="h-[46px] px-3 bg-slate-50 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between shrink-0">
             <div className="flex items-center gap-2">
-              <h2 className="font-bold text-slate-900 dark:text-white text-xs">Definición de Columnas ({campos.length})</h2>
-              <div className="relative">
-                <Search className="w-3.5 h-3.5 absolute left-2 top-2.5 text-slate-400 pointer-events-none" />
-                <input
-                  type="text"
-                  placeholder="Buscar columna o slug..."
-                  value={fieldSearch}
-                  onChange={(e) => setFieldSearch(e.target.value)}
-                  className="w-56 pl-7 pr-2 py-1 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded text-slate-900 dark:text-slate-100 text-xs placeholder-slate-400 focus:outline-none focus:border-indigo-600"
-                />
+              <div className="flex items-center bg-slate-200/80 dark:bg-slate-800 p-0.5 rounded-lg border border-slate-300 dark:border-slate-700">
+                <button
+                  onClick={() => setCamposSubView('catalog')}
+                  className={`px-3 py-1 rounded-md text-xs font-bold transition cursor-pointer flex items-center gap-1.5 ${
+                    camposSubView === 'catalog'
+                      ? 'bg-white dark:bg-slate-900 text-indigo-700 dark:text-indigo-300 shadow-2xs'
+                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                  }`}
+                >
+                  <Layers className="w-3.5 h-3.5" />
+                  <span>Catálogo de Columnas ({campos.length})</span>
+                </button>
+                <button
+                  onClick={() => setCamposSubView('church_organizer')}
+                  className={`px-3 py-1 rounded-md text-xs font-bold transition cursor-pointer flex items-center gap-1.5 ${
+                    camposSubView === 'church_organizer'
+                      ? 'bg-white dark:bg-slate-900 text-indigo-700 dark:text-indigo-300 shadow-2xs'
+                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                  }`}
+                >
+                  <Smartphone className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
+                  <span>Organizar Vista de Iglesia</span>
+                </button>
               </div>
+
+              {camposSubView === 'catalog' && (
+                <div className="relative">
+                  <Search className="w-3.5 h-3.5 absolute left-2 top-2.5 text-slate-400 pointer-events-none" />
+                  <input
+                    type="text"
+                    placeholder="Buscar columna o slug..."
+                    value={fieldSearch}
+                    onChange={(e) => setFieldSearch(e.target.value)}
+                    className="w-52 pl-7 pr-2 py-1 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded text-slate-900 dark:text-slate-100 text-xs placeholder-slate-400 focus:outline-none focus:border-indigo-600"
+                  />
+                </div>
+              )}
             </div>
-            <button
-              onClick={openFieldModalForNew}
-              className="px-2.5 py-1 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded text-xs flex items-center gap-1 shadow-xs cursor-pointer"
-            >
-              <Plus className="w-3 h-3" /> Crear Columna
-            </button>
+
+            {camposSubView === 'catalog' && (
+              <button
+                onClick={openFieldModalForNew}
+                className="px-2.5 py-1 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded text-xs flex items-center gap-1 shadow-xs cursor-pointer"
+              >
+                <Plus className="w-3 h-3" /> Crear Columna
+              </button>
+            )}
           </div>
-          <div className="flex-1 min-h-0 overflow-auto">
+
+          {camposSubView === 'church_organizer' ? (
+            <ChurchViewOrganizer
+              campos={campos}
+              tablas={tablas}
+              onSaveBatch={handleSaveBatchCampos}
+              onRefreshCampos={fetchCampos}
+              onRefreshTablas={fetchTablas}
+            />
+          ) : (
+            <div className="flex-1 min-h-0 overflow-auto">
             <table className="w-full border-collapse text-left text-xs">
               <thead className="sticky top-0 bg-slate-100 dark:bg-slate-800 border-b border-slate-300 dark:border-slate-700 z-10 select-none">
                 <tr className="text-[10px] font-extrabold text-slate-600 dark:text-slate-300 uppercase tracking-wider">
@@ -2371,6 +2460,7 @@ export default function App() {
               </tbody>
             </table>
           </div>
+          )}
           {/* Column drawer */}
           <ColumnConfigDrawer
             isOpen={showColumnDrawer}

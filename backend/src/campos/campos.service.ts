@@ -118,9 +118,9 @@ export class CamposService {
           tipo_redondeo: data.tipo_redondeo || 'ninguno',
           multiplo_redondeo: data.multiplo_redondeo !== undefined ? Number(data.multiplo_redondeo) : 1,
           es_acumulable: data.es_acumulable ?? false,
-          es_fondo: data.es_fondo ?? false,
-          es_transito: data.es_transito ?? false,
-          ente_superior_nombre: data.es_transito ? data.ente_superior_nombre : null,
+          es_fondo: data.es_temporal ? false : (data.es_fondo ?? false),
+          es_transito: data.es_temporal ? false : (data.es_transito ?? false),
+          ente_superior_nombre: !data.es_temporal && data.es_transito ? data.ente_superior_nombre : null,
           seccion: data.seccion,
           seccion_iglesia: data.seccion_iglesia || data.seccion,
           seccion_tesorero: data.seccion_tesorero || data.seccion,
@@ -267,9 +267,9 @@ export class CamposService {
           tipo_redondeo: data.tipo_redondeo !== undefined ? data.tipo_redondeo : original.tipo_redondeo,
           multiplo_redondeo: data.multiplo_redondeo !== undefined ? Number(data.multiplo_redondeo) : original.multiplo_redondeo,
           es_acumulable: data.es_acumulable,
-          es_fondo: data.es_fondo,
-          es_transito: isTransito,
-          ente_superior_nombre: isTransito ? (data.ente_superior_nombre !== undefined ? data.ente_superior_nombre : original.ente_superior_nombre) : null,
+          es_fondo: isTemporal ? false : data.es_fondo,
+          es_transito: isTemporal ? false : isTransito,
+          ente_superior_nombre: !isTemporal && isTransito ? (data.ente_superior_nombre !== undefined ? data.ente_superior_nombre : original.ente_superior_nombre) : null,
           seccion: data.seccion,
           seccion_iglesia: data.seccion_iglesia,
           seccion_tesorero: data.seccion_tesorero,
@@ -350,6 +350,65 @@ export class CamposService {
     });
 
     await this.valoresService.recalculateAllOpenPeriods(realizadoPor);
+    return res;
+  }
+
+  async reorderBatch(
+    items: {
+      id: string;
+      orden: number;
+      nombre?: string;
+      seccion_iglesia?: string;
+      visible_para_iglesia?: boolean;
+    }[],
+    realizadoPor: string,
+  ) {
+    if (!items || !Array.isArray(items) || items.length === 0) {
+      throw new BadRequestException('Se requiere una lista de campos para reordenar.');
+    }
+
+    const res = await this.prisma.$transaction(async (tx) => {
+      const updatedCampos = [];
+
+      for (const item of items) {
+        const original = await tx.campoPlantilla.findUnique({ where: { id: item.id } });
+        if (!original) continue;
+
+        const dataToUpdate: any = {
+          orden: item.orden,
+        };
+
+        if (item.nombre && item.nombre.trim() !== '') {
+          dataToUpdate.nombre = item.nombre.trim();
+        }
+
+        if (item.seccion_iglesia !== undefined) {
+          dataToUpdate.seccion_iglesia = item.seccion_iglesia;
+        }
+
+        if (item.visible_para_iglesia !== undefined) {
+          dataToUpdate.visible_para_iglesia = item.visible_para_iglesia;
+        }
+
+        const updated = await tx.campoPlantilla.update({
+          where: { id: item.id },
+          data: dataToUpdate,
+        });
+
+        updatedCampos.push(updated);
+      }
+
+      await this.historial.log(tx, {
+        entidad: 'campo_plantilla',
+        entidadId: items[0]?.id || 'batch-reorder',
+        accion: 'actualizacion',
+        valorNuevo: { reordered_count: items.length, items },
+        realizadoPor,
+      });
+
+      return updatedCampos;
+    });
+
     return res;
   }
 }

@@ -2,17 +2,14 @@ import { useState, useRef, useEffect } from 'react';
 import {
   Search,
   X,
-  History,
   Plus,
   Download,
   Sliders,
   ChevronDown,
   Filter,
-  TrendingUp,
 } from 'lucide-react';
 import type { Tabla, Periodo } from '../../types/contabilidad';
 import { PeriodBadge } from '../common/PeriodBadge';
-import { formatCOP } from '../../utils/formatters';
 
 interface TableFilterToolbarProps {
   // Tesorero mode
@@ -30,8 +27,6 @@ interface TableFilterToolbarProps {
   onReopenPeriod: (id: string) => void;
   onCreatePeriod: () => void;
   onExportExcel: () => void;
-  onToggleDrawer: () => void;
-  onOpenAuditDrawer?: () => void;
   onOpenQuickSearch?: () => void;
 
   // Church display (iglesia mode)
@@ -43,9 +38,6 @@ interface TableFilterToolbarProps {
   onGridSearchChange: (v: string) => void;
   showAllColumns: boolean;
   onToggleAllColumns: (v: boolean) => void;
-  showAnalytics: boolean;
-  onToggleAnalytics: () => void;
-  hasChart: boolean;
   onlyOverriddenFilter?: boolean;
   onToggleOnlyOverridden?: (v: boolean) => void;
 
@@ -60,7 +52,6 @@ export function TableFilterToolbar({
   periodos,
   selectedTablaId,
   selectedPeriodoId,
-  totalIngresosPeriodo,
   onTablaChange,
   onPeriodoChange,
   onOpenTableConfig,
@@ -69,8 +60,6 @@ export function TableFilterToolbar({
   onReopenPeriod,
   onCreatePeriod,
   onExportExcel,
-  onToggleDrawer,
-  onOpenAuditDrawer,
   onOpenQuickSearch,
   churchName,
   churchCode,
@@ -78,9 +67,6 @@ export function TableFilterToolbar({
   onGridSearchChange,
   showAllColumns,
   onToggleAllColumns,
-  showAnalytics,
-  onToggleAnalytics,
-  hasChart,
   onlyOverriddenFilter = false,
   onToggleOnlyOverridden,
   filteredCount,
@@ -222,153 +208,108 @@ export function TableFilterToolbar({
             </>
           )}
 
-          {totalIngresosPeriodo != null && (
-            <span className="hidden xl:inline-flex items-center gap-1 px-2 py-0.5 rounded bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-300 dark:border-emerald-700/80 text-[10px] font-bold text-emerald-800 dark:text-emerald-300 whitespace-nowrap shadow-2xs">
-              <span>Ingresos Período:</span>
-              <strong className="font-mono text-emerald-900 dark:text-emerald-200">{formatCOP(totalIngresosPeriodo)}</strong>
-            </span>
-          )}
-        </div>
-      </div>
-
-      {/* ─── RIGHT SECTION: SEARCH & ACTIONS ─── */}
-      <div className="flex items-center gap-2 shrink-0">
-        {/* Search with Ctrl+K shortcut indicator */}
-        <div className="relative flex items-center">
-          <Search className="w-3.5 h-3.5 absolute left-2 text-slate-400 pointer-events-none" />
-          <input
-            type="text"
-            placeholder="Buscar iglesia..."
-            value={gridSearch}
-            onChange={(e) => onGridSearchChange(e.target.value)}
-            className="w-36 pl-7 pr-12 py-1 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded text-slate-900 dark:text-slate-100 text-[11px] placeholder-slate-400 focus:outline-none focus:border-indigo-600 focus:bg-white dark:focus:bg-slate-800"
-          />
-          {gridSearch ? (
-            <button
-              onClick={() => onGridSearchChange('')}
-              className="absolute right-1.5 text-slate-400 hover:text-slate-600"
-            >
-              <X className="w-3 h-3" />
-            </button>
-          ) : (
-            <button
-              type="button"
-              onClick={onOpenQuickSearch}
-              className="absolute right-1 px-1 py-0.2 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded text-[9px] font-mono text-slate-400 dark:text-slate-300 hover:text-slate-600 shadow-2xs"
-              title="Abrir buscador con Ctrl+K"
-            >
-              ⌘K
-            </button>
-          )}
+          </div>
         </div>
 
-        {/* Dropdown Filters button */}
-        {isTesorero && (
-          <div className="relative" ref={filtersMenuRef}>
-            <button
-              type="button"
-              onClick={() => setShowFiltersDropdown(!showFiltersDropdown)}
-              className={`px-2.5 py-1 rounded font-bold text-[10px] flex items-center gap-1 border transition ${
-                onlyOverriddenFilter || showAllColumns
-                  ? 'bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border-indigo-300 dark:border-indigo-800'
-                  : 'bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 border-slate-300 dark:border-slate-700'
-              }`}
-            >
-              <Filter className="w-3 h-3" />
-              Filtros
-              <ChevronDown className="w-3 h-3" />
-            </button>
+        {/* ─── RIGHT SECTION: SEARCH, FILTERS & EXPORT ─── */}
+        <div className="flex items-center gap-2 shrink-0">
+          {/* Search with Ctrl+K shortcut indicator */}
+          <div className="relative flex items-center">
+            <Search className="w-3.5 h-3.5 absolute left-2.5 text-slate-400 pointer-events-none" />
+            <input
+              type="text"
+              placeholder="Buscar iglesia..."
+              value={gridSearch}
+              onChange={(e) => onGridSearchChange(e.target.value)}
+              className="w-36 sm:w-44 pl-7 pr-8 py-1 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg text-slate-900 dark:text-slate-100 text-[11px] placeholder-slate-400 focus:outline-none focus:border-indigo-600 focus:bg-white dark:focus:bg-slate-800 transition"
+            />
+            {gridSearch ? (
+              <button
+                onClick={() => onGridSearchChange('')}
+                className="absolute right-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+              >
+                <X className="w-3 h-3" />
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={onOpenQuickSearch}
+                className="absolute right-1.5 px-1 py-0.5 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded text-[9px] font-mono text-slate-400 dark:text-slate-300 hover:text-slate-600 shadow-2xs"
+                title="Abrir buscador con Ctrl+K"
+              >
+                ⌘K
+              </button>
+            )}
+          </div>
 
-            {showFiltersDropdown && (
-              <div className="absolute right-0 top-full mt-1 w-56 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg shadow-xl p-2 z-40 space-y-2 text-xs">
-                <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 border-b border-slate-100 dark:border-slate-800 pb-1">
-                  Opciones de Vista
-                </p>
+          {/* Dropdown Filters button */}
+          {isTesorero && (
+            <div className="relative" ref={filtersMenuRef}>
+              <button
+                type="button"
+                onClick={() => setShowFiltersDropdown(!showFiltersDropdown)}
+                className={`px-2.5 py-1 rounded-lg font-bold text-[10px] flex items-center gap-1 border transition cursor-pointer ${
+                  onlyOverriddenFilter || showAllColumns
+                    ? 'bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border-indigo-300 dark:border-indigo-800'
+                    : 'bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 border-slate-300 dark:border-slate-700'
+                }`}
+              >
+                <Filter className="w-3 h-3" />
+                <span>Filtros</span>
+                <ChevronDown className="w-3 h-3" />
+              </button>
 
-                {/* All vs Consolidated Columns */}
-                <label className="flex items-center gap-2 cursor-pointer p-1 rounded hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-800 dark:text-slate-200 text-[11px]">
-                  <input
-                    type="checkbox"
-                    checked={showAllColumns}
-                    onChange={(e) => onToggleAllColumns(e.target.checked)}
-                    className="accent-indigo-600"
-                  />
-                  <span>Mostrar todas las columnas (ignorar tabla)</span>
-                </label>
+              {showFiltersDropdown && (
+                <div className="absolute right-0 top-full mt-1 w-60 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg shadow-xl p-2.5 z-40 space-y-2 text-xs">
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 border-b border-slate-100 dark:border-slate-800 pb-1">
+                    Opciones de Vista
+                  </p>
 
-                {/* Overridden only filter */}
-                {onToggleOnlyOverridden && (
+                  {/* All vs Consolidated Columns */}
                   <label className="flex items-center gap-2 cursor-pointer p-1 rounded hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-800 dark:text-slate-200 text-[11px]">
                     <input
                       type="checkbox"
-                      checked={onlyOverriddenFilter}
-                      onChange={(e) => onToggleOnlyOverridden(e.target.checked)}
+                      checked={showAllColumns}
+                      onChange={(e) => onToggleAllColumns(e.target.checked)}
                       className="accent-indigo-600"
                     />
-                    <span>Solo iglesias con sobrescrituras</span>
+                    <span>Mostrar todas las columnas</span>
                   </label>
-                )}
-              </div>
-            )}
-          </div>
-        )}
 
-        {/* Auditoría lateral button */}
-        {isTesorero && onOpenAuditDrawer && (
-          <button
-            onClick={onOpenAuditDrawer}
-            className="px-2.5 py-1 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-300 dark:border-slate-700 rounded font-bold text-[10px] flex items-center gap-1 transition"
-            title="Abrir bitácora de auditoría"
-          >
-            <History className="w-3 h-3 text-indigo-600 dark:text-indigo-400" />
-            Auditoría
-          </button>
-        )}
+                  {/* Overridden only filter */}
+                  {onToggleOnlyOverridden && (
+                    <label className="flex items-center gap-2 cursor-pointer p-1 rounded hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-800 dark:text-slate-200 text-[11px]">
+                      <input
+                        type="checkbox"
+                        checked={onlyOverriddenFilter}
+                        onChange={(e) => onToggleOnlyOverridden(e.target.checked)}
+                        className="accent-indigo-600"
+                      />
+                      <span>Solo con sobrescrituras</span>
+                    </label>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
 
-        {/* Gestionar Columnas */}
-        {isTesorero && (
-          <button
-            onClick={onToggleDrawer}
-            className="px-2.5 py-1 bg-indigo-600 hover:bg-indigo-700 text-white rounded font-bold text-[10px] flex items-center gap-1 transition shadow-xs"
-            title="Crear o configurar columnas"
-          >
-            <Plus className="w-3 h-3" />
-            Columna
-          </button>
-        )}
+          {/* Export Excel — direct download */}
+          {selectedTable && isTesorero && (
+            <button
+              onClick={onExportExcel}
+              className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-bold text-[10px] flex items-center gap-1.5 shadow-xs transition cursor-pointer shrink-0"
+              title="Exportar planilla a Excel (ExcelJS)"
+            >
+              <Download className="w-3 h-3" />
+              <span>Excel</span>
+            </button>
+          )}
 
-        {/* Analytics Drawer */}
-        {hasChart && isTesorero && (
-          <button
-            onClick={onToggleAnalytics}
-            className={`px-2.5 py-1 rounded font-bold border flex items-center gap-1 text-[10px] transition ${
-              showAnalytics
-                ? 'bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border-indigo-300 dark:border-indigo-800'
-                : 'bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 border-slate-300 dark:border-slate-700'
-            }`}
-          >
-            <TrendingUp className="w-3.5 h-3.5" />
-            Gráficos
-          </button>
-        )}
-
-        {/* Export Excel — direct download */}
-        {selectedTable && isTesorero && (
-          <button
-            onClick={onExportExcel}
-            className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded font-bold text-[10px] flex items-center gap-1 shadow-xs transition"
-            title="Exportar planilla a Excel (ExcelJS)"
-          >
-            <Download className="w-3.5 h-3.5" />
-            Excel
-          </button>
-        )}
-
-        {/* Row count */}
-        <span className="text-[10px] text-slate-500 dark:text-slate-400 font-mono shrink-0 ml-1">
-          {filteredCount}/{totalCount}
-        </span>
+          {/* Row count */}
+          <span className="px-2 py-1 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-[10px] text-slate-600 dark:text-slate-300 font-mono font-bold shrink-0">
+            {filteredCount}/{totalCount}
+          </span>
+        </div>
       </div>
-    </div>
-  );
-}
+    );
+  }

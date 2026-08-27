@@ -30,10 +30,11 @@ export const SpeedEntryForm = React.memo(function SpeedEntryForm({
   onBatchSave,
 }: SpeedEntryFormProps) {
   const getServerVal = useCallback((colId: string) => {
-    const cell = row.valores.find(v => v.campo_id === colId);
+    const vals = Array.isArray(row?.valores) ? row.valores : [];
+    const cell = vals.find(v => v.campo_id === colId);
     if (!cell) return 0;
     return Number(cell.modo_calculo === 'calculado' ? cell.valor_calculado : cell.valor_manual) || 0;
-  }, [row.valores]);
+  }, [row?.valores]);
 
   const [localValues, setLocalValues] = useState<Record<string, number>>(() => {
     const init: Record<string, number> = {};
@@ -61,7 +62,7 @@ export const SpeedEntryForm = React.memo(function SpeedEntryForm({
       return next;
     });
     setDirty(false);
-  }, [row.iglesia_id, row.valores.length, getServerVal, columns]);
+  }, [row?.iglesia_id, row?.valores?.length, getServerVal, columns]);
 
   const handleChange = useCallback((colId: string, val: number) => {
     setLocalValues(prev => ({ ...prev, [colId]: val }));
@@ -106,7 +107,8 @@ export const SpeedEntryForm = React.memo(function SpeedEntryForm({
     .map(c => c.id);
 
   const renderField = (col: ColumnaGrid) => {
-    const cell = row.valores.find(v => v.campo_id === col.id);
+    const vals = Array.isArray(row?.valores) ? row.valores : [];
+    const cell = vals.find(v => v.campo_id === col.id);
     const isCalc = col.modo_calculo === 'calculado';
     const canEdit = isPeriodOpen && !isCalc && (isTesorero || cell?.editable !== false);
     const displayCalcVal = formatCOP(cell?.valor_calculado ?? 0);

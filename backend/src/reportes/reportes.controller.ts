@@ -54,6 +54,8 @@ export class ReportesController {
       tablaId,
     );
 
+    const buffer = await workbook.xlsx.writeBuffer();
+
     res.setHeader(
       'Content-Type',
       'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
@@ -62,8 +64,7 @@ export class ReportesController {
       'Content-Disposition',
       `attachment; filename=Reporte_Financiero_${periodoId}.xlsx`,
     );
-
-    await workbook.xlsx.write(res);
-    res.end();
+    res.setHeader('Content-Length', (buffer as any).byteLength || (buffer as any).length);
+    res.send(Buffer.from(buffer));
   }
 }

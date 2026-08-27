@@ -36,6 +36,7 @@ import { formatCOP } from '../../utils/formatters';
 import { generateVoucherPDFBlob } from '../../utils/voucherPdfGenerator';
 import { HelpModal } from '../common/HelpModal';
 import { AICopilotDrawer } from '../ai/AICopilotDrawer';
+import { MobileTreasurerApp } from './MobileTreasurerApp';
 
 interface MobileViewProps {
   token: string | null;
@@ -58,16 +59,14 @@ interface ReceiptItem {
   notes?: string;
 }
 
-export function MobileView({
-  token,
-  user,
-  onLogout,
-  onSwitchToDesktop,
-  API_BASE,
-  theme,
-  onToggleTheme,
-}: MobileViewProps) {
-  const isTesorero = user?.rol === 'tesorero';
+export function MobileView(props: MobileViewProps) {
+  const isTesorero = props.user?.rol === 'tesorero';
+
+  if (isTesorero) {
+    return <MobileTreasurerApp {...props} />;
+  }
+
+  const { token, user, onLogout, onSwitchToDesktop, API_BASE, theme, onToggleTheme } = props;
 
   // Navigation tab state
   const [activeScreen, setActiveScreen] = useState<'capture' | 'gastos' | 'history' | 'summary' | 'profile'>('capture');
@@ -384,7 +383,7 @@ export function MobileView({
       const isCalc = val.modo_calculo === 'calculado';
       const num = Number(isCalc ? (val.valor_calculado || 0) : (val.valor_manual || 0));
 
-      const sec = (col.seccion || col.seccion_iglesia || '').toLowerCase();
+      const sec = (col.seccion_iglesia || col.seccion || '').toLowerCase();
       if (sec === 'ingresos') ingresos += num;
       else if (sec === 'egresos') egresos += num;
       else if (col.nombre?.toLowerCase().includes('diezmo') || col.nombre?.toLowerCase().includes('ofrenda')) ingresos += num;
@@ -423,12 +422,12 @@ export function MobileView({
     if (sectionFilter === 'all') return columns;
     return columns.filter((col: any) => {
       const val = currentChurchRow?.valores?.find((v: any) => v.campo_id === col.id);
-      const isCalc = val?.modo_calculo === 'calculado';
-      const sec = (col.seccion || col.seccion_iglesia || '').toLowerCase();
+      const isCalc = val?.modo_calculo === 'calculado' || col.modo_calculo === 'calculado';
+      const sec = (col.seccion_iglesia || col.seccion || '').toLowerCase();
 
       if (sectionFilter === 'calculados') return isCalc;
       if (sectionFilter === 'ingresos') return sec === 'ingresos' || (!isCalc && !sec.includes('egreso'));
-      if (sectionFilter === 'egresos') return sec === 'egresos' || sec.includes('aporte') || sec.includes('gasto');
+      if (sectionFilter === 'egresos') return sec === 'egresos' || sec.includes('aporte') || sec.includes('gasto') || sec.includes('retencion');
       return true;
     });
   }, [columns, currentChurchRow, sectionFilter]);

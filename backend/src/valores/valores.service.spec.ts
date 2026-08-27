@@ -15,6 +15,7 @@ describe('ValoresService', () => {
     campoPlantilla: { findMany: jest.fn(), findUnique: jest.fn() },
     valor: { findMany: jest.fn(), findUnique: jest.fn(), upsert: jest.fn() },
     permisoEdicion: { findMany: jest.fn(), findUnique: jest.fn() },
+    informePeriodo: { findUnique: jest.fn().mockResolvedValue(null), findMany: jest.fn().mockResolvedValue([]), upsert: jest.fn() },
     $transaction: jest.fn((ops) => (Array.isArray(ops) ? Promise.all(ops) : ops(mockPrismaService))),
   };
 

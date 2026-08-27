@@ -49,6 +49,24 @@ export class CamposController {
     return this.camposService.create(body, req.user.userId);
   }
 
+  @Put('reordenar-lote')
+  @Roles('tesorero')
+  async reorderBatch(
+    @Body()
+    body: {
+      items: {
+        id: string;
+        orden: number;
+        nombre?: string;
+        seccion_iglesia?: string;
+        visible_para_iglesia?: boolean;
+      }[];
+    },
+    @Request() req,
+  ) {
+    return this.camposService.reorderBatch(body.items || [], req.user.userId);
+  }
+
   @Put(':id')
   @Roles('tesorero')
   async update(

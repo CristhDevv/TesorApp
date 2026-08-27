@@ -110,20 +110,23 @@ export class ReportesService {
     const periodo = await this.prisma.periodo.findUnique({ where: { id: periodoId } });
     if (!periodo) throw new NotFoundException('Periodo no encontrado');
 
+    const isAllTables = !tablaId || tablaId === 'all' || tablaId === 'todas' || tablaId === 'undefined' || tablaId === 'null' || tablaId.trim() === '';
+
     // 1. Get churches that the user can access
-    let churches = [];
+    let churches: any[] = [];
     if (userRol === 'iglesia') {
       if (!userIglesiaId) throw new ForbiddenException('No tiene una iglesia asignada');
       const iglesia = await this.prisma.iglesia.findUnique({ where: { id: userIglesiaId } });
-      if (!iglesia || iglesia.estado === 'inactiva') throw new NotFoundException('Iglesia no encontrada o inactiva');
+      if (!iglesia) throw new NotFoundException('Iglesia no encontrada');
       churches = [iglesia];
     } else {
-      if (tablaId) {
+      if (!isAllTables) {
         churches = await this.prisma.iglesia.findMany({
           where: { estado: 'activa', tabla_id: tablaId },
           orderBy: { nombre: 'asc' },
         });
-      } else {
+      }
+      if (churches.length === 0) {
         churches = await this.prisma.iglesia.findMany({
           where: { estado: 'activa' },
           orderBy: { nombre: 'asc' },
@@ -131,12 +134,33 @@ export class ReportesService {
       }
     }
 
-    // 2. Fetch all active fields and pre-fetch relations & values in batch
-    const [fields, allRelations, allPeriodValues] = await Promise.all([
-      this.prisma.campoPlantilla.findMany({
-        where: { activo: true },
-        orderBy: [{ seccion: 'asc' }, { orden: 'asc' }],
-      }),
+    if (churches.length === 0) {
+      churches = await this.prisma.iglesia.findMany({ take: 20 });
+    }
+
+    // 2. Fetch active fields based on user role and period
+    const fields = await this.prisma.campoPlantilla.findMany({
+      where: {
+        activo: true,
+        AND: [
+          {
+            OR: [
+              { es_temporal: false },
+              { es_temporal: true, periodo_id: periodoId },
+            ],
+          },
+        ],
+      },
+      orderBy: [{ orden: 'asc' }, { creado_en: 'asc' }],
+    });
+
+    const displayFields = fields.filter((f) => {
+      if (userRol === 'iglesia') return f.visible_para_iglesia !== false;
+      return f.visible_para_tesorero !== false;
+    });
+
+    // 3. Pre-fetch all relations & values in batch
+    const [allRelations, allPeriodValues] = await Promise.all([
       this.prisma.camposPorIglesia.findMany(),
       this.prisma.valor.findMany({
         where: {
@@ -161,11 +185,118 @@ export class ReportesService {
     workbook.creator = 'TesorApp';
     workbook.created = new Date();
 
-    for (const church of churches) {
-      const sheetName = church.nombre.substring(0, 31); // Excel tab names must be <= 31 chars
-      const sheet = workbook.addWorksheet(sheetName);
+    // Sheet 1: Consolidado General (for Treasurer)
+    if (userRol === 'tesorero' && churches.length > 0) {
+      const summarySheet = workbook.addWorksheet('Consolidado General');
+      summarySheet.views = [{ showGridLines: true }];
 
-      // Styles & Styling tokens
+      // Sheet Title
+      const lastColIndex = Math.max(displayFields.length + 2, 5);
+      summarySheet.mergeCells(1, 1, 1, lastColIndex);
+      const titleCell = summarySheet.getCell('A1');
+      titleCell.value = `CONSOLIDADO GENERAL - PERIODO: ${periodo.nombre.toUpperCase()}`;
+      titleCell.font = { name: 'Arial', size: 14, bold: true, color: { argb: 'FFFFFFFF' } };
+      titleCell.alignment = { horizontal: 'center', vertical: 'middle' };
+      titleCell.fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: 'FF1F4E79' },
+      };
+      summarySheet.getRow(1).height = 36;
+
+      // Table Headers
+      const headers = ['#', 'Congregación / Sede', ...displayFields.map((f) => f.nombre)];
+      const headerRow = summarySheet.getRow(3);
+      headerRow.values = headers;
+      headerRow.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+      headerRow.height = 26;
+
+      for (let col = 1; col <= headers.length; col++) {
+        const cell = headerRow.getCell(col);
+        cell.fill = {
+          type: 'pattern',
+          pattern: 'solid',
+          fgColor: { argb: 'FF2F5597' },
+        };
+        cell.alignment = { vertical: 'middle', horizontal: col >= 3 ? 'right' : 'left' };
+      }
+
+      // Populate Church Rows
+      let rIdx = 4;
+      const columnSums: number[] = new Array(displayFields.length).fill(0);
+
+      for (let i = 0; i < churches.length; i++) {
+        const church = churches[i];
+        const vMap = valuesMapByChurch.get(church.id) || new Map();
+        const row = summarySheet.getRow(rIdx);
+        row.getCell(1).value = i + 1;
+        row.getCell(2).value = church.nombre;
+
+        for (let fIdx = 0; fIdx < displayFields.length; fIdx++) {
+          const field = displayFields[fIdx];
+          const valRec = vMap.get(field.id);
+          const valNum = valRec ? Number(valRec.valor_manual ?? valRec.valor_calculado ?? 0) : 0;
+          columnSums[fIdx] += valNum;
+
+          const cell = row.getCell(fIdx + 3);
+          cell.value = valNum;
+          cell.numFmt = '"$"#,##0;("$"#,##0);"-"';
+          cell.alignment = { horizontal: 'right' };
+        }
+
+        if (rIdx % 2 === 0) {
+          for (let c = 1; c <= headers.length; c++) {
+            row.getCell(c).fill = {
+              type: 'pattern',
+              pattern: 'solid',
+              fgColor: { argb: 'FFF9FAFB' },
+            };
+          }
+        }
+        rIdx++;
+      }
+
+      // Totals Row
+      const totalRow = summarySheet.getRow(rIdx);
+      totalRow.getCell(2).value = 'TOTALES GENERALES:';
+      totalRow.getCell(2).font = { bold: true };
+      totalRow.height = 24;
+
+      for (let fIdx = 0; fIdx < displayFields.length; fIdx++) {
+        const cell = totalRow.getCell(fIdx + 3);
+        cell.value = columnSums[fIdx];
+        cell.numFmt = '"$"#,##0;("$"#,##0);"-"';
+        cell.font = { bold: true };
+        cell.alignment = { horizontal: 'right' };
+      }
+
+      for (let c = 1; c <= headers.length; c++) {
+        totalRow.getCell(c).fill = {
+          type: 'pattern',
+          pattern: 'solid',
+          fgColor: { argb: 'FFE5E7EB' },
+        };
+      }
+
+      summarySheet.columns.forEach((column) => {
+        let maxLen = 14;
+        column.eachCell({ includeEmpty: false }, (cell) => {
+          const cellVal = cell.value ? cell.value.toString() : '';
+          if (cellVal.length > maxLen) {
+            maxLen = cellVal.length;
+          }
+        });
+        column.width = maxLen + 3;
+      });
+    }
+
+    // Individual church detailed sheets (up to 40 sheets to keep file lightweight)
+    const detailedChurches = churches.slice(0, 40);
+    for (const church of detailedChurches) {
+      // Excel tab names cannot contain invalid chars \ / ? * : [ ] and max 31 chars
+      const sanitizedName = church.nombre.replace(/[\\/?*:[\]]/g, '').substring(0, 30);
+      const sheet = workbook.addWorksheet(sanitizedName);
+
       sheet.views = [{ showGridLines: true }];
 
       // Sheet Title
@@ -177,9 +308,9 @@ export class ReportesService {
       titleCell.fill = {
         type: 'pattern',
         pattern: 'solid',
-        fgColor: { argb: 'FF1F4E79' }, // Navy blue headers
+        fgColor: { argb: 'FF1F4E79' },
       };
-      sheet.getRow(1).height = 40;
+      sheet.getRow(1).height = 36;
 
       // Meta info
       sheet.getCell('A3').value = 'Periodo:';
@@ -198,29 +329,26 @@ export class ReportesService {
       const headerRow = sheet.getRow(7);
       headerRow.values = ['Sección', 'Nombre del Campo', 'Modo Cálculo', 'Valor del Periodo', 'Valor Acumulado'];
       headerRow.font = { bold: true, color: { argb: 'FFFFFFFF' } };
-      headerRow.height = 25;
-      
+      headerRow.height = 24;
+
       const headerFill = {
         type: 'pattern',
         pattern: 'solid',
         fgColor: { argb: 'FF2F5597' },
       } as const;
-      
+
       for (let col = 1; col <= 5; col++) {
         const cell = headerRow.getCell(col);
         cell.fill = headerFill;
         cell.alignment = { vertical: 'middle', horizontal: col >= 4 ? 'right' : 'left' };
       }
 
-      // Fetch values for this church from pre-loaded Map
       const valuesMap = valuesMapByChurch.get(church.id) || new Map();
 
-      // Populate Table Rows
       let currentRow = 8;
-      for (const field of fields) {
-        // Verify if specific field applies to this church using pre-loaded Set
+      for (const field of displayFields) {
         if (!field.aplica_a_todas_las_iglesias) {
-          if (!relationsSet.has(`${field.id}_${church.id}`)) continue; // Skip if does not apply
+          if (!relationsSet.has(`${field.id}_${church.id}`)) continue;
         }
 
         const valRec = valuesMap.get(field.id);
@@ -228,10 +356,10 @@ export class ReportesService {
         const valAcumulado = valRec ? Number(valRec.valor_acumulado ?? 0) : 0;
 
         const row = sheet.getRow(currentRow);
-        row.getCell(1).value = field.seccion;
+        row.getCell(1).value = userRol === 'iglesia' ? (field.seccion_iglesia || field.seccion) : (field.seccion_tesorero || field.seccion);
         row.getCell(2).value = field.nombre;
         row.getCell(3).value = field.modo_calculo === 'manual' ? 'Manual' : 'Calculado';
-        
+
         const cellPeriod = row.getCell(4);
         cellPeriod.value = valPeriodo;
         cellPeriod.numFmt = '"$"#,##0;("$"#,##0);"-"';
@@ -242,22 +370,19 @@ export class ReportesService {
         cellAccum.numFmt = '"$"#,##0;("$"#,##0);"-"';
         cellAccum.alignment = { horizontal: 'right' };
 
-        // Zebra striping
         if (currentRow % 2 === 0) {
-          const zebraFill = {
-            type: 'pattern',
-            pattern: 'solid',
-            fgColor: { argb: 'FFF2F2F2' },
-          } as const;
           for (let c = 1; c <= 5; c++) {
-            row.getCell(c).fill = zebraFill;
+            row.getCell(c).fill = {
+              type: 'pattern',
+              pattern: 'solid',
+              fgColor: { argb: 'FFF9FAFB' },
+            };
           }
         }
 
         currentRow++;
       }
 
-      // Autofit Column Widths
       sheet.columns.forEach((column) => {
         let maxLen = 15;
         column.eachCell({ includeEmpty: false }, (cell) => {

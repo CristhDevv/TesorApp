@@ -15,42 +15,81 @@ export class ValoresService {
   /**
    * Gets all values for a church in a specific period, merging them with their template definition.
    */
-  async findValues(iglesiaId: string, periodoId: string, userRol: string, userIglesiaId?: string) {
+  async findValues(
+    iglesiaId: string,
+    periodoId: string,
+    userRol: string,
+    userIglesiaId?: string,
+  ) {
     // Access control
     if (userRol === 'iglesia' && userIglesiaId !== iglesiaId) {
       throw new ForbiddenException('Acceso denegado a esta iglesia.');
     }
 
-    const iglesia = await this.prisma.iglesia.findUnique({ where: { id: iglesiaId } });
+    const iglesia = await this.prisma.iglesia.findUnique({
+      where: { id: iglesiaId },
+      include: { tabla: true },
+    });
     if (!iglesia) throw new NotFoundException('Iglesia no encontrada');
 
     const periodo = await this.prisma.periodo.findUnique({ where: { id: periodoId } });
     if (!periodo) throw new NotFoundException('Periodo no encontrado');
 
-    // Get all active fields that apply to this church and this period
-    const fields = await this.prisma.campoPlantilla.findMany({
-      where: {
-        activo: true,
-        AND: [
-          {
-            OR: [
-              { aplica_a_todas_las_iglesias: true },
-              { campos_por_iglesia: { some: { iglesia_id: iglesiaId } } },
-            ],
-          },
-          {
-            OR: [
-              { es_temporal: false },
-              { es_temporal: true, periodo_id: periodoId },
-            ],
-          },
-        ],
-      },
-      orderBy: [{ orden: 'asc' }, { creado_en: 'asc' }],
-    });
+    // 1. Determine fields based on the church's assigned table
+    let fields: any[] = [];
+    if (iglesia.tabla_id) {
+      const camposTabla = await this.prisma.camposPorTabla.findMany({
+        where: { tabla_id: iglesia.tabla_id },
+        orderBy: { orden: 'asc' },
+        include: { campo: true },
+      });
+      if (camposTabla.length > 0) {
+        fields = camposTabla
+          .map((ct) => ct.campo)
+          .filter((f) => f.activo);
+      }
+    }
+
+    // 2. Fallback if church has no table or table has no fields configured
+    if (fields.length === 0) {
+      fields = await this.prisma.campoPlantilla.findMany({
+        where: {
+          activo: true,
+          AND: [
+            {
+              OR: [
+                { aplica_a_todas_las_iglesias: true },
+                { campos_por_iglesia: { some: { iglesia_id: iglesiaId } } },
+              ],
+            },
+            {
+              OR: [
+                { es_temporal: false },
+                { es_temporal: true, periodo_id: periodoId },
+              ],
+            },
+          ],
+        },
+        orderBy: [{ orden: 'asc' }, { creado_en: 'asc' }],
+      });
+    } else {
+      // Also append any church-specific fields that might not be in table
+      const specificChurchFields = await this.prisma.campoPlantilla.findMany({
+        where: {
+          activo: true,
+          campos_por_iglesia: { some: { iglesia_id: iglesiaId } },
+          id: { notIn: fields.map((f) => f.id) },
+        },
+        orderBy: [{ orden: 'asc' }, { creado_en: 'asc' }],
+      });
+      if (specificChurchFields.length > 0) {
+        fields = [...fields, ...specificChurchFields];
+      }
+    }
 
     const displayFields = fields.filter((f) => {
       if (userRol === 'iglesia') return f.visible_para_iglesia !== false;
+      if (userRol === 'tesorero') return f.visible_para_tesorero !== false;
       return true;
     });
 
@@ -156,15 +195,11 @@ export class ValoresService {
       }
     }
 
-    // 1. Fetch metadata in parallel
+    // 1. Fetch metadata in parallel: Load ALL active fields so hidden fields remain fully evaluated in formulas
     const [allFields, currentVals] = await Promise.all([
       this.prisma.campoPlantilla.findMany({
         where: {
           activo: true,
-          OR: [
-            { aplica_a_todas_las_iglesias: true },
-            { campos_por_iglesia: { some: { iglesia_id: iglesiaId } } },
-          ],
         },
       }),
       this.prisma.valor.findMany({
@@ -435,12 +470,20 @@ export class ValoresService {
         for (const fieldDef of calculatedFieldDefs) {
           if (!fieldDef || !fieldDef.formula) continue;
 
-          const rawCalculated = this.formulasService.evaluate(fieldDef.formula, variablesMap, allFields);
-          const calculatedVal = this.formulasService.applyRounding(
-            rawCalculated,
-            (fieldDef as any).tipo_redondeo,
-            (fieldDef as any).multiplo_redondeo ? Number((fieldDef as any).multiplo_redondeo) : 1,
-          );
+          const valRec = valuesMap.get(`${periodoId}_${churchId}_${fieldDef.id}`);
+          const hasManualOverride = valRec?.valor_manual != null && Number(valRec.valor_manual) !== 0;
+
+          let calculatedVal: number;
+          if (hasManualOverride) {
+            calculatedVal = Number(valRec.valor_manual);
+          } else {
+            const rawCalculated = this.formulasService.evaluate(fieldDef.formula, variablesMap, allFields);
+            calculatedVal = this.formulasService.applyRounding(
+              rawCalculated,
+              (fieldDef as any).tipo_redondeo,
+              (fieldDef as any).multiplo_redondeo ? Number((fieldDef as any).multiplo_redondeo) : 1,
+            );
+          }
 
           variablesMap[fieldDef.slug] = calculatedVal;
           variablesMap[fieldDef.id] = calculatedVal;
@@ -573,20 +616,54 @@ export class ValoresService {
       permissionsMap.set(`${p.iglesia_id}_${p.campo_id}`, p.editable_por_iglesia);
     }
 
-    // Separate logic: Iglesia role or Consolidated/mostrarTodos sees all fields, while specific table view sees table columns
+    // Field resolution: Iglesia role resolves fields from its assigned table; Consolidated sees all fields; Specific table sees table columns
     let rawFields: any[] = [];
-    if (userRol === 'iglesia' || isAllTables || mostrarTodos) {
-      const churchId = userRol === 'iglesia' ? (userIglesiaId || (churchIds.length > 0 ? churchIds[0] : null)) : null;
+    if (userRol === 'iglesia') {
+      const churchId = userIglesiaId || (churchIds.length > 0 ? churchIds[0] : null);
+      let churchTablaId = tablaId !== 'all' ? tablaId : null;
+      if (churchId) {
+        const church = await this.prisma.iglesia.findUnique({ where: { id: churchId } });
+        if (church?.tabla_id) churchTablaId = church.tabla_id;
+      }
+
+      if (churchTablaId) {
+        const camposTabla = await this.prisma.camposPorTabla.findMany({
+          where: { tabla_id: churchTablaId },
+          orderBy: { orden: 'asc' },
+          include: { campo: true },
+        });
+        if (camposTabla.length > 0) {
+          rawFields = camposTabla.map((ct) => ct.campo).filter((f) => f.activo);
+        }
+      }
+
+      if (rawFields.length === 0) {
+        rawFields = await this.prisma.campoPlantilla.findMany({
+          where: {
+            activo: true,
+            AND: [
+              {
+                OR: [
+                  { aplica_a_todas_las_iglesias: true },
+                  ...(churchId ? [{ campos_por_iglesia: { some: { iglesia_id: churchId } } }] : []),
+                ],
+              },
+              {
+                OR: [
+                  { es_temporal: false },
+                  { es_temporal: true, periodo_id: periodoId },
+                ],
+              },
+            ],
+          },
+          orderBy: [{ orden: 'asc' }, { creado_en: 'asc' }],
+        });
+      }
+    } else if (isAllTables || mostrarTodos) {
       rawFields = await this.prisma.campoPlantilla.findMany({
         where: {
           activo: true,
           AND: [
-            {
-              OR: [
-                { aplica_a_todas_las_iglesias: true },
-                ...(churchId ? [{ campos_por_iglesia: { some: { iglesia_id: churchId } } }] : []),
-              ],
-            },
             {
               OR: [
                 { es_temporal: false },
@@ -598,7 +675,7 @@ export class ValoresService {
         orderBy: [{ orden: 'asc' }, { creado_en: 'asc' }],
       });
     } else {
-      rawFields = tabla.campos.map((ct: any) => ct.campo);
+      rawFields = tabla.campos.map((ct: any) => ct.campo).filter((f: any) => f.activo);
     }
 
     const fields = rawFields.filter((f) => {
@@ -606,11 +683,11 @@ export class ValoresService {
       if (f.es_temporal && f.periodo_id && f.periodo_id !== periodoId) {
         return false;
       }
-      if (userRol === 'tesorero') {
-        return true;
-      }
       if (userRol === 'iglesia') {
         return f.visible_para_iglesia !== false;
+      }
+      if (userRol === 'tesorero') {
+        return f.visible_para_tesorero !== false;
       }
       return true;
     });
