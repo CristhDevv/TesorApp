@@ -49,7 +49,13 @@ export class ValoresService {
           {
             OR: [
               { es_temporal: false },
-              { es_temporal: true, periodo_id: periodoId },
+              {
+                es_temporal: true,
+                OR: [
+                  { periodo_id: periodoId },
+                  { campos_por_periodo: { some: { periodo_id: periodoId } } },
+                ],
+              },
             ],
           },
         ],
@@ -119,9 +125,270 @@ export class ValoresService {
 
 
   /**
-   * Updates multiple manual values at once for a church (e.g. from paper report digitizing),
-   * and triggers recalculation.
+   * Updates a batch of values across multiple churches and fields (e.g. from pasting an Excel column/matrix),
+   * grouping by church and recalculating formulas and accumulators in a single ultra-fast query pipeline.
    */
+  async updateMatrixBatch(
+    periodoId: string,
+    valoresList: { iglesia_id: string; campo_id: string; valor_manual: number }[],
+    realizadoPor: string,
+    userRol: string,
+    userIglesiaId?: string,
+  ) {
+    if (!periodoId) throw new BadRequestException('Se requiere periodo_id.');
+    const periodo = await this.prisma.periodo.findUnique({ where: { id: periodoId } });
+    if (!periodo) throw new NotFoundException('Periodo no encontrado');
+    if (periodo.estado === EstadoPeriodo.cerrado && userRol !== 'tesorero') {
+      throw new BadRequestException('El periodo está cerrado y no se puede editar.');
+    }
+
+    if (userRol === 'iglesia') {
+      const unauthorized = valoresList.some((v) => v.iglesia_id !== userIglesiaId);
+      if (unauthorized) {
+        throw new ForbiddenException('No tiene permisos para modificar otras congregaciones.');
+      }
+    }
+
+    // Group incoming values by iglesia_id
+    const groupedByChurch = new Map<string, { campo_id: string; valor_manual: number }[]>();
+    for (const item of valoresList) {
+      if (!item.iglesia_id || !item.campo_id) continue;
+      if (!groupedByChurch.has(item.iglesia_id)) {
+        groupedByChurch.set(item.iglesia_id, []);
+      }
+      groupedByChurch.get(item.iglesia_id)!.push({
+        campo_id: item.campo_id,
+        valor_manual: item.valor_manual,
+      });
+    }
+
+    const churchIds = Array.from(groupedByChurch.keys());
+    if (churchIds.length === 0) {
+      return { success: true, total_valores: 0, iglesias_actualizadas: 0 };
+    }
+
+    // 1. Fetch ALL metadata in parallel in ONE single batch query!
+    const [allFields, allCurrentVals] = await Promise.all([
+      this.prisma.campoPlantilla.findMany({
+        where: { activo: true },
+      }),
+      this.prisma.valor.findMany({
+        where: {
+          iglesia_id: { in: churchIds },
+          periodo_id: periodoId,
+        },
+        include: { campo: true },
+      }),
+    ]);
+
+    // Index current values: "churchId" -> array of values
+    const churchValuesMap = new Map<string, any[]>();
+    for (const cv of allCurrentVals) {
+      if (!churchValuesMap.has(cv.iglesia_id)) {
+        churchValuesMap.set(cv.iglesia_id, []);
+      }
+      churchValuesMap.get(cv.iglesia_id)!.push(cv);
+    }
+
+    const orderOfEvaluation = this.formulasService.topologicalSort(allFields);
+    const allOps: any[] = [];
+    const affectedAccumulableFields = new Set<string>();
+
+    for (const [iglesiaId, incomingVals] of groupedByChurch.entries()) {
+      const churchCurrentVals = churchValuesMap.get(iglesiaId) || [];
+      const variablesMap: Record<string, number> = {};
+      const manualOverridesMap = new Map<string, number>();
+
+      for (const cv of churchCurrentVals) {
+        if (cv.valor_manual !== null && cv.valor_manual !== undefined) {
+          manualOverridesMap.set(cv.campo_id, Number(cv.valor_manual));
+        }
+        const val = Number(cv.valor_manual ?? cv.valor_calculado ?? 0);
+        variablesMap[cv.campo.slug] = val;
+        variablesMap[cv.campo_id] = val;
+      }
+
+      const explicitCampoIds = new Set(incomingVals.map((v) => v.campo_id));
+
+      // Prepare upserts for incoming manual values
+      for (const item of incomingVals) {
+        const numVal = Number(item.valor_manual || 0);
+        const matchedField = allFields.find((f) => f.id === item.campo_id);
+        if (matchedField) {
+          variablesMap[matchedField.slug] = numVal;
+          if (matchedField.es_acumulable) {
+            affectedAccumulableFields.add(matchedField.id);
+          }
+        }
+        variablesMap[item.campo_id] = numVal;
+        manualOverridesMap.set(item.campo_id, numVal);
+
+        allOps.push(
+          this.prisma.valor.upsert({
+            where: {
+              iglesia_id_campo_id_periodo_id: {
+                iglesia_id: iglesiaId,
+                campo_id: item.campo_id,
+                periodo_id: periodoId,
+              },
+            },
+            update: {
+              valor_manual: numVal,
+              valor_calculado: matchedField?.modo_calculo === ModoCalculo.calculado ? numVal : undefined,
+              actualizado_por: realizadoPor,
+            },
+            create: {
+              iglesia_id: iglesiaId,
+              campo_id: item.campo_id,
+              periodo_id: periodoId,
+              valor_manual: numVal,
+              valor_calculado: matchedField?.modo_calculo === ModoCalculo.calculado ? numVal : null,
+              actualizado_por: realizadoPor,
+            },
+          }),
+        );
+      }
+
+      // Cascade recalculation for this church
+      for (const fId of orderOfEvaluation) {
+        if (userRol === 'tesorero' && explicitCampoIds.has(fId)) {
+          continue;
+        }
+
+        const fieldDef = allFields.find((f) => f.id === fId);
+        if (!fieldDef || fieldDef.modo_calculo !== ModoCalculo.calculado || !fieldDef.formula) continue;
+
+        if (userRol === 'tesorero' && manualOverridesMap.has(fId)) {
+          const overriddenVal = manualOverridesMap.get(fId)!;
+          variablesMap[fieldDef.slug] = overriddenVal;
+          variablesMap[fieldDef.id] = overriddenVal;
+          continue;
+        }
+
+        const rawCalculated = this.formulasService.evaluate(fieldDef.formula, variablesMap, allFields);
+        const calculatedVal = this.formulasService.applyRounding(
+          rawCalculated,
+          (fieldDef as any).tipo_redondeo,
+          (fieldDef as any).multiplo_redondeo ? Number((fieldDef as any).multiplo_redondeo) : 1,
+        );
+        variablesMap[fieldDef.slug] = calculatedVal;
+        variablesMap[fieldDef.id] = calculatedVal;
+
+        if (fieldDef.es_acumulable) {
+          affectedAccumulableFields.add(fieldDef.id);
+        }
+
+        allOps.push(
+          this.prisma.valor.upsert({
+            where: {
+              iglesia_id_campo_id_periodo_id: {
+                iglesia_id: iglesiaId,
+                campo_id: fId,
+                periodo_id: periodoId,
+              },
+            },
+            update: {
+              valor_calculado: calculatedVal,
+              actualizado_por: realizadoPor,
+            },
+            create: {
+              iglesia_id: iglesiaId,
+              campo_id: fId,
+              periodo_id: periodoId,
+              valor_calculado: calculatedVal,
+              actualizado_por: realizadoPor,
+            },
+          }),
+        );
+      }
+    }
+
+    // 2. Execute all upserts in chunks of 50 in parallel transactions
+    const CHUNK_SIZE = 50;
+    for (let i = 0; i < allOps.length; i += CHUNK_SIZE) {
+      await this.prisma.$transaction(allOps.slice(i, i + CHUNK_SIZE));
+    }
+
+    // 3. Ultra-fast bulk accumulator propagation
+    if (affectedAccumulableFields.size > 0) {
+      const allPeriods = await this.prisma.periodo.findMany({
+        orderBy: { fecha_inicio: 'asc' },
+      });
+      const futurePeriods = allPeriods.filter((p) => new Date(p.fecha_inicio) >= new Date(periodo.fecha_inicio));
+
+      if (futurePeriods.length > 0) {
+        const allAccumVals = await this.prisma.valor.findMany({
+          where: {
+            iglesia_id: { in: churchIds },
+            campo_id: { in: Array.from(affectedAccumulableFields) },
+          },
+        });
+
+        const accumValMap = new Map<string, any>();
+        for (const v of allAccumVals) {
+          accumValMap.set(`${v.iglesia_id}_${v.campo_id}_${v.periodo_id}`, v);
+        }
+
+        const accumOps: any[] = [];
+        for (const fieldId of affectedAccumulableFields) {
+          for (const iglesiaId of churchIds) {
+            for (const p of futurePeriods) {
+              const prevPeriod = [...allPeriods]
+                .filter((other) => new Date(other.fecha_fin) < new Date(p.fecha_inicio))
+                .sort((a, b) => new Date(b.fecha_fin).getTime() - new Date(a.fecha_fin).getTime())[0];
+
+              let prevAccum = 0;
+              if (prevPeriod) {
+                const prevKey = `${iglesiaId}_${fieldId}_${prevPeriod.id}`;
+                const prevVal = accumValMap.get(prevKey);
+                prevAccum = prevVal ? Number(prevVal.valor_acumulado ?? 0) : 0;
+              }
+
+              const currKey = `${iglesiaId}_${fieldId}_${p.id}`;
+              const currentVal = accumValMap.get(currKey);
+              const currentValNum = currentVal
+                ? Number(currentVal.valor_manual ?? currentVal.valor_calculado ?? 0)
+                : 0;
+
+              const newAccum = prevAccum + currentValNum;
+              accumValMap.set(currKey, { ...(currentVal || {}), valor_acumulado: newAccum });
+
+              accumOps.push(
+                this.prisma.valor.upsert({
+                  where: {
+                    iglesia_id_campo_id_periodo_id: {
+                      iglesia_id: iglesiaId,
+                      campo_id: fieldId,
+                      periodo_id: p.id,
+                    },
+                  },
+                  update: { valor_acumulado: newAccum },
+                  create: {
+                    iglesia_id: iglesiaId,
+                    campo_id: fieldId,
+                    periodo_id: p.id,
+                    valor_acumulado: newAccum,
+                    actualizado_por: realizadoPor,
+                  },
+                }),
+              );
+            }
+          }
+        }
+
+        for (let i = 0; i < accumOps.length; i += CHUNK_SIZE) {
+          await this.prisma.$transaction(accumOps.slice(i, i + CHUNK_SIZE));
+        }
+      }
+    }
+
+    return {
+      success: true,
+      total_valores: valoresList.length,
+      iglesias_actualizadas: churchIds.length,
+    };
+  }
+
   /**
    * Updates multiple manual values at once for a church (e.g. from paper report digitizing),
    * and triggers recalculation.
@@ -540,7 +807,7 @@ export class ValoresService {
     if (isAllTables) {
       activeChurches = await this.prisma.iglesia.findMany({
         where: { estado: 'activa' },
-        orderBy: { nombre: 'asc' },
+        orderBy: [{ orden: 'asc' }, { nombre: 'asc' }],
       });
       tabla = {
         id: 'all',
@@ -553,11 +820,15 @@ export class ValoresService {
         where: { id: tablaId },
         include: {
           iglesias: {
-            orderBy: { nombre: 'asc' },
+            orderBy: [{ orden: 'asc' }, { nombre: 'asc' }],
           },
           campos: {
             orderBy: { orden: 'asc' },
-            include: { campo: true },
+            include: {
+              campo: {
+                include: { campos_por_periodo: true },
+              },
+            },
           },
         },
       });
@@ -622,10 +893,19 @@ export class ValoresService {
             {
               OR: [
                 { es_temporal: false },
-                { es_temporal: true, periodo_id: periodoId },
+                {
+                  es_temporal: true,
+                  OR: [
+                    { periodo_id: periodoId },
+                    { campos_por_periodo: { some: { periodo_id: periodoId } } },
+                  ],
+                },
               ],
             },
           ],
+        },
+        include: {
+          campos_por_periodo: true,
         },
         orderBy: [{ orden: 'asc' }, { creado_en: 'asc' }],
       });
@@ -637,10 +917,19 @@ export class ValoresService {
             {
               OR: [
                 { es_temporal: false },
-                { es_temporal: true, periodo_id: periodoId },
+                {
+                  es_temporal: true,
+                  OR: [
+                    { periodo_id: periodoId },
+                    { campos_por_periodo: { some: { periodo_id: periodoId } } },
+                  ],
+                },
               ],
             },
           ],
+        },
+        include: {
+          campos_por_periodo: true,
         },
         orderBy: [{ orden: 'asc' }, { creado_en: 'asc' }],
       });
@@ -649,9 +938,13 @@ export class ValoresService {
     }
 
     const fields = rawFields.filter((f) => {
-      // Temporal validity: permanent fields apply everywhere; temporal fields only apply in their assigned period
-      if (f.es_temporal && f.periodo_id && f.periodo_id !== periodoId) {
-        return false;
+      // Temporal validity: permanent fields apply everywhere; temporal fields only apply in their assigned periods
+      if (f.es_temporal) {
+        const matchesPrimary = f.periodo_id === periodoId;
+        const matchesMulti = f.campos_por_periodo?.some((p: any) => p.periodo_id === periodoId);
+        if (!matchesPrimary && !matchesMulti) {
+          return false;
+        }
       }
       if (userRol === 'iglesia') {
         return f.visible_para_iglesia !== false;

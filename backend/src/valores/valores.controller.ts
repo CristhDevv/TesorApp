@@ -38,6 +38,24 @@ export class ValoresController {
     return this.valoresService.findValues(iglesiaId, periodoId, req.user.rol, req.user.iglesiaId);
   }
 
+  @Put('lote-matriz/:periodo_id')
+  async updateMatrixBatch(
+    @Param('periodo_id') periodoId: string,
+    @Body() body: { valores: { iglesia_id: string; campo_id: string; valor_manual: number }[] },
+    @Request() req,
+  ) {
+    if (!body.valores || !Array.isArray(body.valores)) {
+      throw new BadRequestException('Se requiere un arreglo de valores.');
+    }
+    return this.valoresService.updateMatrixBatch(
+      periodoId,
+      body.valores,
+      req.user.userId,
+      req.user.rol,
+      req.user.iglesiaId,
+    );
+  }
+
   @Put(':iglesia_id/lote/:periodo_id')
   async updateBatchValues(
     @Param('iglesia_id') iglesiaId: string,

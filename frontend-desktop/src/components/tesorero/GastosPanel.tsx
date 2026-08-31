@@ -32,6 +32,7 @@ export interface ResumenFondo {
   campo_fondo_id: string;
   campo_fondo_nombre: string;
   campo_fondo_slug: string;
+  modo_calculo?: string;
   es_acumulable: boolean;
   es_transito?: boolean;
   ente_superior_nombre?: string | null;
@@ -55,6 +56,7 @@ interface GastosPanelProps {
   resumen: ResumenFondo[];
   loading: boolean;
   onNew: () => void;
+  onNewFondo?: () => void;
   onEdit: (gasto: Gasto) => void;
   onDelete: (gasto: Gasto) => void;
   onOpenVoucher?: (gasto: Gasto) => void;
@@ -89,6 +91,7 @@ export function GastosPanel({
   resumen,
   loading,
   onNew,
+  onNewFondo,
   onEdit,
   onDelete,
   onOpenVoucher,
@@ -174,12 +177,23 @@ export function GastosPanel({
           </div>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
+          {onNewFondo && (
+            <button
+              type="button"
+              onClick={onNewFondo}
+              className="flex items-center gap-1.5 px-3.5 py-2 bg-white dark:bg-slate-800 text-indigo-600 dark:text-indigo-300 text-xs font-bold rounded-xl hover:bg-slate-50 dark:hover:bg-slate-700/60 border border-indigo-200 dark:border-indigo-800 active:scale-95 transition shadow-2xs cursor-pointer"
+              title="Crear un nuevo fondo propio o en tránsito (con dinero manual o calculado)"
+            >
+              <Coins className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
+              <span>+ Nuevo Fondo</span>
+            </button>
+          )}
           {isPeriodOpen && (
             <button
               type="button"
               onClick={onNew}
-              className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white text-sm font-bold rounded-xl hover:bg-indigo-700 active:scale-95 transition shadow-sm cursor-pointer"
+              className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white text-xs sm:text-sm font-bold rounded-xl hover:bg-indigo-700 active:scale-95 transition shadow-sm cursor-pointer"
             >
               <Plus className="w-4 h-4" />
               Registrar Gasto
@@ -361,6 +375,15 @@ export function GastosPanel({
                           ) : (
                             <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-black uppercase tracking-wider bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
                               ⚡ Fondo de Período
+                            </span>
+                          )}
+                          {r.modo_calculo === 'manual' ? (
+                            <span className="text-[10px] font-bold text-emerald-800 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/60 px-1.5 py-0.5 rounded border border-emerald-200 dark:border-emerald-800" title="Fondo alimentado por dinero digitado manualmente">
+                              ✋ Dinero Manual
+                            </span>
+                          ) : (
+                            <span className="text-[10px] font-bold text-blue-800 dark:text-blue-300 bg-blue-50 dark:bg-blue-950/60 px-1.5 py-0.5 rounded border border-blue-200 dark:border-blue-800" title="Fondo calculado automáticamente por fórmula">
+                              ⚡ Calculado
                             </span>
                           )}
                           {r.ente_superior_nombre && (

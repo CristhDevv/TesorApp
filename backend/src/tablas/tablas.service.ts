@@ -13,7 +13,8 @@ export class TablasService {
     return this.prisma.tabla.findMany({
       include: {
         iglesias: {
-          select: { id: true, nombre: true, identificador_interno: true }
+          select: { id: true, nombre: true, identificador_interno: true, orden: true },
+          orderBy: [{ orden: 'asc' }, { nombre: 'asc' }],
         },
         campos: {
           orderBy: { orden: 'asc' },
@@ -34,7 +35,8 @@ export class TablasService {
       where: { id },
       include: {
         iglesias: {
-          select: { id: true, nombre: true, identificador_interno: true }
+          select: { id: true, nombre: true, identificador_interno: true, orden: true },
+          orderBy: [{ orden: 'asc' }, { nombre: 'asc' }],
         },
         campos: {
           orderBy: { orden: 'asc' },

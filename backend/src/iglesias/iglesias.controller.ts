@@ -29,6 +29,15 @@ export class IglesiasController {
     return this.iglesiasService.create(body, req.user.userId);
   }
 
+  @Put('reordenar-lote')
+  @Roles('tesorero')
+  async reorderBatch(
+    @Body() body: { items: { id: string; orden: number }[] },
+    @Request() req,
+  ) {
+    return this.iglesiasService.reorderBatch(body.items || [], req.user.userId);
+  }
+
   @Put(':id')
   @Roles('tesorero')
   async update(

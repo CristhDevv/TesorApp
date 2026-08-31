@@ -36,14 +36,69 @@ export class HistorialService {
   }
 
   /**
-   * Retrieves the audit log for a given entity type and ID.
+   * Retrieves the audit log for a given entity type and ID with optional pagination and search.
    */
-  async getHistorial(entidad?: EntidadAuditoria, entidadId?: string) {
+  async getHistorial(
+    entidad?: EntidadAuditoria,
+    entidadId?: string,
+    page?: number,
+    limit?: number,
+    search?: string,
+  ) {
+    const where: any = {
+      ...(entidad && { entidad }),
+      ...(entidadId && { entidad_id: entidadId }),
+    };
+
+    if (search && search.trim()) {
+      const term = search.trim();
+      where.OR = [
+        { usuario: { nombre_completo: { contains: term, mode: 'insensitive' } } },
+        { usuario: { correo: { contains: term, mode: 'insensitive' } } },
+      ];
+    }
+
+    if (page && limit) {
+      const skip = (page - 1) * limit;
+      const [items, total] = await Promise.all([
+        this.prisma.historialCambios.findMany({
+          where,
+          include: {
+            usuario: {
+              select: {
+                nombre_completo: true,
+                correo: true,
+                rol: true,
+              },
+            },
+            valor: {
+              include: {
+                iglesia: { select: { id: true, nombre: true, codigo: true } },
+                campo: { select: { id: true, nombre: true, slug: true } },
+                periodo: { select: { id: true, nombre: true } },
+              },
+            },
+          },
+          orderBy: {
+            realizado_en: 'desc',
+          },
+          skip,
+          take: limit,
+        }),
+        this.prisma.historialCambios.count({ where }),
+      ]);
+
+      return {
+        data: items,
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+      };
+    }
+
     return this.prisma.historialCambios.findMany({
-      where: {
-        ...(entidad && { entidad }),
-        ...(entidadId && { entidad_id: entidadId }),
-      },
+      where,
       include: {
         usuario: {
           select: {

@@ -42,6 +42,7 @@ export class CamposController {
       visible_para_tesorero?: boolean;
       es_temporal?: boolean;
       periodo_id?: string | null;
+      periodo_ids?: string[];
       iglesias_especificas?: string[];
     },
     @Request() req,
@@ -90,6 +91,7 @@ export class CamposController {
       visible_para_tesorero?: boolean;
       es_temporal?: boolean;
       periodo_id?: string | null;
+      periodo_ids?: string[];
       iglesias_especificas?: string[];
     },
     @Request() req,

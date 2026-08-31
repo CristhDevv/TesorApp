@@ -45,14 +45,19 @@ export class GastosService {
       priorPeriodIds.push(periodoId);
     }
 
-    // 2. Fetch all active designated fund fields (es_fondo: true, not temporal)
+    // 2. Fetch all active designated fund fields (both permanent AND temporal)
     const camposFondo = await this.prisma.campoPlantilla.findMany({
-      where: { es_fondo: true, es_temporal: false, activo: true },
+      where: {
+        es_fondo: true,
+        activo: true,
+      },
       select: { 
         id: true, 
         nombre: true, 
         slug: true, 
+        modo_calculo: true,
         es_acumulable: true, 
+        es_temporal: true,
         es_transito: true,
         ente_superior_nombre: true,
         seccion: true, 
@@ -106,17 +111,17 @@ export class GastosService {
       const saldoPeriodo = fondoPeriodo - gastosPeriodo;
 
       // Accumulated calculation:
-      // If field is marked es_acumulable, use valor_acumulado from current period or sum across all prior periods
+      // All designated funds maintain their accumulated balance across periods even if temporal
       const recordedAccum = Number(curVal?._sum.valor_acumulado ?? 0);
-      const calculatedAccum = priorSumMap.get(f.id) || fondoPeriodo;
-      const fondoAcumulado = f.es_acumulable ? (recordedAccum > 0 ? recordedAccum : calculatedAccum) : fondoPeriodo;
+      const calculatedAccum = priorSumMap.get(f.id) ?? fondoPeriodo;
+      const fondoAcumulado = f.es_acumulable || f.es_temporal ? (recordedAccum > 0 ? recordedAccum : calculatedAccum) : calculatedAccum;
       const gastosAcumulados = accumGastosMap.get(f.id) || 0;
       const saldoAcumulado = fondoAcumulado - gastosAcumulados;
 
-      // Effective totals based on whether field is accumulative or period-based
-      const totalFondo = f.es_acumulable ? fondoAcumulado : fondoPeriodo;
-      const totalGastos = f.es_acumulable ? gastosAcumulados : gastosPeriodo;
-      const saldoDisponible = f.es_acumulable ? saldoAcumulado : saldoPeriodo;
+      // Effective totals: funds preserve accumulated money even when not active in current period planilla
+      const totalFondo = fondoAcumulado;
+      const totalGastos = gastosAcumulados;
+      const saldoDisponible = saldoAcumulado;
 
       return {
         campo_fondo_id: f.id,

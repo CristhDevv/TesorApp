@@ -15,7 +15,16 @@ export class HistorialController {
   async getHistorial(
     @Query('entidad') entidad?: EntidadAuditoria,
     @Query('entidad_id') entidadId?: string,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+    @Query('search') search?: string,
   ) {
-    return this.historialService.getHistorial(entidad, entidadId);
+    return this.historialService.getHistorial(
+      entidad,
+      entidadId,
+      page ? parseInt(page, 10) : undefined,
+      limit ? parseInt(limit, 10) : undefined,
+      search,
+    );
   }
 }

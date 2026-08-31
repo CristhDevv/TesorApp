@@ -47,13 +47,12 @@ export function AICopilotDrawer({
 
   const chatEndRef = useRef<HTMLDivElement>(null);
   const rows = gridData?.filas || [];
-  const columns = gridData?.columnas || [];
 
   // Initialize with initial financial brief when opened
   useEffect(() => {
     if (isOpen && messages.length === 0) {
-      const periodName = currentPeriod?.nombre || 'Periodo Actual';
-      const { totalGeneral, activeChurches, totalChurches } = extractFinancialData({
+      const periodName = currentPeriod?.nombre || gridData?.periodo_nombre || 'Periodo Actual';
+      const { tableName, totalGeneral, activeChurches, totalChurches, fundsList } = extractFinancialData({
         gridData,
         currentPeriod,
         iglesias,
@@ -61,14 +60,15 @@ export function AICopilotDrawer({
 
       const initialBrief = `🏛️ **¡Paz y bendiciones! Soy TesorApp Copilot**, tu asesor financiero y tutor contable.
 
-He analizado los registros de **${periodName}**:
+He analizado los registros de **${tableName}** (${periodName}):
 • **Recaudo Total:** **${formatCOP(totalGeneral)}**
 • **Reportes al día:** **${activeChurches} de ${totalChurches} congregaciones**
+${fundsList.length > 0 ? `• **Fondos Registrados:** ${fundsList.slice(0, 3).map((f) => `${f.name} (${formatCOP(f.total)})`).join(', ')}` : ''}
 
 ### 💡 ¿En qué te puedo asesorar hoy?
-1. Generar reportes o análisis detallados de cualquier sede.
-2. Emitir certificados o informes imprimibles en PDF.
-3. Explicarte paso a paso cómo registrar gastos, planillas o fondos.
+1. Consultar el total de cualquier fondo (ej. *«informe del fondo misionero»* o *«fondo pro arriendo»*).
+2. Generar reportes o análisis detallados de cualquier sede.
+3. Emitir certificados o informes oficiales imprimibles en PDF.
 
 👉 [Ir a Planilla Contable](#tab:sheet) | [🖨️ Generar Informe en PDF](#action:print)`;
 
@@ -482,15 +482,17 @@ He analizado los registros de **${periodName}**:
         </div>
 
         {/* Quick Context Bar */}
-        <div className="px-4 py-2 bg-slate-100 dark:bg-slate-950 border-b border-slate-200 dark:border-slate-800 text-[11px] text-slate-600 dark:text-slate-400 flex items-center justify-between">
-          <div className="flex items-center gap-1.5">
-            <span className="font-semibold text-slate-700 dark:text-slate-300">Período:</span>
-            <span className="bg-white dark:bg-slate-900 px-2 py-0.5 rounded border border-slate-200 dark:border-slate-700 font-bold text-indigo-700 dark:text-indigo-300">
-              {currentPeriod?.nombre || 'Actual'}
+        <div className="px-4 py-2 bg-slate-100 dark:bg-slate-950 border-b border-slate-200 dark:border-slate-800 text-[11px] text-slate-600 dark:text-slate-400 flex items-center justify-between gap-2">
+          <div className="flex items-center gap-1.5 min-w-0">
+            <span className="font-semibold text-slate-700 dark:text-slate-300 shrink-0">Tabla:</span>
+            <span className="bg-white dark:bg-slate-900 px-2 py-0.5 rounded border border-slate-200 dark:border-slate-700 font-bold text-indigo-700 dark:text-indigo-300 truncate max-w-[130px]" title={gridData?.tabla_nombre}>
+              {gridData?.tabla_nombre || 'Planilla'}
             </span>
           </div>
-          <div className="text-slate-500 dark:text-slate-400">
-            {rows.length} sedes • {columns.length} columnas
+          <div className="flex items-center gap-1.5 shrink-0 text-slate-500 dark:text-slate-400 font-mono text-[10px]">
+            <span>{currentPeriod?.nombre || gridData?.periodo_nombre || 'Actual'}</span>
+            <span>•</span>
+            <span>{rows.length} sedes</span>
           </div>
         </div>
 

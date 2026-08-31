@@ -46,12 +46,12 @@ export class IglesiasService {
             id: userIglesiaId,
             estado: EstadoIglesia.activa,
           },
-          orderBy: { nombre: 'asc' },
+          orderBy: [{ orden: 'asc' }, { nombre: 'asc' }],
         });
       }
 
       return await this.prisma.iglesia.findMany({
-        orderBy: { nombre: 'asc' },
+        orderBy: [{ orden: 'asc' }, { nombre: 'asc' }],
       });
     } catch (error) {
       if (error instanceof NotFoundException || error instanceof ForbiddenException) {
@@ -314,6 +314,22 @@ export class IglesiasService {
         success: true,
         message: `Iglesia "${original.nombre}" eliminada exitosamente.`,
       };
+    });
+  }
+
+  /**
+   * Reordena un lote de congregaciones actualizando su posición (orden).
+   */
+  async reorderBatch(items: { id: string; orden: number }[], realizadoPor: string) {
+    if (!items || items.length === 0) return { success: true, count: 0 };
+    return this.prisma.$transaction(async (tx) => {
+      for (const item of items) {
+        await tx.iglesia.update({
+          where: { id: item.id },
+          data: { orden: item.orden },
+        });
+      }
+      return { success: true, count: items.length };
     });
   }
 }

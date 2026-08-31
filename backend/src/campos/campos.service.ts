@@ -39,6 +39,16 @@ export class CamposService {
         periodo: {
           select: { id: true, nombre: true },
         },
+        campos_por_periodo: {
+          include: {
+            periodo: {
+              select: { id: true, nombre: true, estado: true },
+            },
+          },
+        },
+        campos_por_iglesia: {
+          select: { iglesia_id: true },
+        },
       },
       orderBy: [{ seccion: 'asc' }, { orden: 'asc' }],
     });
@@ -50,6 +60,16 @@ export class CamposService {
       include: {
         periodo: {
           select: { id: true, nombre: true },
+        },
+        campos_por_periodo: {
+          include: {
+            periodo: {
+              select: { id: true, nombre: true, estado: true },
+            },
+          },
+        },
+        campos_por_iglesia: {
+          select: { iglesia_id: true },
         },
       },
     });
@@ -78,6 +98,7 @@ export class CamposService {
       visible_para_tesorero?: boolean;
       es_temporal?: boolean;
       periodo_id?: string | null;
+      periodo_ids?: string[];
       iglesias_especificas?: string[]; // IDs of churches if applies to specific
     },
     realizadoPor: string,
@@ -107,6 +128,11 @@ export class CamposService {
       );
     }
 
+    const isTemporal = data.es_temporal ?? false;
+    const rawPeriodoIds: string[] = data.periodo_ids || (data.periodo_id ? [data.periodo_id] : []);
+    const validPeriodoIds = Array.from(new Set(rawPeriodoIds.filter((p) => p && p.trim() !== '')));
+    const primaryPeriodoId = isTemporal && validPeriodoIds.length > 0 ? validPeriodoIds[0] : null;
+
     const res = await this.prisma.$transaction(async (tx) => {
       const campo = await tx.campoPlantilla.create({
         data: {
@@ -118,9 +144,9 @@ export class CamposService {
           tipo_redondeo: data.tipo_redondeo || 'ninguno',
           multiplo_redondeo: data.multiplo_redondeo !== undefined ? Number(data.multiplo_redondeo) : 1,
           es_acumulable: data.es_acumulable ?? false,
-          es_fondo: data.es_temporal ? false : (data.es_fondo ?? false),
-          es_transito: data.es_temporal ? false : (data.es_transito ?? false),
-          ente_superior_nombre: !data.es_temporal && data.es_transito ? data.ente_superior_nombre : null,
+          es_fondo: data.es_fondo ?? false,
+          es_transito: data.es_transito ?? false,
+          ente_superior_nombre: data.es_transito ? data.ente_superior_nombre : null,
           seccion: data.seccion,
           seccion_iglesia: data.seccion_iglesia || data.seccion,
           seccion_tesorero: data.seccion_tesorero || data.seccion,
@@ -128,15 +154,32 @@ export class CamposService {
           aplica_a_todas_las_iglesias: data.aplica_a_todas_las_iglesias ?? true,
           visible_para_iglesia: data.visible_para_iglesia ?? true,
           visible_para_tesorero: data.visible_para_tesorero ?? true,
-          es_temporal: data.es_temporal ?? false,
-          periodo_id: data.es_temporal && data.periodo_id && data.periodo_id.trim() !== '' ? data.periodo_id : null,
+          es_temporal: isTemporal,
+          periodo_id: primaryPeriodoId,
         },
         include: {
           periodo: {
             select: { id: true, nombre: true },
           },
+          campos_por_periodo: {
+            include: {
+              periodo: { select: { id: true, nombre: true, estado: true } },
+            },
+          },
         },
       });
+
+      // Manage specific periods association if temporal
+      if (isTemporal && validPeriodoIds.length > 0) {
+        for (const pId of validPeriodoIds) {
+          await tx.camposPorPeriodo.create({
+            data: {
+              campo_id: campo.id,
+              periodo_id: pId,
+            },
+          });
+        }
+      }
 
       // Manage specific churches association if not global
       if (!data.aplica_a_todas_las_iglesias && data.iglesias_especificas) {
@@ -209,6 +252,7 @@ export class CamposService {
       visible_para_tesorero?: boolean;
       es_temporal?: boolean;
       periodo_id?: string | null;
+      periodo_ids?: string[];
       iglesias_especificas?: string[];
     },
     realizadoPor: string,
@@ -216,7 +260,7 @@ export class CamposService {
     const res = await this.prisma.$transaction(async (tx) => {
       const original = await tx.campoPlantilla.findUnique({
         where: { id },
-        include: { campos_por_iglesia: true },
+        include: { campos_por_iglesia: true, campos_por_periodo: true },
       });
       if (!original) throw new NotFoundException('Campo no encontrado');
 
@@ -252,8 +296,15 @@ export class CamposService {
       }
 
       const isTemporal = data.es_temporal !== undefined ? data.es_temporal : original.es_temporal;
-      const finalPeriodoId = isTemporal 
-        ? (data.periodo_id !== undefined ? (data.periodo_id && data.periodo_id.trim() !== '' ? data.periodo_id : null) : original.periodo_id)
+      let validPeriodoIds: string[] | null = null;
+      if (data.periodo_ids !== undefined) {
+        validPeriodoIds = Array.from(new Set((data.periodo_ids || []).filter((p) => p && p.trim() !== '')));
+      } else if (data.periodo_id !== undefined) {
+        validPeriodoIds = data.periodo_id && data.periodo_id.trim() !== '' ? [data.periodo_id] : [];
+      }
+
+      const finalPeriodoId = isTemporal
+        ? (validPeriodoIds !== null ? (validPeriodoIds[0] || null) : original.periodo_id)
         : null;
 
       const isTransito = data.es_transito !== undefined ? data.es_transito : original.es_transito;
@@ -269,9 +320,9 @@ export class CamposService {
           tipo_redondeo: data.tipo_redondeo !== undefined ? data.tipo_redondeo : original.tipo_redondeo,
           multiplo_redondeo: data.multiplo_redondeo !== undefined ? Number(data.multiplo_redondeo) : original.multiplo_redondeo,
           es_acumulable: data.es_acumulable,
-          es_fondo: isTemporal ? false : data.es_fondo,
-          es_transito: isTemporal ? false : isTransito,
-          ente_superior_nombre: !isTemporal && isTransito ? (data.ente_superior_nombre !== undefined ? data.ente_superior_nombre : original.ente_superior_nombre) : null,
+          es_fondo: data.es_fondo !== undefined ? data.es_fondo : original.es_fondo,
+          es_transito: isTransito,
+          ente_superior_nombre: isTransito ? (data.ente_superior_nombre !== undefined ? data.ente_superior_nombre : original.ente_superior_nombre) : null,
           seccion: data.seccion,
           seccion_iglesia: data.seccion_iglesia,
           seccion_tesorero: data.seccion_tesorero,
@@ -286,8 +337,30 @@ export class CamposService {
           periodo: {
             select: { id: true, nombre: true },
           },
+          campos_por_periodo: {
+            include: {
+              periodo: { select: { id: true, nombre: true, estado: true } },
+            },
+          },
         },
       });
+
+      // Update periods associations
+      if (isTemporal) {
+        if (validPeriodoIds !== null) {
+          await tx.camposPorPeriodo.deleteMany({ where: { campo_id: id } });
+          for (const pId of validPeriodoIds) {
+            await tx.camposPorPeriodo.create({
+              data: {
+                campo_id: id,
+                periodo_id: pId,
+              },
+            });
+          }
+        }
+      } else {
+        await tx.camposPorPeriodo.deleteMany({ where: { campo_id: id } });
+      }
 
       // Update specific church associations if toggled
       if (data.aplica_a_todas_las_iglesias === true) {

@@ -23,6 +23,7 @@ interface FieldModalData {
   visible_para_tesorero: boolean;
   es_temporal: boolean;
   periodo_id: string | null;
+  periodo_ids: string[];
   iglesias_especificas: string[];
 }
 
@@ -375,46 +376,140 @@ export function ColumnConfigDrawer({
 
           {/* ── Vigencia ── */}
           <div>
-            <label className={LABEL_CLS}>Vigencia</label>
-            <div className="grid grid-cols-2 gap-1.5">
-              <SectionBtn
-                active={!fieldModalData.es_temporal}
-                onClick={() => update({ es_temporal: false, periodo_id: null })}
-              >
-                <span className="font-bold">📌 Permanente</span>
-                <span className="text-[10px] opacity-70">Aplica mes a mes</span>
-              </SectionBtn>
-              <SectionBtn
-                active={fieldModalData.es_temporal}
-                onClick={() =>
-                  update({
-                    es_temporal: true,
-                    periodo_id:
-                      fieldModalData.periodo_id ||
-                      selectedPeriodoId ||
-                      (periodos[0]?.id ?? null),
-                  })
-                }
-              >
-                <span className="font-bold">⏱ Temporal</span>
-                <span className="text-[10px] opacity-70">Solo un periodo</span>
-              </SectionBtn>
-            </div>
-            {fieldModalData.es_temporal && (
-              <div className="mt-2">
-                <select
-                  value={fieldModalData.periodo_id || selectedPeriodoId || ''}
-                  onChange={(e) => update({ periodo_id: e.target.value })}
-                  className={SELECT_CLS}
-                >
-                  {periodos.map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {p.nombre} {p.estado === 'abierto' ? '● Abierto' : '● Cerrado'}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            )}
+            {(() => {
+              const selectedPeriodIds =
+                fieldModalData.periodo_ids ||
+                (fieldModalData.periodo_id ? [fieldModalData.periodo_id] : []);
+
+              return (
+                <>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className={LABEL_CLS}>Vigencia</label>
+                    {fieldModalData.es_temporal && (
+                      <span className="text-[10px] text-slate-500 font-medium">
+                        {selectedPeriodIds.length} {selectedPeriodIds.length === 1 ? 'período seleccionado' : 'períodos seleccionados'}
+                      </span>
+                    )}
+                  </div>
+                  <div className="grid grid-cols-2 gap-1.5">
+                    <SectionBtn
+                      active={!fieldModalData.es_temporal}
+                      onClick={() => update({ es_temporal: false, periodo_id: null, periodo_ids: [] })}
+                    >
+                      <span className="font-bold">📌 Permanente</span>
+                      <span className="text-[10px] opacity-70">Aplica mes a mes</span>
+                    </SectionBtn>
+                    <SectionBtn
+                      active={fieldModalData.es_temporal}
+                      onClick={() => {
+                        const initialPeriod =
+                          selectedPeriodIds.length > 0
+                            ? selectedPeriodIds
+                            : [selectedPeriodoId || periodos[0]?.id].filter(Boolean);
+                        update({
+                          es_temporal: true,
+                          periodo_ids: initialPeriod,
+                          periodo_id: initialPeriod[0] || null,
+                        });
+                      }}
+                    >
+                      <span className="font-bold">⏱ Temporal</span>
+                      <span className="text-[10px] opacity-70">Períodos específicos</span>
+                    </SectionBtn>
+                  </div>
+                  {fieldModalData.es_temporal && (
+                    <div className="mt-2 bg-slate-50 border border-slate-200 rounded-lg p-2.5 space-y-2">
+                      <div className="flex items-center justify-between gap-1 text-[11px]">
+                        <span className="font-bold text-slate-700">Períodos aplicables:</span>
+                        <div className="flex items-center gap-1">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const openIds = periodos.filter((p) => p.estado === 'abierto').map((p) => p.id);
+                              update({
+                                periodo_ids: openIds,
+                                periodo_id: openIds[0] || null,
+                              });
+                            }}
+                            className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 transition cursor-pointer"
+                            title="Seleccionar solo los períodos que están abiertos"
+                          >
+                            ⚡ Abiertos
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const allIds = periodos.map((p) => p.id);
+                              update({
+                                periodo_ids: allIds,
+                                periodo_id: allIds[0] || null,
+                              });
+                            }}
+                            className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 transition cursor-pointer"
+                          >
+                            📅 Todos
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => update({ periodo_ids: [], periodo_id: null })}
+                            className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-slate-100 hover:bg-slate-200 text-slate-600 border border-slate-300 transition cursor-pointer"
+                          >
+                            ✕ Ninguno
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 max-h-40 overflow-y-auto pr-1">
+                        {periodos.map((p) => {
+                          const isChecked = selectedPeriodIds.includes(p.id);
+                          return (
+                            <label
+                              key={p.id}
+                              className={`flex items-center gap-2 p-1.5 rounded-md border text-xs cursor-pointer select-none transition ${
+                                isChecked
+                                  ? 'bg-indigo-50/80 border-indigo-300 text-indigo-950 font-bold shadow-2xs'
+                                  : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-100/70'
+                              }`}
+                            >
+                              <input
+                                type="checkbox"
+                                checked={isChecked}
+                                onChange={() => {
+                                  const next = isChecked
+                                    ? selectedPeriodIds.filter((id) => id !== p.id)
+                                    : [...selectedPeriodIds, p.id];
+                                  update({
+                                    periodo_ids: next,
+                                    periodo_id: next[0] || null,
+                                  });
+                                }}
+                                className="rounded text-indigo-600 focus:ring-indigo-500 w-3.5 h-3.5"
+                              />
+                              <span className="truncate flex-1">{p.nombre}</span>
+                              <span
+                                className={`text-[9px] px-1 py-0.2 rounded font-semibold ${
+                                  p.estado === 'abierto'
+                                    ? 'text-emerald-700 bg-emerald-100/70'
+                                    : 'text-slate-500 bg-slate-100'
+                                }`}
+                              >
+                                {p.estado === 'abierto' ? 'Abierto' : 'Cerrado'}
+                              </span>
+                            </label>
+                          );
+                        })}
+                      </div>
+
+                      {selectedPeriodIds.length === 0 && (
+                        <p className="text-[11px] text-amber-700 font-medium bg-amber-50 border border-amber-200 rounded p-1.5">
+                          ⚠️ Advertencia: Selecciona al menos un período para que la columna sea visible en las planillas.
+                        </p>
+                      )}
+                    </div>
+                  )}
+                </>
+              );
+            })()}
           </div>
 
           {/* ── Formula Assistant ── */}

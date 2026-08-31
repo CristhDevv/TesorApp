@@ -17,7 +17,9 @@ import {
   ShieldCheck,
   AlertTriangle,
   Scale,
-  BookOpen
+  BookOpen,
+  Coins,
+  Wallet,
 } from 'lucide-react';
 import { Doughnut, Bar } from 'react-chartjs-2';
 import {
@@ -43,6 +45,9 @@ interface ExecutiveDashboardProps {
   selectedTablaId?: string;
   onSelectTabla?: (id: string) => void;
   iglesias: any[];
+  gastos?: any[];
+  gastosResumen?: any[];
+  gastosLoading?: boolean;
   onOpenCopilot: () => void;
   onOpenChurchDetail: (iglesiaId: string) => void;
   onOpenHelp?: () => void;
@@ -57,6 +62,8 @@ export function ExecutiveDashboard({
   selectedTablaId = 'all',
   onSelectTabla,
   iglesias,
+  gastos = [],
+  gastosResumen = [],
   onOpenCopilot,
   onOpenChurchDetail,
   onOpenHelp,
@@ -75,8 +82,8 @@ export function ExecutiveDashboard({
 
   // Calculate Metrics
   const metrics = useMemo(() => {
-    let totalIngresos = 0;
-    let totalEgresos = 0;
+    let totalIngresosGeneral = 0;
+    let totalEgresosGeneral = 0;
     let totalTransito = 0;
     let reportedChurches = 0;
 
@@ -117,7 +124,6 @@ export function ExecutiveDashboard({
         } else if (secName === 'egresos' || secTesorero === 'egresos') {
           churchEgresos += numVal;
         } else {
-          // If no section defined, check column name
           if (colName.includes('ingreso') || colName.includes('diezmo') || colName.includes('ofrenda')) {
             churchIngresos += numVal;
           } else if (colName.includes('egreso') || colName.includes('gasto') || colName.includes('aporte')) {
@@ -129,8 +135,8 @@ export function ExecutiveDashboard({
       });
 
       const churchTotal = churchIngresos;
-      totalIngresos += churchIngresos;
-      totalEgresos += churchEgresos;
+      totalIngresosGeneral += churchIngresos;
+      totalEgresosGeneral += churchEgresos;
       totalTransito += churchTransito;
 
       const completionRate = manualFieldsCount > 0 ? (filledFieldsCount / manualFieldsCount) * 100 : (churchTotal > 0 ? 100 : 0);
@@ -181,17 +187,63 @@ export function ExecutiveDashboard({
       };
     });
 
+    // ── GASTOS & FONDOS REAL-TIME CALCULATION ──
+    const fondosList = gastosResumen && gastosResumen.length > 0 ? gastosResumen : [];
+
+    let totalRecaudoFondosPeriodo = 0;
+    let totalRecaudoFondosAcumulado = 0;
+    let totalGastosPeriodo = 0;
+    let totalGastosAcumulado = 0;
+
+    if (fondosList.length > 0) {
+      fondosList.forEach((f: any) => {
+        totalRecaudoFondosPeriodo += Number(f.fondo_periodo || 0);
+        totalRecaudoFondosAcumulado += Number(f.total_fondo ?? f.fondo_acumulado ?? f.fondo_periodo ?? 0);
+        totalGastosPeriodo += Number(f.gastos_periodo || 0);
+        totalGastosAcumulado += Number(f.total_gastos ?? f.gastos_acumulados ?? f.gastos_periodo ?? 0);
+      });
+    } else {
+      // Fallback from columns marked as fund
+      columns.forEach((col: any) => {
+        if (col.es_fondo) {
+          rows.forEach((r: any) => {
+            const valObj = r.valores?.find((v: any) => v.campo_id === col.id);
+            const isCalc = valObj?.modo_calculo === 'calculado';
+            const numVal = Number(isCalc ? (valObj?.valor_calculado || 0) : (valObj?.valor_manual || 0));
+            totalRecaudoFondosPeriodo += numVal;
+          });
+        }
+      });
+      totalRecaudoFondosAcumulado = totalRecaudoFondosPeriodo;
+      if (gastos && gastos.length > 0) {
+        gastos.forEach((g: any) => {
+          const monto = Number(g.monto || 0);
+          totalGastosAcumulado += monto;
+          if (g.periodo_id === selectedPeriodoId) {
+            totalGastosPeriodo += monto;
+          }
+        });
+      }
+    }
+
+    const saldoRealCajaFondos = totalRecaudoFondosAcumulado - totalGastosAcumulado;
+    const saldoPeriodoFondos = totalRecaudoFondosPeriodo - totalGastosPeriodo;
+
     const totalChurches = rows.length;
     const complianceRate = totalChurches > 0 ? Math.round((reportedChurches / totalChurches) * 100) : 0;
-    const balanceNeto = totalIngresos - totalEgresos;
-    const balanceNetoPropio = totalIngresos - totalEgresos - totalTransito;
 
     return {
-      totalIngresos,
-      totalEgresos,
+      totalIngresos: totalRecaudoFondosAcumulado > 0 ? totalRecaudoFondosAcumulado : totalIngresosGeneral,
+      totalEgresos: totalGastosAcumulado > 0 ? totalGastosAcumulado : totalEgresosGeneral,
+      totalIngresosGeneral,
+      totalEgresosGeneral,
       totalTransito,
-      balanceNeto,
-      balanceNetoPropio,
+      totalRecaudoFondosPeriodo,
+      totalRecaudoFondosAcumulado,
+      totalGastosPeriodo,
+      totalGastosAcumulado,
+      saldoRealCajaFondos,
+      saldoPeriodoFondos,
       reportedChurches,
       totalChurches,
       complianceRate,
@@ -201,8 +253,10 @@ export function ExecutiveDashboard({
       countAprobado,
       countConsolidado,
       churchStats,
+      fondosList,
+      gastosList: gastos || [],
     };
-  }, [rows, columns, iglesias]);
+  }, [rows, columns, iglesias, gastosResumen, gastos, selectedPeriodoId]);
 
   // Filtered churches list
   const filteredChurches = useMemo(() => {
@@ -410,20 +464,20 @@ export function ExecutiveDashboard({
 
       {/* ── TOP KPI CARDS (Clean, Elegant & Minimalist) ── */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* KPI 1: Total Ingresos */}
+        {/* KPI 1: Total Recaudo Fondos (Ingresos) */}
         <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs relative overflow-hidden flex flex-col justify-between">
           <div className="flex items-center justify-between">
-            <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Total Ingresos</span>
+            <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Recaudo de Fondos</span>
             <span className="p-1.5 bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 rounded-lg text-xs font-bold flex items-center gap-0.5 border border-emerald-200 dark:border-emerald-800/50">
-              <ArrowUpRight className="w-3.5 h-3.5" /> Recaudo
+              <ArrowUpRight className="w-3.5 h-3.5" /> Ingresos
             </span>
           </div>
           <div className="mt-3">
             <div className="text-2xl font-extrabold text-slate-900 dark:text-white font-mono tracking-tight">
-              {formatCOP(metrics.totalIngresos)}
+              {formatCOP(metrics.totalRecaudoFondosAcumulado > 0 ? metrics.totalRecaudoFondosAcumulado : metrics.totalRecaudoFondosPeriodo)}
             </div>
             <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-1">
-              {isAllTablesSelected ? 'Total recaudado en todas las tablas' : `Total tabla ${currentTableObj?.nombre || ''}`}
+              Período actual: <span className="font-semibold text-emerald-600 dark:text-emerald-400">{formatCOP(metrics.totalRecaudoFondosPeriodo)}</span>
             </p>
           </div>
           <div className="w-full bg-slate-100 dark:bg-slate-800 h-1 rounded-full mt-3 overflow-hidden">
@@ -431,43 +485,50 @@ export function ExecutiveDashboard({
           </div>
         </div>
 
-        {/* KPI 2: Total Egresos / Aportes */}
+        {/* KPI 2: Total Gastos Registrados */}
         <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs flex flex-col justify-between">
           <div className="flex items-center justify-between">
-            <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Total Egresos & Aportes</span>
+            <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Gastos de Tesorería</span>
             <span className="p-1.5 bg-rose-50 dark:bg-rose-950/50 text-rose-600 dark:text-rose-400 rounded-lg text-xs font-bold flex items-center gap-0.5 border border-rose-200 dark:border-rose-800/50">
               <ArrowDownRight className="w-3.5 h-3.5" /> Salidas
             </span>
           </div>
           <div className="mt-3">
             <div className="text-2xl font-extrabold text-rose-600 dark:text-rose-400 font-mono tracking-tight">
-              {formatCOP(metrics.totalEgresos)}
+              {formatCOP(metrics.totalGastosAcumulado > 0 ? metrics.totalGastosAcumulado : metrics.totalGastosPeriodo)}
             </div>
-            <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-1">Egresos y deducciones registradas</p>
+            <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-1">
+              Período actual: <span className="font-semibold text-rose-600 dark:text-rose-400">{formatCOP(metrics.totalGastosPeriodo)}</span> ({metrics.gastosList.length} registrados)
+            </p>
           </div>
           <div className="w-full bg-slate-100 dark:bg-slate-800 h-1 rounded-full mt-3 overflow-hidden">
-            <div className="bg-rose-500 h-1 rounded-full" style={{ width: metrics.totalIngresos > 0 ? `${Math.min(100, Math.round((metrics.totalEgresos / metrics.totalIngresos) * 100))}%` : '0%' }}></div>
+            <div 
+              className="bg-rose-500 h-1 rounded-full" 
+              style={{ 
+                width: metrics.totalRecaudoFondosAcumulado > 0 
+                  ? `${Math.min(100, Math.round((metrics.totalGastosAcumulado / metrics.totalRecaudoFondosAcumulado) * 100))}%` 
+                  : '0%' 
+              }}
+            ></div>
           </div>
         </div>
 
-        {/* KPI 3: Balance Neto en Caja */}
+        {/* KPI 3: Saldo Real en Caja */}
         <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs flex flex-col justify-between">
           <div className="flex items-center justify-between">
             <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-              {metrics.totalTransito > 0 ? "Saldo Propio Zona 52" : "Balance Neto en Caja"}
+              Saldo Real en Caja
             </span>
             <span className="p-1.5 bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 rounded-lg text-xs font-bold flex items-center gap-0.5 border border-indigo-200 dark:border-indigo-800/50">
-              <Scale className="w-3.5 h-3.5" /> Neto
+              <Scale className="w-3.5 h-3.5" /> Disponible
             </span>
           </div>
           <div className="mt-3">
             <div className="text-2xl font-extrabold text-indigo-600 dark:text-indigo-400 font-mono tracking-tight">
-              {formatCOP(metrics.totalTransito > 0 ? metrics.balanceNetoPropio : metrics.balanceNeto)}
+              {formatCOP(metrics.saldoRealCajaFondos)}
             </div>
             <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-1">
-              {metrics.totalTransito > 0
-                ? `Excluye ${formatCOP(metrics.totalTransito)} en tránsito para entes superiores`
-                : "Ingresos menos egresos del período"}
+              Fondos propios netos disponibles
             </p>
           </div>
           <div className="w-full bg-slate-100 dark:bg-slate-800 h-1 rounded-full mt-3 overflow-hidden">
@@ -494,6 +555,96 @@ export function ExecutiveDashboard({
           </div>
         </div>
       </div>
+
+      {/* ── CONTROL DE FONDOS Y GASTOS EN TIEMPO REAL ── */}
+      {metrics.fondosList.length > 0 && (
+        <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2.5">
+              <div className="p-2 bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 rounded-xl border border-indigo-100 dark:border-indigo-800/60">
+                <Wallet className="w-4 h-4" />
+              </div>
+              <div>
+                <h3 className="text-xs font-extrabold text-slate-900 dark:text-white uppercase tracking-wider">
+                  Control de Fondos de Tesorería
+                </h3>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                  Saldos reales, recaudos acumulados y egresos por fondo
+                </p>
+              </div>
+            </div>
+            <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 font-mono">
+              Total en Caja: <span className="text-emerald-600 dark:text-emerald-400 font-extrabold">{formatCOP(metrics.saldoRealCajaFondos)}</span>
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {metrics.fondosList.map((f: any) => {
+              const recaudoTotal = Number(f.total_fondo ?? f.fondo_acumulado ?? f.fondo_periodo ?? 0);
+              const gastosTotal = Number(f.total_gastos ?? f.gastos_acumulados ?? f.gastos_periodo ?? 0);
+              const saldoReal = Number(f.saldo_disponible ?? (recaudoTotal - gastosTotal));
+              const pctEgresado = recaudoTotal > 0 ? Math.min(100, Math.round((gastosTotal / recaudoTotal) * 100)) : 0;
+              const pctDisponible = 100 - pctEgresado;
+
+              return (
+                <div
+                  key={f.campo_fondo_id}
+                  className="bg-slate-50/70 dark:bg-slate-800/50 rounded-2xl border border-slate-200 dark:border-slate-700/80 p-4 space-y-3 flex flex-col justify-between"
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <div>
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span className="text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-indigo-50 dark:bg-indigo-950/80 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800">
+                          {f.es_acumulable ? 'Fondo Acumulativo' : 'Fondo Periódico'}
+                        </span>
+                      </div>
+                      <h4 className="text-sm font-extrabold text-slate-900 dark:text-white mt-1">
+                        {f.campo_fondo_nombre}
+                      </h4>
+                    </div>
+                    <div className="p-1.5 bg-white dark:bg-slate-700 rounded-lg text-slate-400 border border-slate-200 dark:border-slate-600">
+                      <Coins className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
+                    </div>
+                  </div>
+
+                  <div className="space-y-1.5 text-xs">
+                    <div className="flex justify-between text-slate-600 dark:text-slate-300">
+                      <span>Recaudo acumulado total:</span>
+                      <span className="font-bold font-mono text-slate-900 dark:text-white">{formatCOP(recaudoTotal)}</span>
+                    </div>
+                    <div className="flex justify-between text-slate-600 dark:text-slate-300">
+                      <span className="text-rose-600 dark:text-rose-400">Egresos / Giros acumulados:</span>
+                      <span className="font-bold font-mono text-rose-600 dark:text-rose-400">-{formatCOP(gastosTotal)}</span>
+                    </div>
+                    <div className="pt-2 border-t border-slate-200 dark:border-slate-700 flex justify-between items-center">
+                      <span className="text-[11px] font-extrabold uppercase text-slate-800 dark:text-slate-200">Saldo Real en Caja:</span>
+                      <span className="text-sm font-extrabold font-mono text-emerald-600 dark:text-emerald-400">{formatCOP(saldoReal)}</span>
+                    </div>
+                    <div className="flex justify-between text-[10px] text-slate-400 dark:text-slate-500 pt-0.5">
+                      <span>Movimiento del mes:</span>
+                      <span>+{formatCOP(f.fondo_periodo || 0)} / -{formatCOP(f.gastos_periodo || 0)}</span>
+                    </div>
+                  </div>
+
+                  <div className="space-y-1 pt-1">
+                    <div className="w-full bg-slate-200 dark:bg-slate-700 h-1.5 rounded-full overflow-hidden">
+                      <div
+                        className="bg-emerald-500 h-1.5 rounded-full transition-all duration-500"
+                        style={{ width: `${pctDisponible}%` }}
+                      ></div>
+                    </div>
+                    <div className="flex justify-between text-[9px] text-slate-400 font-bold">
+                      <span>{pctEgresado}% egresado</span>
+                      <span className="text-emerald-600 dark:text-emerald-400 font-bold">Disponible ({pctDisponible}%)</span>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
 
       {/* ── WORKFLOW & APPROVAL STATUS SUMMARY ── */}
       <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs">

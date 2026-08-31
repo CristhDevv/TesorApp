@@ -146,7 +146,13 @@ export class ReportesService {
           {
             OR: [
               { es_temporal: false },
-              { es_temporal: true, periodo_id: periodoId },
+              {
+                es_temporal: true,
+                OR: [
+                  { periodo_id: periodoId },
+                  { campos_por_periodo: { some: { periodo_id: periodoId } } },
+                ],
+              },
             ],
           },
         ],

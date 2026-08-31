@@ -1,5 +1,5 @@
 import React from 'react';
-import { FileText, ArrowUp, ArrowDown, ArrowUpDown, Paperclip, CheckCircle2, Clock, Send, ShieldCheck } from 'lucide-react';
+import { FileText, ArrowUp, ArrowDown, ArrowUpDown, Paperclip, CheckCircle2, Clock, Send, ShieldCheck, GripVertical, ClipboardPaste } from 'lucide-react';
 import type { FilaGrid, ColumnaGrid, EditingCell, SortState } from '../../types/contabilidad';
 import { EditableCell } from '../common/EditableCell';
 
@@ -24,10 +24,13 @@ interface SpreadsheetGridProps {
   onOpenFormulaModal?: (col: ColumnaGrid) => void;
   onOpenReceipts?: (churchId: string, churchName: string) => void;
   onOpenWorkflow?: (row: FilaGrid) => void;
+  onOpenPasteModal?: (colId?: string, startChurchId?: string, initialText?: string) => void;
   isTesorero: boolean;
   isPeriodOpen: boolean;
   gridSort: SortState | null;
   onSortChange: (colKey: string) => void;
+  onReorderColumns?: (newColumns: ColumnaGrid[]) => void;
+  onReorderRows?: (newRows: FilaGrid[]) => void;
   activeCell: EditingCell | null;
   setActiveCell: (cell: EditingCell | null) => void;
 }
@@ -48,6 +51,13 @@ interface GridRowProps {
   onOpenWorkflow?: (row: FilaGrid) => void;
   isTesorero: boolean;
   isPeriodOpen: boolean;
+  isRowDragging?: boolean;
+  isRowDragOver?: boolean;
+  onRowDragStart?: (e: React.DragEvent) => void;
+  onRowDragOver?: (e: React.DragEvent) => void;
+  onRowDragLeave?: (e: React.DragEvent) => void;
+  onRowDrop?: (e: React.DragEvent) => void;
+  onRowDragEnd?: () => void;
   activeCell: EditingCell | null;
   setActiveCell: (cell: EditingCell | null) => void;
 }
@@ -68,6 +78,13 @@ const GridRow = React.memo(function GridRow({
   onOpenWorkflow,
   isTesorero,
   isPeriodOpen,
+  isRowDragging,
+  isRowDragOver,
+  onRowDragStart,
+  onRowDragOver,
+  onRowDragLeave,
+  onRowDrop,
+  onRowDragEnd,
   activeCell,
   setActiveCell,
 }: GridRowProps) {
@@ -91,10 +108,40 @@ const GridRow = React.memo(function GridRow({
   }, [fila.valores]);
 
   return (
-    <tr className="hover:bg-slate-50 dark:hover:bg-slate-900/60 transition-colors group">
-      {/* Row Index */}
-      <td className="sticky left-0 z-10 bg-white dark:bg-slate-950 group-hover:bg-slate-50 dark:group-hover:bg-slate-900/60 border-b border-r border-slate-200 dark:border-slate-800 w-8 h-8 text-center text-[10px] font-mono text-slate-400 select-none">
-        {rowIdx + 1}
+    <tr
+      draggable={isTesorero}
+      onDragStart={onRowDragStart}
+      onDragOver={onRowDragOver}
+      onDragLeave={onRowDragLeave}
+      onDrop={onRowDrop}
+      onDragEnd={onRowDragEnd}
+      className={`transition-all group ${
+        isRowDragging
+          ? 'opacity-40 bg-indigo-100 dark:bg-indigo-950/80 border-indigo-400'
+          : isRowDragOver
+          ? 'border-t-4 border-t-indigo-600 bg-indigo-50/80 dark:bg-indigo-900/60 ring-2 ring-indigo-500/30'
+          : 'hover:bg-slate-50 dark:hover:bg-slate-900/60'
+      }`}
+    >
+      {/* Row Index / Drag Handle */}
+      <td
+        title={isTesorero ? 'Arrastra esta fila para reordenar las congregaciones' : undefined}
+        className={`sticky left-0 z-10 border-b border-r border-slate-200 dark:border-slate-800 w-8 h-8 text-center text-[10px] font-mono select-none ${
+          isTesorero ? 'cursor-grab active:cursor-grabbing' : ''
+        } ${
+          isRowDragging
+            ? 'bg-indigo-200 dark:bg-indigo-900 text-indigo-800'
+            : isRowDragOver
+            ? 'bg-indigo-100 dark:bg-indigo-950 text-indigo-600'
+            : 'bg-white dark:bg-slate-950 group-hover:bg-slate-50 dark:group-hover:bg-slate-900/60 text-slate-400'
+        }`}
+      >
+        <div className="flex items-center justify-center">
+          {isTesorero && (
+            <GripVertical className="w-2.5 h-2.5 text-slate-400 dark:text-slate-500 opacity-0 group-hover:opacity-100 transition shrink-0 pointer-events-none -mr-0.5" />
+          )}
+          <span>{rowIdx + 1}</span>
+        </div>
       </td>
 
       {/* Church Name and Status Controls */}
@@ -252,10 +299,13 @@ export const SpreadsheetGrid = React.memo(function SpreadsheetGrid({
   onOpenPaperModal,
   onOpenReceipts,
   onOpenWorkflow,
+  onOpenPasteModal,
   isTesorero,
   isPeriodOpen,
   gridSort,
   onSortChange,
+  onReorderColumns,
+  onReorderRows,
   activeCell,
   setActiveCell,
 }: SpreadsheetGridProps) {
@@ -324,9 +374,143 @@ export const SpreadsheetGrid = React.memo(function SpreadsheetGrid({
     [rows, columns, onSaveCell, onBeginEdit, setActiveCell]
   );
 
+  const [draggedColId, setDraggedColId] = React.useState<string | null>(null);
+  const [dragOverColId, setDragOverColId] = React.useState<string | null>(null);
+
+  const handleDragStart = (e: React.DragEvent, colId: string) => {
+    if (!isTesorero) return;
+    e.dataTransfer.setData('text/plain', colId);
+    e.dataTransfer.effectAllowed = 'move';
+    setDraggedColId(colId);
+  };
+
+  const handleDragOver = (e: React.DragEvent, colId: string) => {
+    if (!isTesorero || !draggedColId || draggedColId === colId) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    if (dragOverColId !== colId) {
+      setDragOverColId(colId);
+    }
+  };
+
+  const handleDragLeave = (_e: React.DragEvent, colId: string) => {
+    if (dragOverColId === colId) {
+      setDragOverColId(null);
+    }
+  };
+
+  const handleDrop = (e: React.DragEvent, targetColId: string) => {
+    e.preventDefault();
+    if (!isTesorero || !draggedColId || draggedColId === targetColId) {
+      setDraggedColId(null);
+      setDragOverColId(null);
+      return;
+    }
+
+    const fromIndex = columns.findIndex((c) => c.id === draggedColId);
+    const toIndex = columns.findIndex((c) => c.id === targetColId);
+    if (fromIndex === -1 || toIndex === -1) {
+      setDraggedColId(null);
+      setDragOverColId(null);
+      return;
+    }
+
+    const newCols = [...columns];
+    const [movedCol] = newCols.splice(fromIndex, 1);
+    newCols.splice(toIndex, 0, movedCol);
+
+    setDraggedColId(null);
+    setDragOverColId(null);
+
+    if (onReorderColumns) {
+      onReorderColumns(newCols);
+    }
+  };
+
+  const handleDragEnd = () => {
+    setDraggedColId(null);
+    setDragOverColId(null);
+  };
+
+  const [draggedRowId, setDraggedRowId] = React.useState<string | null>(null);
+  const [dragOverRowId, setDragOverRowId] = React.useState<string | null>(null);
+
+  const handleRowDragStart = (e: React.DragEvent, churchId: string) => {
+    if (!isTesorero) return;
+    e.dataTransfer.setData('text/plain', churchId);
+    e.dataTransfer.effectAllowed = 'move';
+    setDraggedRowId(churchId);
+  };
+
+  const handleRowDragOver = (e: React.DragEvent, churchId: string) => {
+    if (!isTesorero || !draggedRowId || draggedRowId === churchId) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    if (dragOverRowId !== churchId) {
+      setDragOverRowId(churchId);
+    }
+  };
+
+  const handleRowDragLeave = (_e: React.DragEvent, churchId: string) => {
+    if (dragOverRowId === churchId) {
+      setDragOverRowId(null);
+    }
+  };
+
+  const handleRowDrop = (e: React.DragEvent, targetChurchId: string) => {
+    e.preventDefault();
+    if (!isTesorero || !draggedRowId || draggedRowId === targetChurchId) {
+      setDraggedRowId(null);
+      setDragOverRowId(null);
+      return;
+    }
+
+    const fromIndex = rows.findIndex((r) => r.iglesia_id === draggedRowId);
+    const toIndex = rows.findIndex((r) => r.iglesia_id === targetChurchId);
+    if (fromIndex === -1 || toIndex === -1) {
+      setDraggedRowId(null);
+      setDragOverRowId(null);
+      return;
+    }
+
+    const newRows = [...rows];
+    const [movedRow] = newRows.splice(fromIndex, 1);
+    newRows.splice(toIndex, 0, movedRow);
+
+    setDraggedRowId(null);
+    setDragOverRowId(null);
+
+    if (onReorderRows) {
+      onReorderRows(newRows);
+    }
+  };
+
+  const handleRowDragEnd = () => {
+    setDraggedRowId(null);
+    setDragOverRowId(null);
+  };
+
+  const handleGridPaste = (e: React.ClipboardEvent) => {
+    if (!isTesorero || !onOpenPasteModal) return;
+    const text = e.clipboardData?.getData('text/plain');
+    if (!text) return;
+
+    // Check if multiline or tab separated (typical Excel paste)
+    const isMultiline = text.includes('\n') || text.includes('\r') || text.includes('\t');
+    if (isMultiline) {
+      e.preventDefault();
+      const targetChurchId = activeCell?.churchId || editingCell?.churchId || rows[0]?.iglesia_id;
+      const targetFieldId = activeCell?.fieldId || editingCell?.fieldId || columns[0]?.id;
+      onOpenPasteModal(targetFieldId, targetChurchId, text);
+    }
+  };
+
   return (
     <div className="flex-1 min-h-0 flex flex-col bg-white dark:bg-slate-950">
-      <div className="flex-1 min-h-0 overflow-auto border-b border-slate-200 dark:border-slate-800">
+      <div
+        onPaste={handleGridPaste}
+        className="flex-1 min-h-0 overflow-auto border-b border-slate-200 dark:border-slate-800"
+      >
         <table className="w-full border-separate border-spacing-0 text-left">
           {/* ── STICKY HEADER (Light/Dark Theme) ── */}
           <thead className="sticky top-0 z-20">
@@ -349,25 +533,64 @@ export const SpreadsheetGrid = React.memo(function SpreadsheetGrid({
                 </div>
               </th>
 
-              {/* Dynamic columns - clean header with name only */}
+              {/* Dynamic columns - with Drag and Drop reordering */}
               {columns.map((col) => {
                 const isCalc = col.modo_calculo === 'calculado';
+                const isDragging = draggedColId === col.id;
+                const isOver = dragOverColId === col.id;
 
                 return (
                   <th
                     key={col.id}
-                    onClick={() => onSortChange(col.id)}
-                    className="border-b border-r border-slate-300 dark:border-slate-700 px-3 h-8 min-w-[120px] bg-slate-100 dark:bg-slate-800 select-none group text-right cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-700/80 transition"
+                    draggable={isTesorero}
+                    onDragStart={(e) => handleDragStart(e, col.id)}
+                    onDragOver={(e) => handleDragOver(e, col.id)}
+                    onDragLeave={(e) => handleDragLeave(e, col.id)}
+                    onDrop={(e) => handleDrop(e, col.id)}
+                    onDragEnd={handleDragEnd}
+                    title={isTesorero ? 'Arrastra para reordenar esta columna o haz clic para ordenar' : undefined}
+                    className={`border-b border-r border-slate-300 dark:border-slate-700 px-2.5 h-8 min-w-[120px] select-none group text-right transition-all ${
+                      isDragging
+                        ? 'opacity-40 bg-indigo-100 dark:bg-indigo-950/80 border-indigo-400'
+                        : isOver
+                        ? 'bg-indigo-100/80 dark:bg-indigo-900/60 border-l-4 border-l-indigo-600 ring-2 ring-indigo-500/30'
+                        : 'bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700/80'
+                    } ${isTesorero ? 'cursor-grab active:cursor-grabbing' : 'cursor-pointer'}`}
                   >
-                    <div className="flex items-center justify-end gap-1.5">
-                      <span
-                        className={`text-[11px] font-bold truncate ${
-                          isCalc ? 'text-blue-700 dark:text-blue-300' : 'text-slate-800 dark:text-slate-200'
-                        }`}
+                    <div className="flex items-center justify-between gap-1">
+                      <div className="flex items-center gap-1 shrink-0">
+                        {isTesorero && (
+                          <GripVertical className="w-3 h-3 text-slate-300 dark:text-slate-600 opacity-0 group-hover:opacity-100 transition shrink-0 pointer-events-none" />
+                        )}
+                        {isTesorero && onOpenPasteModal && (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onOpenPasteModal(col.id);
+                            }}
+                            className="p-0.5 text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-950/60 rounded transition opacity-0 group-hover:opacity-100 cursor-pointer"
+                            title={`Pegar columna desde Excel en "${col.nombre}"`}
+                          >
+                            <ClipboardPaste className="w-3 h-3" />
+                          </button>
+                        )}
+                      </div>
+                      <div
+                        onClick={() => {
+                          if (!draggedColId) onSortChange(col.id);
+                        }}
+                        className="flex items-center justify-end gap-1.5 flex-1 min-w-0 cursor-pointer"
                       >
-                        {col.nombre}
-                      </span>
-                      <SortIcon colKey={col.id} sort={gridSort} />
+                        <span
+                          className={`text-[11px] font-bold truncate ${
+                            isCalc ? 'text-blue-700 dark:text-blue-300' : 'text-slate-800 dark:text-slate-200'
+                          }`}
+                        >
+                          {col.nombre}
+                        </span>
+                        <SortIcon colKey={col.id} sort={gridSort} />
+                      </div>
                     </div>
                   </th>
                 );
@@ -409,6 +632,13 @@ export const SpreadsheetGrid = React.memo(function SpreadsheetGrid({
                 onOpenWorkflow={onOpenWorkflow}
                 isTesorero={isTesorero}
                 isPeriodOpen={isPeriodOpen}
+                isRowDragging={draggedRowId === fila.iglesia_id}
+                isRowDragOver={dragOverRowId === fila.iglesia_id}
+                onRowDragStart={(e) => handleRowDragStart(e, fila.iglesia_id)}
+                onRowDragOver={(e) => handleRowDragOver(e, fila.iglesia_id)}
+                onRowDragLeave={(e) => handleRowDragLeave(e, fila.iglesia_id)}
+                onRowDrop={(e) => handleRowDrop(e, fila.iglesia_id)}
+                onRowDragEnd={handleRowDragEnd}
                 activeCell={activeCell}
                 setActiveCell={setActiveCell}
               />

@@ -54,6 +54,7 @@ export const EditableCell = React.memo(function EditableCell({
   esAcumulable,
 }: EditableCellProps) {
   const inputRef = useRef<HTMLInputElement>(null);
+  const tdRef = useRef<HTMLTableCellElement>(null);
 
   useEffect(() => {
     if (isEditing && inputRef.current) {
@@ -61,6 +62,12 @@ export const EditableCell = React.memo(function EditableCell({
       inputRef.current.select();
     }
   }, [isEditing]);
+
+  useEffect(() => {
+    if (isActive && !isEditing && tdRef.current) {
+      tdRef.current.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' });
+    }
+  }, [isActive, isEditing]);
 
   // Semantic color styling (Light Theme):
   // - Calculated: Soft blue background (bg-blue-50/70 text-blue-900)
@@ -84,7 +91,7 @@ export const EditableCell = React.memo(function EditableCell({
   if (isEditing) {
     stateClasses = 'bg-white dark:bg-slate-800 ring-2 ring-indigo-500 ring-inset z-10 text-slate-900 dark:text-white';
   } else if (isActive) {
-    stateClasses += ' ring-1 ring-indigo-500 ring-inset';
+    stateClasses += ' ring-2 ring-indigo-600 ring-inset bg-indigo-50/60 dark:bg-indigo-950/40';
   }
 
   const tooltipOverrideText = isOverridden
@@ -93,6 +100,7 @@ export const EditableCell = React.memo(function EditableCell({
 
   return (
     <td
+      ref={tdRef}
       onClick={() => {
         onClick();
         if (canEdit && !isEditing && isPeriodOpen) {

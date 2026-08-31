@@ -92,6 +92,7 @@ model Iglesia {
   nombre              String
   identificador_interno String?     @unique
   estado              EstadoIglesia @default(activa)
+  orden               Int           @default(0)
   creado_en           DateTime      @default(now())
   actualizado_en      DateTime      @updatedAt
   tabla_id            String?       @db.Uuid
@@ -148,12 +149,25 @@ model CampoPlantilla {
 
   periodo                      Periodo?           @relation("CamposTemporales", fields: [periodo_id], references: [id], onDelete: SetNull)
   campos_por_iglesia           CamposPorIglesia[]
+  campos_por_periodo           CamposPorPeriodo[]
   permisos_edicion             PermisoEdicion[]
   valores                      Valor[]
   campos_por_tabla             CamposPorTabla[]
   gastos_como_fondo            Gasto[]            @relation("GastosFondo")
 
   @@map("campos_plantilla")
+}
+
+model CamposPorPeriodo {
+  id          String         @id @default(uuid()) @db.Uuid
+  campo_id    String         @db.Uuid
+  periodo_id  String         @db.Uuid
+
+  campo       CampoPlantilla @relation(fields: [campo_id], references: [id], onDelete: Cascade)
+  periodo     Periodo        @relation(fields: [periodo_id], references: [id], onDelete: Cascade)
+
+  @@unique([campo_id, periodo_id])
+  @@map("campos_por_periodo")
 }
 
 model CamposPorIglesia {
@@ -197,6 +211,7 @@ model Periodo {
   reabierto_por  Usuario?      @relation("ReabiertoPor", fields: [reabierto_por_id], references: [id])
   valores        Valor[]
   campos_temporales CampoPlantilla[] @relation("CamposTemporales")
+  campos_por_periodo CamposPorPeriodo[]
   gastos         Gasto[]
   informes_periodo InformePeriodo[]
 

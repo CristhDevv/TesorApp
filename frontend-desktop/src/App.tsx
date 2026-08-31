@@ -24,6 +24,9 @@ import {
   Smartphone,
   Sparkles,
   ChevronRight,
+  ChevronLeft,
+  ChevronsLeft,
+  ChevronsRight,
   PanelLeftClose,
   PanelLeftOpen,
   Sun,
@@ -57,6 +60,8 @@ import { QuickSearchModal } from './components/tesorero/QuickSearchModal';
 import { AuditDrawer } from './components/tesorero/AuditDrawer';
 import { FormulaModal } from './components/tesorero/FormulaModal';
 import { WorkflowModal } from './components/tesorero/WorkflowModal';
+import { PasteColumnModal } from './components/tesorero/PasteColumnModal';
+import { ExportExcelModal } from './components/tesorero/ExportExcelModal';
 import { BadgeStatus } from './components/common/BadgeStatus';
 import { HelpModal } from './components/common/HelpModal';
 import { useGridKeyboardNav } from './hooks/useGridKeyboardNav';
@@ -97,7 +102,7 @@ import { ReportsPanel } from './components/reports/ReportsPanel';
 
 
 const API_BASE = window.location.origin;
-axios.defaults.timeout = 15000;
+axios.defaults.timeout = 60000;
 
 export default function App() {
   const { isMobile, setOverride } = useDeviceDetection();
@@ -205,8 +210,10 @@ export default function App() {
   const [savingGasto, setSavingGasto] = useState(false);
   const [voucherGasto, setVoucherGasto] = useState<GastoVoucherData | null>(null);
 
-  // Selected states (with localStorage persistence for active table)
-  const [selectedPeriodoId, setSelectedPeriodoId] = useState<string>('');
+  // Selected states (with localStorage persistence for active table, period, and cell)
+  const [selectedPeriodoId, setSelectedPeriodoId] = useState<string>(
+    localStorage.getItem('tesorapp_active_periodo_id') || ''
+  );
   const [selectedTablaId, setSelectedTablaId] = useState<string>(
     localStorage.getItem('tesorapp_active_tabla_id') || ''
   );
@@ -215,7 +222,14 @@ export default function App() {
   const [gridData, setGridData] = useState<GridData | null>(null);
   const [editingCell, setEditingCell] = useState<EditingCell | null>(null);
   const [editValue, setEditValue] = useState<string>('');
-  const [activeCell, setActiveCell] = useState<EditingCell | null>(null);
+  const [activeCell, setActiveCell] = useState<EditingCell | null>(() => {
+    try {
+      const saved = localStorage.getItem('tesorapp_last_active_cell');
+      return saved ? JSON.parse(saved) : null;
+    } catch {
+      return null;
+    }
+  });
   const [gridSearch, setGridSearch] = useState<string>('');
   const [showAllColumns, setShowAllColumns] = useState<boolean>(false);
   const [onlyOverriddenFilter, setOnlyOverriddenFilter] = useState<boolean>(false);
@@ -224,13 +238,30 @@ export default function App() {
   const [showAuditDrawer, setShowAuditDrawer] = useState<boolean>(false);
   const [showQuickSearch, setShowQuickSearch] = useState<boolean>(false);
   const [formulaModalColumn, setFormulaModalColumn] = useState<ColumnaGrid | null>(null);
+  const [showPasteModal, setShowPasteModal] = useState<boolean>(false);
+  const [pasteModalColId, setPasteModalColId] = useState<string>('');
+  const [pasteModalStartChurchId, setPasteModalStartChurchId] = useState<string>('');
+  const [undoStack, setUndoStack] = useState<
+    Array<{
+      id: string;
+      description: string;
+      columnName: string;
+      fieldId: string;
+      previousValues: Array<{ iglesia_id: string; campo_id: string; valor_manual: number | null }>;
+      timestamp: number;
+    }>
+  >([]);
   const [camposSubView, setCamposSubView] = useState<'catalog' | 'church_organizer'>('catalog');
 
-  // Admin search filters
+  // Admin search filters & Audit pagination
   const [churchSearch, setChurchSearch] = useState<string>('');
   const [fieldSearch, setFieldSearch] = useState<string>('');
   const [userSearch, setUserSearch] = useState<string>('');
   const [auditSearch, setAuditSearch] = useState<string>('');
+  const [auditPage, setAuditPage] = useState<number>(1);
+  const [auditPageSize, setAuditPageSize] = useState<number>(25);
+  const [auditEntityFilter, setAuditEntityFilter] = useState<string>('all');
+  const [auditActionFilter, setAuditActionFilter] = useState<string>('all');
 
   // Modals
   const [showTableModal, setShowTableModal] = useState(false);
@@ -274,6 +305,7 @@ export default function App() {
     visible_para_tesorero: true,
     es_temporal: false,
     periodo_id: '' as string | null,
+    periodo_ids: [] as string[],
     iglesias_especificas: [] as string[],
   });
 
@@ -321,6 +353,7 @@ export default function App() {
   });
 
   const [showPeriodCreateModal, setShowPeriodCreateModal] = useState(false);
+  const [showExportExcelModal, setShowExportExcelModal] = useState(false);
   const [workflowRow, setWorkflowRow] = useState<FilaGrid | null>(null);
 
   // Sort states
@@ -373,7 +406,7 @@ export default function App() {
     setTimeout(() => setToast(null), 3500);
   };
 
-  // ─── Global Keyboard Shortcuts (Ctrl+K: Search, Ctrl+B: Toggle Sidebar, Ctrl+H / F1: Help) ────
+  // ─── Global Keyboard Shortcuts (Ctrl+K: Search, Ctrl+B: Toggle Sidebar, Ctrl+H / F1: Help, Ctrl+Z: Undo) ────
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
@@ -385,11 +418,17 @@ export default function App() {
       } else if (((e.ctrlKey || e.metaKey) && e.key === 'h') || e.key === 'F1') {
         e.preventDefault();
         setShowHelpModal(true);
+      } else if ((e.ctrlKey || e.metaKey) && (e.key === 'z' || e.key === 'Z') && !e.shiftKey) {
+        const tag = (e.target as HTMLElement)?.tagName?.toLowerCase();
+        if (tag !== 'input' && tag !== 'textarea') {
+          e.preventDefault();
+          handleUndo();
+        }
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, []);
+  }, [undoStack, selectedPeriodoId]);
 
   // ─── Formula Helpers ──────────────────────────────────────────────────
   const buildPercentFormula = (rate: number, cols: string[]) => {
@@ -424,10 +463,22 @@ export default function App() {
     return `Aplica la fórmula: ${formula}`;
   };
 
-  // ─── Table selection persistence ──────────────────────────────────────
+  // ─── Table and Period selection persistence ────────────────────────────
   const handleTableChange = (tableId: string) => {
     setSelectedTablaId(tableId);
     localStorage.setItem('tesorapp_active_tabla_id', tableId);
+  };
+
+  const handlePeriodoChange = (periodoId: string) => {
+    setSelectedPeriodoId(periodoId);
+    localStorage.setItem('tesorapp_active_periodo_id', periodoId);
+  };
+
+  const handleSetActiveCell = (cell: EditingCell | null) => {
+    setActiveCell(cell);
+    if (cell) {
+      localStorage.setItem('tesorapp_last_active_cell', JSON.stringify(cell));
+    }
   };
 
   // ─── Auth ─────────────────────────────────────────────────────────────
@@ -510,11 +561,29 @@ export default function App() {
       setUsuarios(usrRes.data || []);
       setTablas(tabRes.data || []);
       setAuditorias(audRes.data || []);
-      if (perRes.data?.length > 0 && !selectedPeriodoId) setSelectedPeriodoId(perRes.data[0].id);
-      if (role !== 'iglesia' && tabRes.data?.length > 0 && !selectedTablaId) {
+      
+      if (perRes.data?.length > 0) {
+        const savedPeriodoId = localStorage.getItem('tesorapp_active_periodo_id');
+        const validSavedPeriod = perRes.data.find((p: any) => p.id === savedPeriodoId);
+        if (validSavedPeriod) {
+          setSelectedPeriodoId(validSavedPeriod.id);
+        } else if (!selectedPeriodoId) {
+          const openPeriod = perRes.data.find((p: any) => p.estado === 'abierto');
+          const defaultPerId = openPeriod ? openPeriod.id : perRes.data[0].id;
+          setSelectedPeriodoId(defaultPerId);
+          localStorage.setItem('tesorapp_active_periodo_id', defaultPerId);
+        }
+      }
+
+      if (role !== 'iglesia' && tabRes.data?.length > 0) {
         const savedTableId = localStorage.getItem('tesorapp_active_tabla_id');
         const validSaved = tabRes.data.find((t: any) => t.id === savedTableId);
-        setSelectedTablaId(validSaved ? validSaved.id : tabRes.data[0].id);
+        if (validSaved) {
+          setSelectedTablaId(validSaved.id);
+        } else if (!selectedTablaId) {
+          setSelectedTablaId(tabRes.data[0].id);
+          localStorage.setItem('tesorapp_active_tabla_id', tabRes.data[0].id);
+        }
       }
     } catch (err) {
       console.error('Error cargando metadatos', err);
@@ -674,8 +743,8 @@ export default function App() {
   };
 
   useEffect(() => {
-    if (user && selectedPeriodoId && activeTab === 'gastos') fetchGastos();
-  }, [selectedPeriodoId, activeTab, user]);
+    if (user && selectedPeriodoId) fetchGastos();
+  }, [selectedPeriodoId, user]);
 
   const openNewGasto = () => {
     setGastoModalData({
@@ -877,6 +946,135 @@ export default function App() {
     }
   };
 
+  const handleOpenPasteModal = (colId?: string, startChurchId?: string, _initialText?: string) => {
+    setPasteModalColId(colId || gridData?.columnas?.[0]?.id || '');
+    setPasteModalStartChurchId(startChurchId || gridData?.filas?.[0]?.iglesia_id || '');
+    setShowPasteModal(true);
+  };
+
+  const handleMatrixBatchSave = async (
+    updates: { iglesia_id: string; campo_id: string; valor_manual: number }[],
+    summary: { columnName: string; count: number; totalAmount: number }
+  ) => {
+    if (!selectedPeriodoId || updates.length === 0) return;
+
+    // 0. Capture previous state for Undo
+    const previousValues = updates.map((u) => {
+      const churchRow = gridData?.filas.find((f) => f.iglesia_id === u.iglesia_id);
+      const valObj = (churchRow?.valores || []).find((v) => v.campo_id === u.campo_id);
+      return {
+        iglesia_id: u.iglesia_id,
+        campo_id: u.campo_id,
+        valor_manual: valObj ? (valObj.valor_manual ?? 0) : 0,
+      };
+    });
+
+    setUndoStack((prev) => [
+      {
+        id: `undo_${Date.now()}`,
+        description: `Pegado en "${summary.columnName}" (${summary.count} congregaciones)`,
+        columnName: summary.columnName,
+        fieldId: updates[0]?.campo_id || '',
+        previousValues,
+        timestamp: Date.now(),
+      },
+      ...prev.slice(0, 9),
+    ]);
+
+    // 1. Instant optimistic update so numbers and totals update in 0ms without flicker
+    const updatesMap = new Map<string, number>();
+    updates.forEach((u) => {
+      updatesMap.set(`${u.iglesia_id}__${u.campo_id}`, u.valor_manual);
+    });
+
+    setGridData((prev) => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        filas: prev.filas.map((f) => {
+          const updatedValores = (f.valores || []).map((v) => {
+            const key = `${f.iglesia_id}__${v.campo_id}`;
+            if (updatesMap.has(key)) {
+              const val = updatesMap.get(key)!;
+              const isCalc = v.modo_calculo === 'calculado';
+              return {
+                ...v,
+                valor_manual: val,
+                valor_calculado: isCalc ? val : v.valor_calculado,
+              };
+            }
+            return v;
+          });
+          return { ...f, valores: updatedValores };
+        }),
+      };
+    });
+
+    try {
+      await axios.put(`${API_BASE}/valores/lote-matriz/${selectedPeriodoId}`, { valores: updates }, { timeout: 60000 });
+      fetchGridValues();
+      triggerToast(`¡Se pegaron exitosamente ${summary.count} valores en "${summary.columnName}" (${formatCOP(summary.totalAmount)})!`);
+    } catch (err: any) {
+      console.error('Error aplicando pegado en lote', err);
+      triggerToast(err.response?.data?.message || 'Error al aplicar los valores pegados', 'error');
+      fetchGridValues();
+      throw err;
+    }
+  };
+
+  const handleUndo = async () => {
+    if (undoStack.length === 0 || !selectedPeriodoId) return;
+    const [lastAction, ...remainingStack] = undoStack;
+    setUndoStack(remainingStack);
+
+    const restoreUpdates = lastAction.previousValues.map((pv) => ({
+      iglesia_id: pv.iglesia_id,
+      campo_id: pv.campo_id,
+      valor_manual: pv.valor_manual ?? 0,
+    }));
+
+    // Optimistic UI update
+    const updatesMap = new Map<string, number>();
+    restoreUpdates.forEach((u) => updatesMap.set(`${u.iglesia_id}__${u.campo_id}`, u.valor_manual));
+
+    setGridData((prev) => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        filas: prev.filas.map((f) => ({
+          ...f,
+          valores: (f.valores || []).map((v) => {
+            const key = `${f.iglesia_id}__${v.campo_id}`;
+            if (updatesMap.has(key)) {
+              const val = updatesMap.get(key)!;
+              const isCalc = v.modo_calculo === 'calculado';
+              return {
+                ...v,
+                valor_manual: val,
+                valor_calculado: isCalc ? val : v.valor_calculado,
+              };
+            }
+            return v;
+          }),
+        })),
+      };
+    });
+
+    try {
+      await axios.put(
+        `${API_BASE}/valores/lote-matriz/${selectedPeriodoId}`,
+        { valores: restoreUpdates },
+        { timeout: 60000 }
+      );
+      fetchGridValues();
+      triggerToast(`Se revirtieron los cambios de: ${lastAction.description}`, 'success');
+    } catch (err: any) {
+      console.error('Error al deshacer cambios', err);
+      triggerToast('Error al revertir los cambios', 'error');
+      fetchGridValues();
+    }
+  };
+
   const handleSendMonthlyReport = async (churchId: string, periodoId: string) => {
     try {
       await axios.post(`${API_BASE}/informes/enviar`, {
@@ -1061,6 +1259,7 @@ export default function App() {
       visible_para_tesorero: true,
       es_temporal: false,
       periodo_id: selectedPeriodoId || (periodos[0]?.id || null),
+      periodo_ids: selectedPeriodoId ? [selectedPeriodoId] : (periodos[0]?.id ? [periodos[0].id] : []),
       iglesias_especificas: [],
     });
     setFormulaAssistantTab('porcentaje');
@@ -1074,7 +1273,45 @@ export default function App() {
     setShowColumnDrawer(true);
   };
 
+  const openFieldModalForNewFondo = () => {
+    setFieldModalData({
+      id: '',
+      nombre: '',
+      tipo: 'moneda',
+      modo_calculo: 'manual',
+      formula: '',
+      tipo_redondeo: 'ninguno',
+      multiplo_redondeo: 1,
+      es_acumulable: true,
+      es_fondo: true,
+      es_transito: false,
+      ente_superior_nombre: '',
+      seccion: 'Egresos',
+      seccion_iglesia: 'Egresos',
+      seccion_tesorero: 'Egresos',
+      orden: campos.length,
+      aplica_a_todas_las_iglesias: true,
+      visible_para_iglesia: true,
+      visible_para_tesorero: true,
+      es_temporal: false,
+      periodo_id: selectedPeriodoId || (periodos[0]?.id || null),
+      periodo_ids: selectedPeriodoId ? [selectedPeriodoId] : (periodos[0]?.id ? [periodos[0].id] : []),
+      iglesias_especificas: [],
+    });
+    setFormulaAssistantTab('porcentaje');
+    setShowColumnDrawer(true);
+  };
+
   const openFieldModalForEdit = (field: any) => {
+    const currentPeriodoIds =
+      field.campos_por_periodo && field.campos_por_periodo.length > 0
+        ? field.campos_por_periodo.map((cp: any) => cp.periodo_id)
+        : field.periodo_id
+        ? [field.periodo_id]
+        : selectedPeriodoId
+        ? [selectedPeriodoId]
+        : [];
+
     setFieldModalData({
       id: field.id,
       nombre: field.nombre,
@@ -1095,7 +1332,8 @@ export default function App() {
       visible_para_iglesia: field.visible_para_iglesia ?? true,
       visible_para_tesorero: field.visible_para_tesorero ?? true,
       es_temporal: field.es_temporal ?? false,
-      periodo_id: field.periodo_id || selectedPeriodoId || (periodos[0]?.id || null),
+      periodo_id: currentPeriodoIds[0] || field.periodo_id || selectedPeriodoId || (periodos[0]?.id || null),
+      periodo_ids: currentPeriodoIds,
       iglesias_especificas: [],
     });
     const otherManuals = campos
@@ -1221,6 +1459,51 @@ export default function App() {
     }
   };
 
+  const handleReorderGridColumns = async (newColumns: ColumnaGrid[]) => {
+    // Optimistically update the UI column order
+    setGridData((prev) => (prev ? { ...prev, columnas: newColumns } : prev));
+
+    try {
+      const items = newColumns.map((col, index) => ({
+        id: col.id,
+        orden: index,
+      }));
+
+      const isSpecificTable = selectedTablaId && selectedTablaId !== 'all';
+      if (isSpecificTable) {
+        await axios.put(`${API_BASE}/tablas/${selectedTablaId}`, {
+          campo_ids: newColumns.map((c) => c.id),
+        });
+      }
+
+      await axios.put(`${API_BASE}/campos/reordenar-lote`, { items });
+      triggerToast('Orden de columnas guardado con éxito');
+    } catch (err: any) {
+      console.error('Error guardando orden de columnas:', err);
+      triggerToast(err.response?.data?.message || 'Error al guardar el nuevo orden de columnas', 'error');
+      fetchGridValues();
+    }
+  };
+
+  const handleReorderGridRows = async (newRows: FilaGrid[]) => {
+    // Optimistically update the UI row order
+    setGridData((prev) => (prev ? { ...prev, filas: newRows } : prev));
+
+    try {
+      const items = newRows.map((row, index) => ({
+        id: row.iglesia_id,
+        orden: index,
+      }));
+
+      await axios.put(`${API_BASE}/iglesias/reordenar-lote`, { items });
+      triggerToast('Orden de congregaciones guardado con éxito');
+    } catch (err: any) {
+      console.error('Error guardando orden de congregaciones:', err);
+      triggerToast(err.response?.data?.message || 'Error al guardar el nuevo orden de congregaciones', 'error');
+      fetchGridValues();
+    }
+  };
+
   // ─── User CRUD ─────────────────────────────────────────────────────────
   const saveUser = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -1326,8 +1609,7 @@ export default function App() {
   };
 
   const exportExcel = () => {
-    if (!selectedTablaId || !selectedPeriodoId) return;
-    window.open(`${API_BASE}/reportes/exportar?tabla_id=${selectedTablaId}&periodo_id=${selectedPeriodoId}`);
+    setShowExportExcelModal(true);
   };
 
   // ─── Sort Functions ────────────────────────────────────────────────────
@@ -1488,13 +1770,32 @@ export default function App() {
     });
   }, [usuarios, userSearch, userSort]);
 
-  const sortedAuditorias = useMemo(() => {
-    const list = auditorias.filter(
-      (log) =>
-        (log.usuario?.nombre_completo && log.usuario.nombre_completo.toLowerCase().includes(auditSearch.toLowerCase())) ||
-        log.entidad.toLowerCase().includes(auditSearch.toLowerCase()) ||
-        log.accion.toLowerCase().includes(auditSearch.toLowerCase())
-    );
+  const filteredAndSortedAuditorias = useMemo(() => {
+    const term = auditSearch.toLowerCase().trim();
+    const list = auditorias.filter((log) => {
+      // Entity filter
+      if (auditEntityFilter !== 'all' && log.entidad !== auditEntityFilter) {
+        return false;
+      }
+      // Action filter
+      if (auditActionFilter !== 'all' && log.accion !== auditActionFilter) {
+        return false;
+      }
+      // Text search
+      if (term) {
+        const userMatch =
+          log.usuario?.nombre_completo?.toLowerCase().includes(term) ||
+          log.usuario?.correo?.toLowerCase().includes(term);
+        const entityMatch = log.entidad?.toLowerCase().includes(term);
+        const actionMatch = log.accion?.toLowerCase().includes(term);
+        const detailMatch = JSON.stringify(log.valor_nuevo || log.valor_anterior || {}).toLowerCase().includes(term);
+        if (!userMatch && !entityMatch && !actionMatch && !detailMatch) {
+          return false;
+        }
+      }
+      return true;
+    });
+
     return list.sort((a: any, b: any) => {
       if (auditSort.colKey === 'realizado_en') {
         const ta = new Date(a.realizado_en).getTime();
@@ -1507,7 +1808,17 @@ export default function App() {
         ? valA.localeCompare(valB, 'es', { sensitivity: 'base' })
         : valB.localeCompare(valA, 'es', { numeric: true, sensitivity: 'base' });
     });
-  }, [auditorias, auditSearch, auditSort]);
+  }, [auditorias, auditSearch, auditEntityFilter, auditActionFilter, auditSort]);
+
+  const totalAuditPages = useMemo(() => {
+    return Math.max(1, Math.ceil(filteredAndSortedAuditorias.length / auditPageSize));
+  }, [filteredAndSortedAuditorias.length, auditPageSize]);
+
+  const paginatedAuditorias = useMemo(() => {
+    const validPage = Math.min(Math.max(1, auditPage), totalAuditPages);
+    const start = (validPage - 1) * auditPageSize;
+    return filteredAndSortedAuditorias.slice(start, start + auditPageSize);
+  }, [filteredAndSortedAuditorias, auditPage, auditPageSize, totalAuditPages]);
 
   const columnTotals = useMemo(() => {
     if (!gridData?.columnas || sortedAndFilteredGridRows.length === 0) return {};
@@ -1874,12 +2185,12 @@ export default function App() {
       {/* ── RIGHT MAIN WORKSPACE (Light / Clean Minimalist Background with Dark Mode) ── */}
       <main className="flex-1 flex flex-col min-w-0 h-full overflow-hidden bg-slate-50 dark:bg-slate-950">
         {/* Dynamic Top Header Bar */}
-        <header className="h-12 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 px-4 flex items-center justify-between shrink-0 z-20 shadow-2xs">
-          <div className="flex items-center gap-3">
+        <header className="min-h-12 py-1 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 px-3 sm:px-4 flex items-center justify-between gap-2 shrink-0 z-20 shadow-2xs">
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0">
             <button
               onClick={toggleSidebar}
               title={sidebarOpen ? "Ocultar menú lateral (Ctrl+B)" : "Mostrar menú lateral (Ctrl+B)"}
-              className={`p-1.5 rounded-lg transition cursor-pointer border ${
+              className={`p-1.5 rounded-lg transition cursor-pointer border shrink-0 ${
                 sidebarOpen 
                   ? 'text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 border-slate-200 dark:border-slate-700' 
                   : 'text-indigo-600 bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-900/40 dark:text-indigo-300 border-indigo-200 dark:border-indigo-800 shadow-xs'
@@ -1888,8 +2199,8 @@ export default function App() {
               {sidebarOpen ? <PanelLeftClose className="w-4 h-4" /> : <PanelLeftOpen className="w-4 h-4" />}
             </button>
 
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-extrabold uppercase tracking-wider text-slate-700 dark:text-slate-200">
+            <div className="flex items-center gap-2 min-w-0">
+              <span className="text-[11px] sm:text-xs font-extrabold uppercase tracking-wider text-slate-700 dark:text-slate-200 truncate max-w-[140px] xs:max-w-[200px] sm:max-w-[320px] md:max-w-none">
                 {activeTab === 'dashboard' && 'Tablero Ejecutivo & Métricas'}
                 {activeTab === 'sheet' && 'Planilla Contable General'}
                 {activeTab === 'iglesias' && 'Directorio de Congregaciones'}
@@ -1902,9 +2213,9 @@ export default function App() {
             </div>
           </div>
 
-          <div className="flex items-center gap-2 text-xs">
+          <div className="flex items-center gap-1.5 sm:gap-2 text-xs shrink-0">
             {selectedPeriodObj && activeTab !== 'sheet' && (
-              <div className="flex items-center gap-1.5 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 px-2.5 py-1 rounded-lg border border-slate-200 dark:border-slate-700 font-semibold text-[11px] shrink-0">
+              <div className="hidden lg:flex items-center gap-1.5 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 px-2.5 py-1 rounded-lg border border-slate-200 dark:border-slate-700 font-semibold text-[11px] shrink-0">
                 <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
                 <span>Periodo: <strong className="text-slate-900 dark:text-white">{selectedPeriodObj.nombre}</strong></span>
               </div>
@@ -1913,12 +2224,12 @@ export default function App() {
             {user?.rol === 'tesorero' && user?.iglesia_id && (
               <button
                 onClick={() => handleSetViewRoleMode('iglesia')}
-                className="px-2.5 py-1 rounded-lg bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-950/60 dark:hover:bg-indigo-900/60 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 transition cursor-pointer flex items-center gap-1.5 text-xs font-bold shadow-2xs shrink-0"
+                className="px-2 sm:px-2.5 py-1 rounded-lg bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-950/60 dark:hover:bg-indigo-900/60 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 transition cursor-pointer flex items-center gap-1.5 text-xs font-bold shadow-2xs shrink-0"
                 title="Cambiar a Vista de Sede Pastoral para diligenciar su informe"
               >
-                <Church className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
-                <span className="hidden sm:inline">Mi Sede: {iglesias.find((i) => i.id === user.iglesia_id)?.nombre || 'Pastor'}</span>
-                <span className="sm:hidden">Mi Sede</span>
+                <Church className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400 shrink-0" />
+                <span className="hidden md:inline">Mi Sede: {iglesias.find((i) => i.id === user.iglesia_id)?.nombre || 'Pastor'}</span>
+                <span className="md:hidden hidden sm:inline">Mi Sede</span>
               </button>
             )}
 
@@ -1927,7 +2238,7 @@ export default function App() {
               title="Abrir Guía y Centro de Ayuda (Ctrl+H / F1)"
               className="p-1.5 sm:px-2.5 sm:py-1 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer flex items-center gap-1.5 text-xs font-bold shrink-0"
             >
-              <HelpCircle className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
+              <HelpCircle className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400 shrink-0" />
               <span className="hidden md:inline text-[11px]">Guía / Ayuda</span>
             </button>
 
@@ -1938,13 +2249,13 @@ export default function App() {
             >
               {theme === 'dark' ? (
                 <>
-                  <Sun className="w-3.5 h-3.5 text-amber-400" />
-                  <span className="hidden sm:inline text-[11px]">Claro</span>
+                  <Sun className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                  <span className="hidden lg:inline text-[11px]">Claro</span>
                 </>
               ) : (
                 <>
-                  <Moon className="w-3.5 h-3.5 text-slate-700" />
-                  <span className="hidden sm:inline text-[11px]">Oscuro</span>
+                  <Moon className="w-3.5 h-3.5 text-slate-700 shrink-0" />
+                  <span className="hidden lg:inline text-[11px]">Oscuro</span>
                 </>
               )}
             </button>
@@ -1952,10 +2263,12 @@ export default function App() {
             <div className="flex items-center gap-1 shrink-0">
               <button
                 onClick={() => setShowAICopilot(true)}
-                className="px-3 py-1 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white rounded-lg font-bold text-xs flex items-center gap-1.5 shadow-xs transition transform active:scale-95 cursor-pointer"
+                className="px-2.5 sm:px-3 py-1 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white rounded-lg font-bold text-xs flex items-center gap-1.5 shadow-xs transition transform active:scale-95 cursor-pointer shrink-0"
+                title="Copilot Inteligencia Artificial"
               >
-                <Sparkles className="w-3.5 h-3.5 text-amber-300" />
-                <span>Copilot IA</span>
+                <Sparkles className="w-3.5 h-3.5 text-amber-300 shrink-0" />
+                <span className="hidden xs:inline">Copilot IA</span>
+                <span className="xs:hidden">IA</span>
               </button>
             </div>
           </div>
@@ -1969,11 +2282,14 @@ export default function App() {
               gridData={gridData}
               periodos={periodos}
               selectedPeriodoId={selectedPeriodoId}
-              onSelectPeriodo={setSelectedPeriodoId}
+              onSelectPeriodo={handlePeriodoChange}
               tablas={tablas}
               selectedTablaId={selectedTablaId}
               onSelectTabla={handleTableChange}
               iglesias={iglesias}
+              gastos={gastos}
+              gastosResumen={gastosResumen}
+              gastosLoading={gastosLoading}
               onOpenCopilot={() => setShowAICopilot(true)}
               onOpenChurchDetail={(_iglesiaId) => {
                 setActiveTab('sheet');
@@ -1994,7 +2310,7 @@ export default function App() {
               selectedTablaId={selectedTablaId}
               selectedPeriodoId={selectedPeriodoId}
               onTablaChange={handleTableChange}
-              onPeriodoChange={setSelectedPeriodoId}
+              onPeriodoChange={handlePeriodoChange}
               onOpenTableConfig={() => {
                 if (selectedTableObj) {
                   setTableModalData({
@@ -2015,6 +2331,10 @@ export default function App() {
               onCreatePeriod={handleCreatePeriod}
               onExportExcel={exportExcel}
               onOpenQuickSearch={() => setShowQuickSearch(true)}
+              onOpenPasteExcel={() => handleOpenPasteModal()}
+              onUndo={handleUndo}
+              canUndo={undoStack.length > 0}
+              undoLabel={undoStack[0] ? `Deshacer: ${undoStack[0].description}` : 'Deshacer'}
               gridSearch={gridSearch}
               onGridSearchChange={setGridSearch}
               showAllColumns={showAllColumns}
@@ -2048,6 +2368,7 @@ export default function App() {
                 setEditValue={setEditValue}
                 onBeginEdit={(churchId, fieldId, currentValue) => {
                   setEditingCell({ churchId, fieldId });
+                  handleSetActiveCell({ churchId, fieldId });
                   setEditValue(currentValue === '0' ? '' : currentValue);
                 }}
                 onSaveCell={saveCell}
@@ -2058,12 +2379,15 @@ export default function App() {
                   setReceiptVaultState({ open: true, churchId, churchName })
                 }
                 onOpenWorkflow={(row) => setWorkflowRow(row)}
+                onOpenPasteModal={handleOpenPasteModal}
                 isTesorero={isTesorero}
                 isPeriodOpen={isPeriodOpen ?? false}
                 gridSort={gridSort}
                 onSortChange={toggleGridSort}
+                onReorderColumns={handleReorderGridColumns}
+                onReorderRows={handleReorderGridRows}
                 activeCell={activeCell}
-                setActiveCell={setActiveCell}
+                setActiveCell={handleSetActiveCell}
               />
 
               {/* Analytics Drawer */}
@@ -2168,6 +2492,20 @@ export default function App() {
               column={formulaModalColumn}
               allCampos={campos}
               onSaveFormula={handleSaveFormulaDirect}
+            />
+          )}
+
+          {/* Paste Column from Excel Modal */}
+          {isTesorero && (
+            <PasteColumnModal
+              isOpen={showPasteModal}
+              onClose={() => setShowPasteModal(false)}
+              columns={gridData?.columnas || []}
+              rows={sortedAndFilteredGridRows}
+              initialColumnId={pasteModalColId}
+              initialStartChurchId={pasteModalStartChurchId}
+              onApplyPaste={handleMatrixBatchSave}
+              isPeriodOpen={isPeriodOpen ?? false}
             />
           )}
 
@@ -2483,8 +2821,18 @@ export default function App() {
                       <td className="px-2.5 py-2 font-mono text-[11px] text-slate-500 dark:text-slate-400 border-r border-slate-200 dark:border-slate-800">{field.slug}</td>
                       <td className="px-2.5 py-2 border-r border-slate-200 dark:border-slate-800">
                         {field.es_temporal ? (
-                          <span className="px-1.5 py-0.5 bg-amber-50 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800 rounded text-[10px] font-bold">
-                            ⏱ {field.periodo?.nombre || 'Temporal'}
+                          <span
+                            className="px-1.5 py-0.5 bg-amber-50 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800 rounded text-[10px] font-bold inline-flex items-center gap-1 cursor-help"
+                            title={
+                              field.campos_por_periodo && field.campos_por_periodo.length > 0
+                                ? field.campos_por_periodo.map((p: any) => p.periodo?.nombre).filter(Boolean).join(', ')
+                                : field.periodo?.nombre || 'Temporal'
+                            }
+                          >
+                            ⏱{' '}
+                            {field.campos_por_periodo && field.campos_por_periodo.length > 1
+                              ? `${field.campos_por_periodo.length} períodos`
+                              : field.campos_por_periodo?.[0]?.periodo?.nombre || field.periodo?.nombre || 'Temporal'}
                           </span>
                         ) : (
                           <span className="px-1.5 py-0.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 rounded text-[10px] font-medium">
@@ -2724,22 +3072,110 @@ export default function App() {
       {/* ── TAB 6: HISTORIAL ── */}
       {activeTab === 'historial' && (
         <div className="flex-1 flex flex-col min-h-0 overflow-hidden bg-white dark:bg-slate-950">
-          <div className="h-[42px] px-3 bg-slate-50 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between shrink-0">
-            <div className="flex items-center gap-2">
-              <h2 className="font-bold text-slate-900 dark:text-white text-xs">Bitácora de Auditoría ({auditorias.length} eventos)</h2>
+          {/* Header & Filter Bar */}
+          <div className="p-2.5 bg-slate-50 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 flex flex-wrap items-center justify-between gap-2 shrink-0">
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="flex items-center gap-1.5 mr-1">
+                <History className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+                <h2 className="font-bold text-slate-900 dark:text-white text-xs">
+                  Bitácora de Auditoría
+                </h2>
+                <span className="px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-indigo-50 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800">
+                  {filteredAndSortedAuditorias.length} {filteredAndSortedAuditorias.length === auditorias.length ? 'eventos' : `de ${auditorias.length}`}
+                </span>
+              </div>
+
+              {/* Search Box */}
               <div className="relative">
-                <Search className="w-3.5 h-3.5 absolute left-2 top-2.5 text-slate-400 pointer-events-none" />
+                <Search className="w-3.5 h-3.5 absolute left-2 top-2 text-slate-400 pointer-events-none" />
                 <input
                   type="text"
-                  placeholder="Filtrar por usuario, detalle o entidad..."
+                  placeholder="Buscar usuario, detalle..."
                   value={auditSearch}
-                  onChange={(e) => setAuditSearch(e.target.value)}
-                  className="w-64 pl-7 pr-2 py-1 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded text-slate-900 dark:text-slate-100 text-xs placeholder-slate-400 focus:outline-none focus:border-indigo-600"
+                  onChange={(e) => {
+                    setAuditSearch(e.target.value);
+                    setAuditPage(1);
+                  }}
+                  className="w-48 sm:w-56 pl-7 pr-7 py-1 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded text-slate-900 dark:text-slate-100 text-xs placeholder-slate-400 focus:outline-none focus:border-indigo-600 shadow-2xs"
                 />
+                {auditSearch && (
+                  <button
+                    onClick={() => {
+                      setAuditSearch('');
+                      setAuditPage(1);
+                    }}
+                    className="absolute right-2 top-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                )}
               </div>
+
+              {/* Entity Filter */}
+              <div className="flex items-center gap-1">
+                <span className="text-[11px] text-slate-500 dark:text-slate-400 hidden sm:inline">Módulo:</span>
+                <select
+                  value={auditEntityFilter}
+                  onChange={(e) => {
+                    setAuditEntityFilter(e.target.value);
+                    setAuditPage(1);
+                  }}
+                  className="bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded px-2 py-1 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:border-indigo-600 shadow-2xs"
+                >
+                  <option value="all">Todos los módulos</option>
+                  <option value="valor">Valores de Planilla</option>
+                  <option value="gasto">Gastos de Tesorería</option>
+                  <option value="usuario">Usuarios</option>
+                  <option value="campo_plantilla">Columnas / Plantilla</option>
+                  <option value="informe_periodo">Informes / Workflow</option>
+                  <option value="periodo">Períodos</option>
+                  <option value="iglesia">Congregaciones</option>
+                  <option value="tabla">Tablas</option>
+                </select>
+              </div>
+
+              {/* Action Filter */}
+              <div className="flex items-center gap-1">
+                <span className="text-[11px] text-slate-500 dark:text-slate-400 hidden sm:inline">Acción:</span>
+                <select
+                  value={auditActionFilter}
+                  onChange={(e) => {
+                    setAuditActionFilter(e.target.value);
+                    setAuditPage(1);
+                  }}
+                  className="bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded px-2 py-1 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:border-indigo-600 shadow-2xs"
+                >
+                  <option value="all">Todas las acciones</option>
+                  <option value="creacion">Creación</option>
+                  <option value="actualizacion">Actualización</option>
+                  <option value="eliminacion">Eliminación</option>
+                  <option value="cierre_periodo">Cierre de Período</option>
+                  <option value="reapertura_periodo">Reapertura</option>
+                </select>
+              </div>
+
+              {/* Reset filters button */}
+              {(auditSearch || auditEntityFilter !== 'all' || auditActionFilter !== 'all') && (
+                <button
+                  onClick={() => {
+                    setAuditSearch('');
+                    setAuditEntityFilter('all');
+                    setAuditActionFilter('all');
+                    setAuditPage(1);
+                  }}
+                  className="px-2 py-1 text-[11px] text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/50 rounded border border-rose-200 dark:border-rose-800 font-semibold cursor-pointer transition flex items-center gap-1"
+                >
+                  <X className="w-3 h-3" /> Limpiar filtros
+                </button>
+              )}
             </div>
-            <span className="text-[11px] text-slate-500 dark:text-slate-400">Registro inalterable con trazabilidad total de base de datos</span>
+
+            <span className="text-[11px] text-slate-500 dark:text-slate-400 hidden lg:inline">
+              Registro inalterable con trazabilidad total de base de datos
+            </span>
           </div>
+
+          {/* Table Area */}
           <div className="flex-1 min-h-0 overflow-auto">
             <table className="w-full border-collapse text-left text-xs">
               <thead className="sticky top-0 bg-slate-100 dark:bg-slate-800 border-b border-slate-300 dark:border-slate-700 z-10 select-none">
@@ -2758,7 +3194,7 @@ export default function App() {
                       <div className="flex items-center justify-between gap-1">
                         <span>{label}</span>
                         {auditSort.colKey === key ? (
-                          fieldSort.direction === 'asc' ? (
+                          auditSort.direction === 'asc' ? (
                             <ArrowUp className="w-3 h-3 text-indigo-600 dark:text-indigo-400" />
                           ) : (
                             <ArrowDown className="w-3 h-3 text-indigo-600 dark:text-indigo-400" />
@@ -2773,207 +3209,323 @@ export default function App() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
-                {sortedAuditorias.map((log) => (
-                  <tr key={log.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition">
-                    <td className="px-3 py-2 font-mono text-[11px] text-slate-500 dark:text-slate-400 border-r border-slate-200 dark:border-slate-800 whitespace-nowrap">
-                      {new Date(log.realizado_en).toLocaleString('es-CO', {
-                        day: '2-digit',
-                        month: '2-digit',
-                        year: 'numeric',
-                        hour: '2-digit',
-                        minute: '2-digit',
-                        second: '2-digit',
-                      })}
-                    </td>
-                    <td className="px-2.5 py-2 font-bold text-slate-900 dark:text-white border-r border-slate-200 dark:border-slate-800 whitespace-nowrap">
-                      <div className="flex flex-col">
-                        <span>{log.usuario?.nombre_completo || 'Sistema'}</span>
-                        <span className="text-[10px] text-slate-400 font-normal">{log.usuario?.correo || ''}</span>
-                      </div>
-                    </td>
-                    <td className="px-2.5 py-2 border-r border-slate-200 dark:border-slate-800 whitespace-nowrap">
-                      <span className={`px-2 py-0.5 rounded text-[10px] font-extrabold uppercase border ${
-                        log.accion === 'creacion'
-                          ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800'
-                          : log.accion === 'eliminacion'
-                          ? 'bg-rose-50 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 border-rose-200 dark:border-rose-800'
-                          : log.accion === 'cierre_periodo' || log.accion === 'reapertura_periodo'
-                          ? 'bg-amber-50 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border-amber-300 dark:border-amber-700'
-                          : 'bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border-indigo-200 dark:border-indigo-800'
-                      }`}>
-                        {log.accion.replace('_', ' ')}
-                      </span>
-                    </td>
-                    <td className="px-2.5 py-2 font-mono text-[11px] capitalize text-slate-600 dark:text-slate-400 border-r border-slate-200 dark:border-slate-800 whitespace-nowrap">
-                      <span className="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-[10px] font-semibold">
-                        {log.entidad.replace('_', ' ')}
-                      </span>
-                    </td>
-                    <td className="px-3 py-2 text-xs">
-                      {(() => {
-                        const accion = log.accion;
-                        const entidad = log.entidad;
-                        const ant = log.valor_anterior;
-                        const neu = log.valor_nuevo;
-                        const data = neu || ant || {};
-
-                        if (entidad === 'gasto') {
-                          if (accion === 'creacion') {
-                            return (
-                              <div className="flex items-center gap-1.5 text-emerald-800 dark:text-emerald-300 font-medium">
-                                <span>➕ Registrado gasto:</span>
-                                <strong className="text-slate-900 dark:text-white">"{data.concepto || 'Sin concepto'}"</strong>
-                                <span>por</span>
-                                <strong className="font-mono font-black text-emerald-900 dark:text-emerald-200">{formatCOP(data.monto || 0)}</strong>
-                                {data.comprobante_numero ? <span className="text-[11px] text-slate-500">(Comp: #{data.comprobante_numero})</span> : ''}
-                                {data.beneficiario ? <span className="text-[11px] text-slate-500">a {data.beneficiario}</span> : ''}
-                              </div>
-                            );
-                          }
-                          if (accion === 'eliminacion') {
-                            return (
-                              <div className="flex items-center gap-1.5 text-rose-800 dark:text-rose-300 font-medium">
-                                <span>🗑️ Eliminado gasto:</span>
-                                <strong className="text-slate-900 dark:text-white">"{data.concepto || 'Gasto'}"</strong>
-                                <span>por</span>
-                                <strong className="font-mono font-black">{formatCOP(data.monto || 0)}</strong>
-                                {data.comprobante_numero ? <span className="text-[11px] text-slate-500">(Comp: #{data.comprobante_numero})</span> : ''}
-                              </div>
-                            );
-                          }
-                          if (accion === 'actualizacion') {
-                            return (
-                              <div className="flex items-center gap-1.5 text-slate-700 dark:text-slate-300 font-medium">
-                                <span>✏️ Modificado gasto:</span>
-                                <strong className="text-slate-900 dark:text-white">"{ant?.concepto || neu?.concepto || 'Gasto'}"</strong>
-                                <span className="font-mono line-through text-slate-400">{formatCOP(ant?.monto || 0)}</span>
-                                <ArrowRight className="w-3 h-3 text-slate-400" />
-                                <strong className="font-mono text-emerald-700 dark:text-emerald-400 font-black">{formatCOP(neu?.monto || 0)}</strong>
-                              </div>
-                            );
-                          }
-                        }
-
-                        if (entidad === 'usuario') {
-                          if (accion === 'creacion') {
-                            return (
-                              <div className="text-emerald-800 dark:text-emerald-300">
-                                👤 Creado usuario: <strong className="text-slate-900 dark:text-white">{data.nombre_completo}</strong> ({data.correo}) — Rol: <strong className="uppercase">{data.rol}</strong>
-                              </div>
-                            );
-                          }
-                          if (accion === 'eliminacion') {
-                            return (
-                              <div className="text-rose-800 dark:text-rose-300">
-                                🗑️ Eliminado usuario: <strong className="text-slate-900 dark:text-white">{data.nombre_completo}</strong> ({data.correo})
-                              </div>
-                            );
-                          }
-                          return (
-                            <div className="text-slate-700 dark:text-slate-300">
-                              ✏️ Actualizado usuario: <strong className="text-slate-900 dark:text-white">{data.nombre_completo}</strong> ({data.correo}) {data.rol ? `[Rol: ${data.rol}]` : ''}
-                            </div>
-                          );
-                        }
-
-                        if (entidad === 'campo_plantilla') {
-                          if (accion === 'creacion') {
-                            return (
-                              <div className="text-emerald-800 dark:text-emerald-300">
-                                ➕ Creada columna: <strong className="text-slate-900 dark:text-white">"{data.nombre}"</strong> ({data.slug}) — Modo: <strong>{data.modo_calculo}</strong> {data.formula ? `[${data.formula}]` : ''}
-                              </div>
-                            );
-                          }
-                          if (accion === 'eliminacion') {
-                            return (
-                              <div className="text-rose-800 dark:text-rose-300">
-                                🗑️ Eliminada columna: <strong className="text-slate-900 dark:text-white">"{data.nombre}"</strong> ({data.slug})
-                              </div>
-                            );
-                          }
-                          const diffs: string[] = [];
-                          if (ant && neu) {
-                            if (ant.nombre !== neu.nombre) diffs.push(`Nombre: "${ant.nombre}" → "${neu.nombre}"`);
-                            if (ant.formula !== neu.formula) diffs.push(`Fórmula: "${ant.formula || 'manual'}" → "${neu.formula || 'manual'}"`);
-                            if (ant.es_fondo !== neu.es_fondo) diffs.push(`Fondo: ${neu.es_fondo ? 'Activado' : 'Desactivado'}`);
-                            if (ant.es_transito !== neu.es_transito) diffs.push(`Tránsito: ${neu.es_transito ? 'Sí' : 'No'}`);
-                            if (ant.seccion !== neu.seccion) diffs.push(`Sección: ${ant.seccion} → ${neu.seccion}`);
-                          }
-                          return (
-                            <div className="text-indigo-800 dark:text-indigo-300">
-                              ✏️ Columna: <strong className="text-slate-900 dark:text-white">"{data.nombre || 'Columna'}"</strong> {diffs.length > 0 ? `(${diffs.join(' | ')})` : '(Propiedades actualizadas)'}
-                            </div>
-                          );
-                        }
-
-                        if (entidad === 'informe_periodo') {
-                          return (
-                            <div className="flex items-center gap-1.5 text-indigo-800 dark:text-indigo-300">
-                              <span>📑 Estado de informe:</span>
-                              <span className="uppercase px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-[10px] font-bold">{ant?.estado || 'borrador'}</span>
-                              <ArrowRight className="w-3 h-3 text-slate-400" />
-                              <span className="uppercase px-1.5 py-0.5 rounded bg-emerald-100 dark:bg-emerald-950/80 text-emerald-950 dark:text-emerald-200 border border-emerald-300 dark:border-emerald-800 text-[10px] font-black">{neu?.estado || 'aprobado'}</span>
-                              {neu?.observaciones ? <span className="text-slate-500 italic">— "{neu.observaciones}"</span> : ''}
-                            </div>
-                          );
-                        }
-
-                        if (entidad === 'valor') {
-                          const church = log.valor?.iglesia?.nombre || 'Sede';
-                          const field = log.valor?.campo?.nombre || 'Valor';
-                          const valAnt = ant?.valor_manual ?? ant?.valor_calculado ?? 0;
-                          const valNeu = neu?.valor_manual ?? neu?.valor_calculado ?? 0;
-                          return (
-                            <div className="flex items-center gap-1.5 text-slate-700 dark:text-slate-300">
-                              <span className="font-bold text-slate-900 dark:text-white">{church}</span>
-                              <span className="text-slate-400">›</span>
-                              <span className="font-bold text-indigo-700 dark:text-indigo-400">{field}:</span>
-                              <span className="bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded font-mono text-[11px] text-slate-500 line-through">
-                                {formatCOP(valAnt)}
-                              </span>
-                              <ArrowRight className="w-3 h-3 text-slate-400" />
-                              <span className="bg-emerald-50 dark:bg-emerald-950/60 text-emerald-900 dark:text-emerald-200 px-1.5 py-0.5 rounded font-mono text-[11px] font-black border border-emerald-300 dark:border-emerald-700">
-                                {formatCOP(valNeu)}
-                              </span>
-                            </div>
-                          );
-                        }
-
-                        if (entidad === 'periodo') {
-                          return (
-                            <div className="text-amber-800 dark:text-amber-300 font-bold">
-                              🗓️ Periodo: <strong>{data.nombre || 'Periodo'}</strong> — {accion === 'cierre_periodo' ? '🔒 Cerrado' : accion === 'reapertura_periodo' ? '🔓 Reabierto' : accion}
-                            </div>
-                          );
-                        }
-
-                        if (entidad === 'iglesia') {
-                          return (
-                            <div className="text-indigo-800 dark:text-indigo-300">
-                              ⛪ Congregación: <strong className="text-slate-900 dark:text-white">{data.nombre}</strong> {data.codigo ? `(#${data.codigo})` : ''} {data.nombre_pastor ? `(Pastor: ${data.nombre_pastor})` : ''}
-                            </div>
-                          );
-                        }
-
-                        if (entidad === 'tabla') {
-                          return (
-                            <div className="text-slate-700 dark:text-slate-300">
-                              📊 Tabla: <strong className="text-slate-900 dark:text-white">{data.nombre}</strong>
-                            </div>
-                          );
-                        }
-
-                        return (
-                          <span className="text-slate-500 font-mono">
-                            {JSON.stringify(data).slice(0, 80)}
-                          </span>
-                        );
-                      })()}
+                {paginatedAuditorias.length === 0 ? (
+                  <tr>
+                    <td colSpan={5} className="py-12 text-center text-slate-400 dark:text-slate-500">
+                      No se encontraron registros de auditoría que coincidan con los filtros aplicados.
                     </td>
                   </tr>
-                ))}
+                ) : (
+                  paginatedAuditorias.map((log) => (
+                    <tr key={log.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition">
+                      <td className="px-3 py-2 font-mono text-[11px] text-slate-500 dark:text-slate-400 border-r border-slate-200 dark:border-slate-800 whitespace-nowrap">
+                        {new Date(log.realizado_en).toLocaleString('es-CO', {
+                          day: '2-digit',
+                          month: '2-digit',
+                          year: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit',
+                          second: '2-digit',
+                        })}
+                      </td>
+                      <td className="px-2.5 py-2 font-bold text-slate-900 dark:text-white border-r border-slate-200 dark:border-slate-800 whitespace-nowrap">
+                        <div className="flex flex-col">
+                          <span>{log.usuario?.nombre_completo || 'Sistema'}</span>
+                          <span className="text-[10px] text-slate-400 font-normal">{log.usuario?.correo || ''}</span>
+                        </div>
+                      </td>
+                      <td className="px-2.5 py-2 border-r border-slate-200 dark:border-slate-800 whitespace-nowrap">
+                        <span className={`px-2 py-0.5 rounded text-[10px] font-extrabold uppercase border ${
+                          log.accion === 'creacion'
+                            ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800'
+                            : log.accion === 'eliminacion'
+                            ? 'bg-rose-50 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 border-rose-200 dark:border-rose-800'
+                            : log.accion === 'cierre_periodo' || log.accion === 'reapertura_periodo'
+                            ? 'bg-amber-50 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border-amber-300 dark:border-amber-700'
+                            : 'bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border-indigo-200 dark:border-indigo-800'
+                        }`}>
+                          {log.accion.replace('_', ' ')}
+                        </span>
+                      </td>
+                      <td className="px-2.5 py-2 font-mono text-[11px] capitalize text-slate-600 dark:text-slate-400 border-r border-slate-200 dark:border-slate-800 whitespace-nowrap">
+                        <span className="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-[10px] font-semibold">
+                          {log.entidad.replace('_', ' ')}
+                        </span>
+                      </td>
+                      <td className="px-3 py-2 text-xs">
+                        {(() => {
+                          const accion = log.accion;
+                          const entidad = log.entidad;
+                          const ant = log.valor_anterior;
+                          const neu = log.valor_nuevo;
+                          const data = neu || ant || {};
+
+                          if (entidad === 'gasto') {
+                            if (accion === 'creacion') {
+                              return (
+                                <div className="flex items-center gap-1.5 text-emerald-800 dark:text-emerald-300 font-medium">
+                                  <span>➕ Registrado gasto:</span>
+                                  <strong className="text-slate-900 dark:text-white">"{data.concepto || 'Sin concepto'}"</strong>
+                                  <span>por</span>
+                                  <strong className="font-mono font-black text-emerald-900 dark:text-emerald-200">{formatCOP(data.monto || 0)}</strong>
+                                  {data.comprobante_numero ? <span className="text-[11px] text-slate-500">(Comp: #{data.comprobante_numero})</span> : ''}
+                                  {data.beneficiario ? <span className="text-[11px] text-slate-500">a {data.beneficiario}</span> : ''}
+                                </div>
+                              );
+                            }
+                            if (accion === 'eliminacion') {
+                              return (
+                                <div className="flex items-center gap-1.5 text-rose-800 dark:text-rose-300 font-medium">
+                                  <span>🗑️ Eliminado gasto:</span>
+                                  <strong className="text-slate-900 dark:text-white">"{data.concepto || 'Gasto'}"</strong>
+                                  <span>por</span>
+                                  <strong className="font-mono font-black">{formatCOP(data.monto || 0)}</strong>
+                                  {data.comprobante_numero ? <span className="text-[11px] text-slate-500">(Comp: #{data.comprobante_numero})</span> : ''}
+                                </div>
+                              );
+                            }
+                            if (accion === 'actualizacion') {
+                              return (
+                                <div className="flex items-center gap-1.5 text-slate-700 dark:text-slate-300 font-medium">
+                                  <span>✏️ Modificado gasto:</span>
+                                  <strong className="text-slate-900 dark:text-white">"{ant?.concepto || neu?.concepto || 'Gasto'}"</strong>
+                                  <span className="font-mono line-through text-slate-400">{formatCOP(ant?.monto || 0)}</span>
+                                  <ArrowRight className="w-3 h-3 text-slate-400" />
+                                  <strong className="font-mono text-emerald-700 dark:text-emerald-400 font-black">{formatCOP(neu?.monto || 0)}</strong>
+                                </div>
+                              );
+                            }
+                          }
+
+                          if (entidad === 'usuario') {
+                            if (accion === 'creacion') {
+                              return (
+                                <div className="text-emerald-800 dark:text-emerald-300">
+                                  👤 Creado usuario: <strong className="text-slate-900 dark:text-white">{data.nombre_completo}</strong> ({data.correo}) — Rol: <strong className="uppercase">{data.rol}</strong>
+                                </div>
+                              );
+                            }
+                            if (accion === 'eliminacion') {
+                              return (
+                                <div className="text-rose-800 dark:text-rose-300">
+                                  🗑️ Eliminado usuario: <strong className="text-slate-900 dark:text-white">{data.nombre_completo}</strong> ({data.correo})
+                                </div>
+                              );
+                            }
+                            return (
+                              <div className="text-slate-700 dark:text-slate-300">
+                                ✏️ Actualizado usuario: <strong className="text-slate-900 dark:text-white">{data.nombre_completo}</strong> ({data.correo}) {data.rol ? `[Rol: ${data.rol}]` : ''}
+                              </div>
+                            );
+                          }
+
+                          if (entidad === 'campo_plantilla') {
+                            if (accion === 'creacion') {
+                              return (
+                                <div className="text-emerald-800 dark:text-emerald-300">
+                                  ➕ Creada columna: <strong className="text-slate-900 dark:text-white">"{data.nombre}"</strong> ({data.slug}) — Modo: <strong>{data.modo_calculo}</strong> {data.formula ? `[${data.formula}]` : ''}
+                                </div>
+                              );
+                            }
+                            if (accion === 'eliminacion') {
+                              return (
+                                <div className="text-rose-800 dark:text-rose-300">
+                                  🗑️ Eliminada columna: <strong className="text-slate-900 dark:text-white">"{data.nombre}"</strong> ({data.slug})
+                                </div>
+                              );
+                            }
+                            const diffs: string[] = [];
+                            if (ant && neu) {
+                              if (ant.nombre !== neu.nombre) diffs.push(`Nombre: "${ant.nombre}" → "${neu.nombre}"`);
+                              if (ant.formula !== neu.formula) diffs.push(`Fórmula: "${ant.formula || 'manual'}" → "${neu.formula || 'manual'}"`);
+                              if (ant.es_fondo !== neu.es_fondo) diffs.push(`Fondo: ${neu.es_fondo ? 'Activado' : 'Desactivado'}`);
+                              if (ant.es_transito !== neu.es_transito) diffs.push(`Tránsito: ${neu.es_transito ? 'Sí' : 'No'}`);
+                              if (ant.seccion !== neu.seccion) diffs.push(`Sección: ${ant.seccion} → ${neu.seccion}`);
+                            }
+                            return (
+                              <div className="text-indigo-800 dark:text-indigo-300">
+                                ✏️ Columna: <strong className="text-slate-900 dark:text-white">"{data.nombre || 'Columna'}"</strong> {diffs.length > 0 ? `(${diffs.join(' | ')})` : '(Propiedades actualizadas)'}
+                              </div>
+                            );
+                          }
+
+                          if (entidad === 'informe_periodo') {
+                            return (
+                              <div className="flex items-center gap-1.5 text-indigo-800 dark:text-indigo-300">
+                                <span>📑 Estado de informe:</span>
+                                <span className="uppercase px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-[10px] font-bold">{ant?.estado || 'borrador'}</span>
+                                <ArrowRight className="w-3 h-3 text-slate-400" />
+                                <span className="uppercase px-1.5 py-0.5 rounded bg-emerald-100 dark:bg-emerald-950/80 text-emerald-950 dark:text-emerald-200 border border-emerald-300 dark:border-emerald-800 text-[10px] font-black">{neu?.estado || 'aprobado'}</span>
+                                {neu?.observaciones ? <span className="text-slate-500 italic">— "{neu.observaciones}"</span> : ''}
+                              </div>
+                            );
+                          }
+
+                          if (entidad === 'valor') {
+                            const church = log.valor?.iglesia?.nombre || 'Sede';
+                            const field = log.valor?.campo?.nombre || 'Valor';
+                            const valAnt = ant?.valor_manual ?? ant?.valor_calculado ?? 0;
+                            const valNeu = neu?.valor_manual ?? neu?.valor_calculado ?? 0;
+                            return (
+                              <div className="flex items-center gap-1.5 text-slate-700 dark:text-slate-300">
+                                <span className="font-bold text-slate-900 dark:text-white">{church}</span>
+                                <span className="text-slate-400">›</span>
+                                <span className="font-bold text-indigo-700 dark:text-indigo-400">{field}:</span>
+                                <span className="bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded font-mono text-[11px] text-slate-500 line-through">
+                                  {formatCOP(valAnt)}
+                                </span>
+                                <ArrowRight className="w-3 h-3 text-slate-400" />
+                                <span className="bg-emerald-50 dark:bg-emerald-950/60 text-emerald-900 dark:text-emerald-200 px-1.5 py-0.5 rounded font-mono text-[11px] font-black border border-emerald-300 dark:border-emerald-700">
+                                  {formatCOP(valNeu)}
+                                </span>
+                              </div>
+                            );
+                          }
+
+                          if (entidad === 'periodo') {
+                            return (
+                              <div className="text-amber-800 dark:text-amber-300 font-bold">
+                                🗓️ Periodo: <strong>{data.nombre || 'Periodo'}</strong> — {accion === 'cierre_periodo' ? '🔒 Cerrado' : accion === 'reapertura_periodo' ? '🔓 Reabierto' : accion}
+                              </div>
+                            );
+                          }
+
+                          if (entidad === 'iglesia') {
+                            return (
+                              <div className="text-indigo-800 dark:text-indigo-300">
+                                ⛪ Congregación: <strong className="text-slate-900 dark:text-white">{data.nombre}</strong> {data.codigo ? `(#${data.codigo})` : ''} {data.nombre_pastor ? `(Pastor: ${data.nombre_pastor})` : ''}
+                              </div>
+                            );
+                          }
+
+                          if (entidad === 'tabla') {
+                            return (
+                              <div className="text-slate-700 dark:text-slate-300">
+                                📊 Tabla: <strong className="text-slate-900 dark:text-white">{data.nombre}</strong>
+                              </div>
+                            );
+                          }
+
+                          return (
+                            <span className="text-slate-500 font-mono">
+                              {JSON.stringify(data).slice(0, 80)}
+                            </span>
+                          );
+                        })()}
+                      </td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
+          </div>
+
+          {/* ── STICKY AUDIT PAGINATION FOOTER ── */}
+          <div className="px-3 py-2 bg-slate-50 dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 flex flex-wrap items-center justify-between gap-2 shrink-0 text-xs select-none">
+            {/* Left summary */}
+            <div className="flex items-center gap-2 text-slate-600 dark:text-slate-300">
+              <span>
+                Mostrando{' '}
+                <strong>
+                  {filteredAndSortedAuditorias.length === 0
+                    ? '0'
+                    : `${(Math.min(auditPage, totalAuditPages) - 1) * auditPageSize + 1}–${Math.min(
+                        Math.min(auditPage, totalAuditPages) * auditPageSize,
+                        filteredAndSortedAuditorias.length
+                      )}`}
+                </strong>{' '}
+                de <strong>{filteredAndSortedAuditorias.length}</strong> eventos
+              </span>
+              <span className="text-slate-300 dark:text-slate-700">|</span>
+              <span className="text-[11px] text-slate-500 dark:text-slate-400">
+                Página {auditPage} de {totalAuditPages}
+              </span>
+            </div>
+
+            {/* Center: Rows per page selector */}
+            <div className="flex items-center gap-1.5">
+              <span className="text-[11px] text-slate-500 dark:text-slate-400">Eventos por página:</span>
+              <select
+                value={auditPageSize}
+                onChange={(e) => {
+                  setAuditPageSize(Number(e.target.value));
+                  setAuditPage(1);
+                }}
+                className="bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded px-2 py-0.5 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:border-indigo-600"
+              >
+                <option value={15}>15</option>
+                <option value={25}>25</option>
+                <option value={50}>50</option>
+                <option value={100}>100</option>
+              </select>
+            </div>
+
+            {/* Right: Pagination buttons */}
+            <div className="flex items-center gap-1">
+              <button
+                onClick={() => setAuditPage(1)}
+                disabled={auditPage <= 1}
+                title="Primera página"
+                className="p-1 rounded border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-40 disabled:pointer-events-none transition cursor-pointer text-slate-600 dark:text-slate-300"
+              >
+                <ChevronsLeft className="w-3.5 h-3.5" />
+              </button>
+              <button
+                onClick={() => setAuditPage((p) => Math.max(1, p - 1))}
+                disabled={auditPage <= 1}
+                title="Página anterior"
+                className="p-1 rounded border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-40 disabled:pointer-events-none transition cursor-pointer text-slate-600 dark:text-slate-300"
+              >
+                <ChevronLeft className="w-3.5 h-3.5" />
+              </button>
+
+              {/* Numbered page buttons */}
+              {(() => {
+                const maxButtons = 5;
+                let startPage = Math.max(1, auditPage - Math.floor(maxButtons / 2));
+                let endPage = startPage + maxButtons - 1;
+                if (endPage > totalAuditPages) {
+                  endPage = totalAuditPages;
+                  startPage = Math.max(1, endPage - maxButtons + 1);
+                }
+
+                const pages = [];
+                for (let i = startPage; i <= endPage; i++) {
+                  pages.push(i);
+                }
+
+                return pages.map((pageNum) => (
+                  <button
+                    key={pageNum}
+                    onClick={() => setAuditPage(pageNum)}
+                    className={`min-w-[28px] h-7 px-1.5 rounded font-mono text-xs font-bold transition cursor-pointer border ${
+                      pageNum === auditPage
+                        ? 'bg-indigo-600 text-white border-indigo-600 shadow-xs'
+                        : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700'
+                    }`}
+                  >
+                    {pageNum}
+                  </button>
+                ));
+              })()}
+
+              <button
+                onClick={() => setAuditPage((p) => Math.min(totalAuditPages, p + 1))}
+                disabled={auditPage >= totalAuditPages}
+                title="Página siguiente"
+                className="p-1 rounded border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-40 disabled:pointer-events-none transition cursor-pointer text-slate-600 dark:text-slate-300"
+              >
+                <ChevronRight className="w-3.5 h-3.5" />
+              </button>
+              <button
+                onClick={() => setAuditPage(totalAuditPages)}
+                disabled={auditPage >= totalAuditPages}
+                title="Última página"
+                className="p-1 rounded border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-40 disabled:pointer-events-none transition cursor-pointer text-slate-600 dark:text-slate-300"
+              >
+                <ChevronsRight className="w-3.5 h-3.5" />
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -2985,6 +3537,7 @@ export default function App() {
           resumen={gastosResumen}
           loading={gastosLoading}
           onNew={openNewGasto}
+          onNewFondo={openFieldModalForNewFondo}
           onEdit={openEditGasto}
           onDelete={deleteGasto}
           onOpenVoucher={(g) => {
@@ -3442,6 +3995,16 @@ export default function App() {
         isOpen={showPeriodCreateModal}
         onClose={() => setShowPeriodCreateModal(false)}
         onSubmit={submitCreatePeriod}
+      />
+
+      <ExportExcelModal
+        isOpen={showExportExcelModal}
+        onClose={() => setShowExportExcelModal(false)}
+        rows={gridData?.filas || []}
+        columns={gridData?.columnas || []}
+        columnTotals={columnTotals}
+        periodName={periodos.find((p) => p.id === selectedPeriodoId)?.nombre || 'Periodo Actual'}
+        tableName={tablas.find((t) => t.id === selectedTablaId)?.nombre || gridData?.tabla_nombre || 'Planilla Contable'}
       />
 
       {/* ── MODAL WOW 1: ASISTENTE IA COPILOT ── */}

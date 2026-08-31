@@ -11,6 +11,7 @@ describe('ValoresController', () => {
     findValues: jest.fn(),
     findTableValues: jest.fn(),
     updateBatchValues: jest.fn(),
+    updateMatrixBatch: jest.fn(),
     updateValue: jest.fn(),
   };
 
@@ -30,6 +31,43 @@ describe('ValoresController', () => {
 
   it('debe estar definido', () => {
     expect(controller).toBeDefined();
+  });
+
+  describe('updateMatrixBatch', () => {
+    it('debe lanzar BadRequestException si valores no es un arreglo', async () => {
+      const req = { user: { rol: 'tesorero', userId: 'u1' } };
+      await expect(
+        controller.updateMatrixBatch('p1', {} as any, req),
+      ).rejects.toThrow(BadRequestException);
+    });
+
+    it('debe delegar la actualización matriz al servicio', async () => {
+      mockValoresService.updateMatrixBatch.mockResolvedValue({ success: true, total_valores: 2 });
+      const req = { user: { rol: 'tesorero', userId: 'u1', iglesiaId: undefined } };
+
+      const res = await controller.updateMatrixBatch(
+        'p1',
+        {
+          valores: [
+            { iglesia_id: 'ig-1', campo_id: 'c1', valor_manual: 100 },
+            { iglesia_id: 'ig-2', campo_id: 'c1', valor_manual: 200 },
+          ],
+        },
+        req,
+      );
+
+      expect(res).toEqual({ success: true, total_valores: 2 });
+      expect(service.updateMatrixBatch).toHaveBeenCalledWith(
+        'p1',
+        [
+          { iglesia_id: 'ig-1', campo_id: 'c1', valor_manual: 100 },
+          { iglesia_id: 'ig-2', campo_id: 'c1', valor_manual: 200 },
+        ],
+        'u1',
+        'tesorero',
+        undefined,
+      );
+    });
   });
 
   describe('findValues', () => {

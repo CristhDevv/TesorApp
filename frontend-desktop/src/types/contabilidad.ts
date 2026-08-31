@@ -43,12 +43,15 @@ export interface Campo {
   visible_para_tesorero: boolean;
   es_temporal: boolean;
   periodo_id: string | null;
+  periodo_ids?: string[];
   activo: boolean;
   periodo?: { id: string; nombre: string } | null;
+  campos_por_periodo?: { id: string; periodo_id: string; periodo?: { id: string; nombre: string; estado?: string } }[];
 }
 
-export interface CampoModal extends Omit<Campo, 'id' | 'activo' | 'periodo'> {
+export interface CampoModal extends Omit<Campo, 'id' | 'activo' | 'periodo' | 'campos_por_periodo'> {
   id: string;
+  periodo_ids?: string[];
   iglesias_especificas: string[];
 }
 
