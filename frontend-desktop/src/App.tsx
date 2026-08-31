@@ -2509,44 +2509,6 @@ export default function App() {
             />
           )}
 
-          {/* Column Config Drawer */}
-          {isTesorero && (
-            <ColumnConfigDrawer
-              isOpen={showColumnDrawer}
-              onClose={() => setShowColumnDrawer(false)}
-              fieldModalData={fieldModalData}
-              setFieldModalData={setFieldModalData}
-              campos={campos}
-              periodos={periodos}
-              selectedPeriodoId={selectedPeriodoId}
-              savingField={savingField}
-              onSave={saveField}
-              onDelete={
-                fieldModalData.id
-                  ? () => {
-                      deleteField(fieldModalData.id);
-                      setShowColumnDrawer(false);
-                    }
-                  : undefined
-              }
-              formulaAssistantTab={formulaAssistantTab}
-              setFormulaAssistantTab={setFormulaAssistantTab}
-              percentRate={percentRate}
-              setPercentRate={setPercentRate}
-              percentSelectedCols={percentSelectedCols}
-              setPercentSelectedCols={setPercentSelectedCols}
-              sumSelectedCols={sumSelectedCols}
-              setSumSelectedCols={setSumSelectedCols}
-              diffBaseCol={diffBaseCol}
-              setDiffBaseCol={setDiffBaseCol}
-              diffMinusCol={diffMinusCol}
-              setDiffMinusCol={setDiffMinusCol}
-              buildPercentFormula={buildPercentFormula}
-              buildSumFormula={buildSumFormula}
-              buildDiffFormula={buildDiffFormula}
-              getFormulaExplanation={getFormulaExplanation}
-            />
-          )}
         </div>
       )}
 
@@ -2915,42 +2877,6 @@ export default function App() {
             </table>
           </div>
           )}
-          {/* Column drawer */}
-          <ColumnConfigDrawer
-            isOpen={showColumnDrawer}
-            onClose={() => setShowColumnDrawer(false)}
-            fieldModalData={fieldModalData}
-            setFieldModalData={setFieldModalData}
-            campos={campos}
-            periodos={periodos}
-            selectedPeriodoId={selectedPeriodoId}
-            savingField={savingField}
-            onSave={saveField}
-            onDelete={
-              fieldModalData.id
-                ? () => {
-                    deleteField(fieldModalData.id);
-                    setShowColumnDrawer(false);
-                  }
-                : undefined
-            }
-            formulaAssistantTab={formulaAssistantTab}
-            setFormulaAssistantTab={setFormulaAssistantTab}
-            percentRate={percentRate}
-            setPercentRate={setPercentRate}
-            percentSelectedCols={percentSelectedCols}
-            setPercentSelectedCols={setPercentSelectedCols}
-            sumSelectedCols={sumSelectedCols}
-            setSumSelectedCols={setSumSelectedCols}
-            diffBaseCol={diffBaseCol}
-            setDiffBaseCol={setDiffBaseCol}
-            diffMinusCol={diffMinusCol}
-            setDiffMinusCol={setDiffMinusCol}
-            buildPercentFormula={buildPercentFormula}
-            buildSumFormula={buildSumFormula}
-            buildDiffFormula={buildDiffFormula}
-            getFormulaExplanation={getFormulaExplanation}
-          />
         </div>
       )}
 
@@ -4068,6 +3994,45 @@ export default function App() {
         isOpen={showHelpModal}
         onClose={() => setShowHelpModal(false)}
       />
+
+      {/* ── COLUMN CONFIG DRAWER (GLOBAL: PLANILLA, CAMPOS, GASTOS & FONDOS) ── */}
+      {isTesorero && (
+        <ColumnConfigDrawer
+          isOpen={showColumnDrawer}
+          onClose={() => setShowColumnDrawer(false)}
+          fieldModalData={fieldModalData}
+          setFieldModalData={setFieldModalData}
+          campos={campos}
+          periodos={periodos}
+          selectedPeriodoId={selectedPeriodoId}
+          savingField={savingField}
+          onSave={saveField}
+          onDelete={
+            fieldModalData.id
+              ? () => {
+                  deleteField(fieldModalData.id);
+                  setShowColumnDrawer(false);
+                }
+              : undefined
+          }
+          formulaAssistantTab={formulaAssistantTab}
+          setFormulaAssistantTab={setFormulaAssistantTab}
+          percentRate={percentRate}
+          setPercentRate={setPercentRate}
+          percentSelectedCols={percentSelectedCols}
+          setPercentSelectedCols={setPercentSelectedCols}
+          sumSelectedCols={sumSelectedCols}
+          setSumSelectedCols={setSumSelectedCols}
+          diffBaseCol={diffBaseCol}
+          setDiffBaseCol={setDiffBaseCol}
+          diffMinusCol={diffMinusCol}
+          setDiffMinusCol={setDiffMinusCol}
+          buildPercentFormula={buildPercentFormula}
+          buildSumFormula={buildSumFormula}
+          buildDiffFormula={buildDiffFormula}
+          getFormulaExplanation={getFormulaExplanation}
+        />
+      )}
     </div>
   );
 }

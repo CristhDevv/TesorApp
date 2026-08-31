@@ -43,12 +43,29 @@ export async function generateExcelReport(
   const activeColumns = columns.filter((c) => selectedColumnIds.includes(c.id));
   const activeRows = rows.filter((r) => selectedChurchIds.includes(r.iglesia_id));
 
+  // Compute total recaudo
+  const hasIncomeCols = activeColumns.filter((c) => (c as any).seccion !== 'Egresos' && (c as any).seccion !== 'Totales');
+  const targetColsForRecaudo = hasIncomeCols.length > 0 ? hasIncomeCols : activeColumns;
+  let totalRecaudo = 0;
+  targetColsForRecaudo.forEach((col) => {
+    if (columnTotals[col.id] !== undefined) {
+      totalRecaudo += columnTotals[col.id];
+    } else {
+      activeRows.forEach((row) => {
+        const valObj = Array.isArray(row.valores) ? row.valores.find((v: any) => v.campo_id === col.id) : null;
+        const isCalc = col.modo_calculo === 'calculado' || valObj?.modo_calculo === 'calculado';
+        const isOverridden = isCalc && valObj?.valor_manual !== null && valObj?.valor_manual !== undefined;
+        const num = Number(isCalc ? (isOverridden ? valObj?.valor_manual : (valObj?.valor_calculado || 0)) : (valObj?.valor_manual || 0));
+        if (!isNaN(num)) totalRecaudo += num;
+      });
+    }
+  });
+
   let currentRowIdx = 1;
+  const totalCols = Math.max(activeColumns.length + 3, 5); // # + Congregación + columns + Total General
 
   // 2. Metadata Header Banner
   if (includeMetadataHeader) {
-    const totalCols = Math.max(activeColumns.length + 2, 4); // # + Congregación + columns
-
     // Title Row
     const titleRow = worksheet.getRow(currentRowIdx);
     titleRow.values = [reportTitle];
@@ -60,12 +77,12 @@ export async function generateExcelReport(
       fgColor: { argb: 'FF1E293B' }, // Dark Slate
     };
     worksheet.mergeCells(currentRowIdx, 1, currentRowIdx, totalCols);
-    titleRow.height = 30;
+    titleRow.height = 28;
     currentRowIdx++;
 
     // Subtitle / Info Row
     const subRow = worksheet.getRow(currentRowIdx);
-    subRow.values = [`Planilla: ${tableName}   |   Período: ${periodName}   |   Generado: ${new Date().toLocaleString('es-CO')}`];
+    subRow.values = [`Planilla / Tabla: ${tableName}   |   Período Contable: ${periodName}   |   Generado: ${new Date().toLocaleString('es-CO')}`];
     subRow.font = { name: 'Calibri', size: 10, italic: true, color: { argb: 'FFE2E8F0' } };
     subRow.alignment = { vertical: 'middle', horizontal: 'center' };
     subRow.fill = {
@@ -77,6 +94,36 @@ export async function generateExcelReport(
     subRow.height = 20;
     currentRowIdx++;
 
+    // KPI Summary Bar (Cards in Excel)
+    const kpiRow = worksheet.getRow(currentRowIdx);
+    kpiRow.values = [
+      '',
+      `SEDES: ${activeRows.length}`,
+      ...activeColumns.map(() => ''),
+      `RECAUDO TOTAL: $ ${totalRecaudo.toLocaleString('es-CO')}`,
+    ];
+    kpiRow.font = { name: 'Calibri', size: 11, bold: true, color: { argb: 'FF065F46' } };
+    kpiRow.alignment = { vertical: 'middle', horizontal: 'center' };
+    kpiRow.fill = {
+      type: 'pattern',
+      pattern: 'solid',
+      fgColor: { argb: 'FFECFDF5' }, // Emerald-50
+    };
+    worksheet.mergeCells(currentRowIdx, 1, currentRowIdx, 2);
+    if (totalCols > 3) {
+      worksheet.mergeCells(currentRowIdx, 3, currentRowIdx, totalCols - 1);
+      const midCell = kpiRow.getCell(3);
+      midCell.value = `PERÍODO: ${periodName.toUpperCase()}`;
+      midCell.font = { name: 'Calibri', size: 10, bold: true, color: { argb: 'FF1E293B' } };
+      midCell.alignment = { vertical: 'middle', horizontal: 'center' };
+    }
+    const recaudoCell = kpiRow.getCell(totalCols);
+    recaudoCell.value = `RECAUDO TOTAL: $ ${totalRecaudo.toLocaleString('es-CO')}`;
+    recaudoCell.font = { name: 'Calibri', size: 11, bold: true, color: { argb: 'FF047857' } };
+    recaudoCell.alignment = { vertical: 'middle', horizontal: 'right' };
+    kpiRow.height = 24;
+    currentRowIdx++;
+
     // Empty separator row
     worksheet.getRow(currentRowIdx).height = 8;
     currentRowIdx++;
@@ -86,6 +133,7 @@ export async function generateExcelReport(
   const headerRow = worksheet.getRow(currentRowIdx);
   const headerValues: string[] = ['#', 'CONGREGACIÓN'];
   activeColumns.forEach((c) => headerValues.push(c.nombre));
+  headerValues.push('TOTAL GENERAL');
 
   headerRow.values = headerValues;
   headerRow.font = { name: 'Calibri', size: 11, bold: true, color: { argb: 'FFFFFFFF' } };
@@ -97,9 +145,16 @@ export async function generateExcelReport(
   };
   headerRow.height = 28;
 
-  // Header border
+  // Header borders & special styling for Total General header
   for (let c = 1; c <= headerValues.length; c++) {
     const cell = headerRow.getCell(c);
+    if (c === headerValues.length) {
+      cell.fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: 'FF047857' }, // Emerald-700
+      };
+    }
     cell.border = {
       top: { style: 'medium', color: { argb: 'FF312E81' } },
       bottom: { style: 'medium', color: { argb: 'FF312E81' } },
@@ -113,6 +168,7 @@ export async function generateExcelReport(
   activeRows.forEach((row, rIdx) => {
     const dataRow = worksheet.getRow(currentRowIdx);
     const rowValues: (string | number)[] = [rIdx + 1, row.iglesia_nombre];
+    let rowTotal = 0;
 
     activeColumns.forEach((col) => {
       let numVal = 0;
@@ -126,7 +182,10 @@ export async function generateExcelReport(
       }
       if (isNaN(numVal)) numVal = 0;
       rowValues.push(numVal);
+      rowTotal += numVal;
     });
+
+    rowValues.push(rowTotal);
 
     dataRow.values = rowValues;
     dataRow.height = 20;
@@ -169,6 +228,18 @@ export async function generateExcelReport(
       };
     });
 
+    // Total General cell per row
+    const rowTotalCell = dataRow.getCell(activeColumns.length + 3);
+    rowTotalCell.alignment = { vertical: 'middle', horizontal: 'right' };
+    rowTotalCell.numFmt = '$#,##0;($#,##0);"-"';
+    rowTotalCell.font = { name: 'Calibri', size: 10, bold: true, color: { argb: 'FF047857' } };
+    rowTotalCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: isEven ? 'FFF0FDF4' : 'FFE6FBF0' } };
+    rowTotalCell.border = {
+      bottom: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+      left: { style: 'medium', color: { argb: 'FF86EFAC' } },
+      right: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+    };
+
     currentRowIdx++;
   });
 
@@ -176,6 +247,7 @@ export async function generateExcelReport(
   if (includeTotalsRow) {
     const totalRow = worksheet.getRow(currentRowIdx);
     const totalValues: (string | number)[] = ['Σ', `TOTAL (${activeRows.length} IGLESIAS)`];
+    let grandSum = 0;
 
     activeColumns.forEach((col) => {
       let colSum = 0;
@@ -196,10 +268,13 @@ export async function generateExcelReport(
         });
       }
       totalValues.push(colSum);
+      grandSum += colSum;
     });
 
+    totalValues.push(grandSum);
+
     totalRow.values = totalValues;
-    totalRow.height = 24;
+    totalRow.height = 26;
 
     for (let c = 1; c <= totalValues.length; c++) {
       const cell = totalRow.getCell(c);
@@ -207,7 +282,7 @@ export async function generateExcelReport(
       cell.fill = {
         type: 'pattern',
         pattern: 'solid',
-        fgColor: { argb: 'FFE2E8F0' }, // Slate-200
+        fgColor: { argb: c === totalValues.length ? 'FFD1FAE5' : 'FFE2E8F0' },
       };
       cell.border = {
         top: { style: 'double', color: { argb: 'FF475569' } },
@@ -220,6 +295,10 @@ export async function generateExcelReport(
         cell.alignment = { vertical: 'middle', horizontal: 'center' };
       } else if (c === 2) {
         cell.alignment = { vertical: 'middle', horizontal: 'left' };
+      } else if (c === totalValues.length) {
+        cell.alignment = { vertical: 'middle', horizontal: 'right' };
+        cell.numFmt = '$#,##0;($#,##0);"-"';
+        cell.font = { name: 'Calibri', size: 12, bold: true, color: { argb: 'FF065F46' } };
       } else {
         cell.alignment = { vertical: 'middle', horizontal: 'right' };
         cell.numFmt = '$#,##0;($#,##0);"-"';
@@ -239,6 +318,8 @@ export async function generateExcelReport(
         }
       });
       col.width = maxLen;
+    } else if (i === activeColumns.length + 2) {
+      col.width = 18; // Total General column
     } else {
       const colDef = activeColumns[i - 2];
       const headerLen = colDef ? colDef.nombre.length + 4 : 16;
