@@ -1,9 +1,21 @@
 import { NestFactory } from '@nestjs/core';
-import { AppModule } from '../src/app.module';
 import { ExpressAdapter } from '@nestjs/platform-express';
 import express, { Express, Request, Response } from 'express';
 import { ValidationPipe } from '@nestjs/common';
-import { AllExceptionsFilter } from '../src/common/all-exceptions.filter';
+
+let AppModule: any;
+try {
+  AppModule = require('../src/app.module').AppModule;
+} catch {
+  AppModule = require('../app.module').AppModule;
+}
+
+let AllExceptionsFilter: any;
+try {
+  AllExceptionsFilter = require('../src/common/all-exceptions.filter').AllExceptionsFilter;
+} catch {
+  AllExceptionsFilter = require('../common/all-exceptions.filter').AllExceptionsFilter;
+}
 
 let cachedServer: Express;
 
