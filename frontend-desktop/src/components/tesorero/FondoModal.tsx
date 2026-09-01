@@ -10,7 +10,6 @@ interface FondoModalProps {
     nombre: string;
     monto: number;
     fecha: string;
-    periodo_id: string;
     es_transito: boolean;
     ente_superior_nombre: string;
     es_acumulable: boolean;
@@ -21,13 +20,11 @@ interface FondoModalProps {
       nombre: string;
       monto: number;
       fecha: string;
-      periodo_id: string;
       es_transito: boolean;
       ente_superior_nombre: string;
       es_acumulable: boolean;
     }>
   >;
-  periodos?: Array<{ id: string; nombre: string; fecha_inicio?: string; fecha_fin?: string }>;
   onSave: (e: React.FormEvent) => void;
   onDelete?: () => void;
   saving: boolean;
@@ -38,7 +35,6 @@ export function FondoModal({
   onClose,
   fondoData,
   setFondoData,
-  periodos = [],
   onSave,
   onDelete,
   saving,
@@ -46,12 +42,6 @@ export function FondoModal({
   if (!isOpen) return null;
 
   const isEditing = Boolean(fondoData.id);
-
-  // Check if chosen date is prior to 2026 / current year
-  const isPastYear = Boolean(
-    fondoData.fecha &&
-      new Date(fondoData.fecha).getFullYear() < new Date().getFullYear()
-  );
 
   return (
     <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-in fade-in duration-200">
@@ -134,65 +124,30 @@ export function FondoModal({
             </div>
           </div>
 
-          {/* Fecha y Período de Ingreso */}
+          {/* Fecha de Ingreso */}
           <div className="p-3.5 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-200 dark:border-slate-700 space-y-3">
             <div className="flex items-center gap-2 text-xs font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wider">
               <Calendar className="w-4 h-4 text-indigo-500" />
-              Fecha y Período en que Ingresó el Dinero
+              Fecha en que Ingresó el Dinero
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {/* Fecha Exacta */}
-              <div>
-                <label className="block text-[11px] font-bold text-slate-600 dark:text-slate-400 mb-1">
-                  Fecha Exacta de Ingreso:
-                </label>
-                <input
-                  type="date"
-                  className="w-full px-3 py-1.5 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg text-xs font-semibold text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer"
-                  value={fondoData.fecha}
-                  onChange={(e) => {
-                    const newFecha = e.target.value;
-                    let matchedPeriodoId = fondoData.periodo_id;
-                    if (newFecha && periodos.length > 0) {
-                      const match = periodos.find((p) => {
-                        if (!p.fecha_inicio || !p.fecha_fin) return false;
-                        return newFecha >= p.fecha_inicio && newFecha <= p.fecha_fin;
-                      });
-                      if (match) matchedPeriodoId = match.id;
-                      else if (new Date(newFecha) < new Date(periodos[0].fecha_inicio || '2026-01-01')) {
-                        matchedPeriodoId = periodos[0].id;
-                      }
-                    }
-                    setFondoData({ ...fondoData, fecha: newFecha, periodo_id: matchedPeriodoId });
-                  }}
-                />
-              </div>
-
-              {/* Período Contable Destino */}
-              <div>
-                <label className="block text-[11px] font-bold text-slate-600 dark:text-slate-400 mb-1">
-                  Período Contable:
-                </label>
-                <select
-                  className="w-full px-3 py-1.5 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg text-xs font-semibold text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer"
-                  value={fondoData.periodo_id}
-                  onChange={(e) => setFondoData({ ...fondoData, periodo_id: e.target.value })}
-                >
-                  {periodos.map((p, idx) => (
-                    <option key={p.id} value={p.id}>
-                      {idx === 0 ? `🔹 ${p.nombre} (Saldo Inicial / Años Anteriores)` : p.nombre}
-                    </option>
-                  ))}
-                </select>
-              </div>
+            <div>
+              <label className="block text-[11px] font-bold text-slate-600 dark:text-slate-400 mb-1">
+                Fecha Exacta de Ingreso:
+              </label>
+              <input
+                type="date"
+                className="w-full px-3 py-1.5 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg text-xs font-semibold text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer"
+                value={fondoData.fecha}
+                onChange={(e) => setFondoData({ ...fondoData, fecha: e.target.value })}
+              />
             </div>
 
-            {isPastYear && (
+            {fondoData.fecha && new Date(fondoData.fecha).getFullYear() < new Date().getFullYear() && (
               <div className="p-2 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900/50 rounded-lg flex items-start gap-2 text-[11px] text-amber-900 dark:text-amber-200">
                 <Info className="w-3.5 h-3.5 text-amber-600 shrink-0 mt-0.5" />
                 <span>
-                  <strong>Dinero de años anteriores ({new Date(fondoData.fecha).getFullYear()}):</strong> Se registrará como Saldo Inicial acumulable desde el primer período para que esté disponible en todos los meses.
+                  <strong>Dinero de años anteriores ({new Date(fondoData.fecha).getFullYear()}):</strong> Se registrará como saldo inicial acumulable desde esa fecha.
                 </span>
               </div>
             )}

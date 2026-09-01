@@ -219,7 +219,6 @@ export default function App() {
     nombre: string;
     monto: number;
     fecha: string;
-    periodo_id: string;
     es_transito: boolean;
     ente_superior_nombre: string;
     es_acumulable: boolean;
@@ -228,7 +227,6 @@ export default function App() {
     nombre: '',
     monto: 0,
     fecha: new Date().toISOString().split('T')[0],
-    periodo_id: '',
     es_transito: false,
     ente_superior_nombre: '',
     es_acumulable: true,
@@ -1322,7 +1320,6 @@ export default function App() {
       nombre: '',
       monto: 0,
       fecha: new Date().toISOString().split('T')[0],
-      periodo_id: selectedPeriodoId || (periodos[0]?.id || ''),
       es_transito: false,
       ente_superior_nombre: '',
       es_acumulable: true,
@@ -1335,8 +1332,7 @@ export default function App() {
       id: fondo.campo_fondo_id,
       nombre: fondo.campo_fondo_nombre,
       monto: Number(fondo.fondo_periodo || 0),
-      fecha: new Date().toISOString().split('T')[0],
-      periodo_id: selectedPeriodoId || (periodos[0]?.id || ''),
+      fecha: fondo.fecha_ingreso || new Date().toISOString().split('T')[0],
       es_transito: Boolean(fondo.es_transito),
       ente_superior_nombre: fondo.ente_superior_nombre || '',
       es_acumulable: Boolean(fondo.es_acumulable),
@@ -1388,7 +1384,6 @@ export default function App() {
             nombre: fondoModalData.nombre,
             monto: fondoModalData.monto,
             fecha: fondoModalData.fecha,
-            periodo_id: fondoModalData.periodo_id || selectedPeriodoId,
             es_transito: fondoModalData.es_transito,
             ente_superior_nombre: fondoModalData.ente_superior_nombre,
             es_acumulable: fondoModalData.es_acumulable,
@@ -1411,7 +1406,6 @@ export default function App() {
             nombre: fondoModalData.nombre,
             monto: fondoModalData.monto,
             fecha: fondoModalData.fecha,
-            periodo_id: fondoModalData.periodo_id || selectedPeriodoId,
             es_transito: fondoModalData.es_transito,
             ente_superior_nombre: fondoModalData.ente_superior_nombre,
             es_acumulable: fondoModalData.es_acumulable,
@@ -1466,6 +1460,7 @@ export default function App() {
   };
 
   const deleteFondo = (fondo: any) => {
+    setShowFondoModal(false); // Cierra el modal de edición primero
     setConfirmConfig({
       isOpen: true,
       title: 'Eliminar Fondo de Tesorería',
@@ -1483,6 +1478,7 @@ export default function App() {
             throw new Error(err.message || 'Error al eliminar fondo.');
           }
           triggerToast('Fondo eliminado exitosamente.', 'success');
+          setShowFondoModal(false);
           await fetchGastos();
           await fetchCampos();
         } catch (err: any) {
@@ -4195,7 +4191,6 @@ export default function App() {
         onClose={() => setShowFondoModal(false)}
         fondoData={fondoModalData}
         setFondoData={setFondoModalData}
-        periodos={periodos}
         onSave={saveFondo}
         onDelete={fondoModalData.id ? () => deleteFondo({ campo_fondo_id: fondoModalData.id, campo_fondo_nombre: fondoModalData.nombre }) : undefined}
         saving={savingFondo}
