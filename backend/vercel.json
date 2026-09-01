@@ -11,9 +11,5 @@
       "src": "/(.*)",
       "dest": "api/index.ts"
     }
-  ],
-  "env": {
-    "DATABASE_URL": "postgresql://tesorapp.pezfespirobgfluznmey:TesorAppDB2026!@aws-0-ca-central-1.pooler.supabase.com:6543/postgres?pgbouncer=true&connection_limit=25&pool_timeout=30",
-    "JWT_SECRET": "secret-key-for-jwt-tesorapp-2026"
-  }
+  ]
 }

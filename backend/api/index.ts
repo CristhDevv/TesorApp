@@ -17,40 +17,42 @@ try {
   AllExceptionsFilter = require('../common/all-exceptions.filter').AllExceptionsFilter;
 }
 
-let cachedServer: Express;
+const server = express();
+let isInitialized = false;
 
-async function bootstrap(): Promise<Express> {
-  if (!cachedServer) {
-    const expressApp = express();
-    expressApp.use(express.json());
-    expressApp.use(express.urlencoded({ extended: true }));
-    
-    const app = await NestFactory.create(AppModule, new ExpressAdapter(expressApp), {
-      bodyParser: false,
-    });
-    
-    app.enableCors({
-      origin: true,
-      methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
-      credentials: true,
-    });
-    
-    app.useGlobalPipes(
-      new ValidationPipe({
-        whitelist: true,
-        transform: true,
-        forbidNonWhitelisted: false,
-      }),
-    );
-    
-    app.useGlobalFilters(new AllExceptionsFilter());
-    await app.init();
-    cachedServer = expressApp;
-  }
-  return cachedServer;
+async function bootstrapServer(): Promise<void> {
+  const app = await NestFactory.create(AppModule, new ExpressAdapter(server));
+  
+  app.enableCors({
+    origin: true,
+    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
+    credentials: true,
+  });
+  
+  app.useGlobalPipes(
+    new ValidationPipe({
+      whitelist: true,
+      transform: true,
+      forbidNonWhitelisted: false,
+    }),
+  );
+  
+  app.useGlobalFilters(new AllExceptionsFilter());
+  await app.init();
 }
 
 export default async function handler(req: Request, res: Response) {
-  const server = await bootstrap();
-  server(req, res);
+  try {
+    if (!isInitialized) {
+      await bootstrapServer();
+      isInitialized = true;
+    }
+    server(req, res);
+  } catch (err: any) {
+    console.error('SERVER BOOTSTRAP ERROR:', err);
+    res.status(500).json({
+      error: err?.message || String(err),
+      stack: err?.stack,
+    });
+  }
 }

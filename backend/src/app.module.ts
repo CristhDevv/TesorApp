@@ -49,16 +49,24 @@ export class AppController {
   }
 }
 
+const isServerless = Boolean(process.env.VERCEL);
+
+const staticImports = isServerless
+  ? []
+  : [
+      ServeStaticModule.forRoot({
+        rootPath: join(__dirname, '..', '..', 'frontend-desktop', 'dist'),
+        serveRoot: '/desktop',
+      }),
+      ServeStaticModule.forRoot({
+        rootPath: join(__dirname, '..', '..', 'frontend-mobile', 'dist'),
+        serveRoot: '/mobile',
+      }),
+    ];
+
 @Module({
   imports: [
-    ServeStaticModule.forRoot({
-      rootPath: join(__dirname, '..', '..', 'frontend-desktop', 'dist'),
-      serveRoot: '/desktop',
-    }),
-    ServeStaticModule.forRoot({
-      rootPath: join(__dirname, '..', '..', 'frontend-mobile', 'dist'),
-      serveRoot: '/mobile',
-    }),
+    ...staticImports,
     PrismaModule,
     AuthModule,
     FormulasModule,
