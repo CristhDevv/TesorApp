@@ -641,7 +641,9 @@ export default function App() {
         const churchValues = res.data || [];
         const churchObj = iglesias.find((i) => i.id === user.iglesia_id);
 
-        const cols: ColumnaGrid[] = churchValues.map((v: any) => ({
+        const cols: ColumnaGrid[] = churchValues
+          .filter((v: any) => !(v.es_fondo && v.visible_para_tesorero === false && v.visible_para_iglesia === false))
+          .map((v: any) => ({
           id: v.campo_id,
           nombre: v.nombre,
           slug: v.slug,
@@ -685,6 +687,11 @@ export default function App() {
           const res = await axios.get(
             `${API_BASE}/valores?tabla_id=all&periodo_id=${selectedPeriodoId}&mostrar_todos=true`
           );
+          if (res.data && res.data.columnas) {
+            res.data.columnas = res.data.columnas.filter(
+              (c: any) => !(c.es_fondo && c.visible_para_tesorero === false && c.visible_para_iglesia === false)
+            );
+          }
           setGridData(res.data);
           return;
         } catch {
@@ -732,12 +739,16 @@ export default function App() {
                 }
               }
 
+              const allCols = Array.from(columnMap.values()).filter(
+                (c: any) => !(c.es_fondo && c.visible_para_tesorero === false && c.visible_para_iglesia === false)
+              );
+
               setGridData({
                 tabla_id: 'all',
                 tabla_nombre: 'Consolidado General (Todas las Tablas)',
                 periodo_id: selectedPeriodoId,
                 periodo_nombre: selectedPeriodObj?.nombre || 'Periodo Actual',
-                columnas: Array.from(columnMap.values()),
+                columnas: allCols,
                 filas: Array.from(churchMap.values()),
               });
               return;
@@ -750,6 +761,11 @@ export default function App() {
             showAllColumns ? '&mostrar_todos=true' : ''
           }`
         );
+        if (res.data && res.data.columnas) {
+          res.data.columnas = res.data.columnas.filter(
+            (c: any) => !(c.es_fondo && c.visible_para_tesorero === false && c.visible_para_iglesia === false)
+          );
+        }
         setGridData(res.data);
       }
     } catch (err) {
@@ -1921,12 +1937,14 @@ export default function App() {
   }, [iglesias, churchSearch, churchSort]);
 
   const sortedCampos = useMemo(() => {
-    const list = campos.filter(
-      (f) =>
-        f.nombre.toLowerCase().includes(fieldSearch.toLowerCase()) ||
-        f.slug.toLowerCase().includes(fieldSearch.toLowerCase()) ||
-        f.seccion.toLowerCase().includes(fieldSearch.toLowerCase())
-    );
+    const list = campos
+      .filter((f) => !(f.es_fondo && f.visible_para_tesorero === false && f.visible_para_iglesia === false))
+      .filter(
+        (f) =>
+          f.nombre.toLowerCase().includes(fieldSearch.toLowerCase()) ||
+          f.slug.toLowerCase().includes(fieldSearch.toLowerCase()) ||
+          f.seccion.toLowerCase().includes(fieldSearch.toLowerCase())
+      );
     return list.sort((a: any, b: any) => {
       const valA = a[fieldSort.colKey];
       const valB = b[fieldSort.colKey];

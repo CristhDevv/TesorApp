@@ -138,10 +138,17 @@ export class ReportesService {
       churches = await this.prisma.iglesia.findMany({ take: 20 });
     }
 
-    // 2. Fetch active fields based on user role and period
+    // 2. Fetch active fields based on user role and period (excluding standalone manual funds)
     const fields = await this.prisma.campoPlantilla.findMany({
       where: {
         activo: true,
+        NOT: {
+          AND: [
+            { es_fondo: true },
+            { visible_para_tesorero: false },
+            { visible_para_iglesia: false },
+          ],
+        },
         AND: [
           {
             OR: [
@@ -161,6 +168,7 @@ export class ReportesService {
     });
 
     const displayFields = fields.filter((f) => {
+      if (f.es_fondo && f.visible_para_tesorero === false && f.visible_para_iglesia === false) return false;
       if (userRol === 'iglesia') return f.visible_para_iglesia !== false;
       return f.visible_para_tesorero !== false;
     });

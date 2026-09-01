@@ -39,6 +39,13 @@ export class ValoresService {
     const fields = await this.prisma.campoPlantilla.findMany({
       where: {
         activo: true,
+        NOT: {
+          AND: [
+            { es_fondo: true },
+            { visible_para_tesorero: false },
+            { visible_para_iglesia: false },
+          ],
+        },
         AND: [
           {
             OR: [
@@ -883,6 +890,13 @@ export class ValoresService {
       rawFields = await this.prisma.campoPlantilla.findMany({
         where: {
           activo: true,
+          NOT: {
+            AND: [
+              { es_fondo: true },
+              { visible_para_tesorero: false },
+              { visible_para_iglesia: false },
+            ],
+          },
           AND: [
             {
               OR: [
@@ -913,6 +927,13 @@ export class ValoresService {
       rawFields = await this.prisma.campoPlantilla.findMany({
         where: {
           activo: true,
+          NOT: {
+            AND: [
+              { es_fondo: true },
+              { visible_para_tesorero: false },
+              { visible_para_iglesia: false },
+            ],
+          },
           AND: [
             {
               OR: [
@@ -938,6 +959,10 @@ export class ValoresService {
     }
 
     const fields = rawFields.filter((f) => {
+      // Manual funds are not planilla columns
+      if (f.es_fondo && f.visible_para_tesorero === false && f.visible_para_iglesia === false) {
+        return false;
+      }
       // Temporal validity: permanent fields apply everywhere; temporal fields only apply in their assigned periods
       if (f.es_temporal) {
         const matchesPrimary = f.periodo_id === periodoId;

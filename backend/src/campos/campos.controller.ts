@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Put, Delete, Body, Param, UseGuards, Request } from '@nestjs/common';
+import { Controller, Get, Post, Put, Delete, Body, Param, Query, UseGuards, Request } from '@nestjs/common';
 import { CamposService } from './campos.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { RolesGuard } from '../auth/roles.guard';
@@ -11,8 +11,8 @@ export class CamposController {
   constructor(private camposService: CamposService) {}
 
   @Get()
-  async findAll() {
-    return this.camposService.findAll();
+  async findAll(@Query('include_manual_fondos') includeManualFondos?: string) {
+    return this.camposService.findAll(includeManualFondos === 'true');
   }
 
   @Get(':id')

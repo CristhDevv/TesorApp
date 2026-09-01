@@ -33,8 +33,22 @@ export class CamposService {
     return slug;
   }
 
-  async findAll() {
+  async findAll(includeManualFondos = false) {
     return this.prisma.campoPlantilla.findMany({
+      where: {
+        activo: true,
+        ...(includeManualFondos
+          ? {}
+          : {
+              NOT: {
+                AND: [
+                  { es_fondo: true },
+                  { visible_para_tesorero: false },
+                  { visible_para_iglesia: false },
+                ],
+              },
+            }),
+      },
       include: {
         periodo: {
           select: { id: true, nombre: true },
