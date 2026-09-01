@@ -77,7 +77,6 @@ export class GastosService {
 
     const accumIngresos = await this.prisma.ingresoFondo.groupBy({
       by: ["campo_fondo_id"],
-      where: { periodo_id: { in: priorPeriodIds } },
       _sum: { monto: true },
     });
     const accumIngresosMap = new Map(accumIngresos.map((i) => [i.campo_fondo_id, Number(i._sum.monto ?? 0)]));
