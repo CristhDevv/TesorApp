@@ -195,6 +195,7 @@ export class GastosService {
       nombre: string;
       monto?: number;
       periodo_id?: string;
+      fecha?: string;
       es_transito?: boolean;
       ente_superior_nombre?: string;
       es_acumulable?: boolean;
@@ -205,37 +206,24 @@ export class GastosService {
     if (userRol !== "tesorero") throw new ForbiddenException("Solo el tesorero puede crear fondos.");
     if (!data.nombre || !data.nombre.trim()) throw new BadRequestException("El nombre del fondo es requerido.");
 
-    let slug = data.nombre
-      .toLowerCase()
-      .normalize("NFD")
-      .replace(/[\u0300-\u036f]/g, "")
-      .replace(/%/g, "_porciento")
-      .replace(/[^a-z0-9]/g, "_")
-      .replace(/_+/g, "_")
-      .replace(/^_+|_+$/g, "");
-
-    if (!slug || /^[0-9]/.test(slug)) {
-      slug = "f_" + (slug || "fondo");
-    }
-
-    // Ensure unique slug
-    let finalSlug = slug;
-    let counter = 1;
-    while (await this.prisma.campoPlantilla.findUnique({ where: { slug: finalSlug } })) {
-      finalSlug = `${slug}_${counter++}`;
-    }
-
     return this.prisma.$transaction(async (tx) => {
+      let baseSlug = data.nombre.trim().toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "") || "fondo";
+      let slug = baseSlug;
+      let counter = 1;
+      while (await tx.campoPlantilla.findUnique({ where: { slug } })) {
+        slug = `${baseSlug}_${counter++}`;
+      }
+
       const campo = await tx.campoPlantilla.create({
         data: {
           nombre: data.nombre.trim(),
-          slug: finalSlug,
+          slug,
           tipo: "moneda",
           modo_calculo: "manual",
-          es_fondo: true,
           es_acumulable: data.es_acumulable ?? true,
+          es_fondo: true,
           es_transito: data.es_transito ?? false,
-          ente_superior_nombre: data.es_transito ? (data.ente_superior_nombre || null) : null,
+          ente_superior_nombre: data.es_transito ? data.ente_superior_nombre?.trim() || null : null,
           seccion: "Egresos",
           seccion_iglesia: "Egresos",
           seccion_tesorero: "Egresos",
@@ -248,21 +236,39 @@ export class GastosService {
         },
       });
 
-      if (data.monto !== undefined && data.monto !== null && data.periodo_id) {
+      let targetPeriodoId = data.periodo_id;
+      if (!targetPeriodoId && data.fecha) {
+        const matchPeriod = await tx.periodo.findFirst({
+          where: {
+            fecha_inicio: { lte: new Date(data.fecha) },
+            fecha_fin: { gte: new Date(data.fecha) },
+          },
+        });
+        targetPeriodoId = matchPeriod?.id;
+      }
+      if (!targetPeriodoId) {
+        const earliest = await tx.periodo.findFirst({ orderBy: { fecha_inicio: "asc" } });
+        targetPeriodoId = earliest?.id;
+      }
+
+      if (data.monto !== undefined && data.monto !== null && targetPeriodoId) {
+        const fechaVal = data.fecha ? new Date(data.fecha) : new Date();
         await tx.ingresoFondo.upsert({
           where: {
             campo_fondo_id_periodo_id: {
               campo_fondo_id: campo.id,
-              periodo_id: data.periodo_id,
+              periodo_id: targetPeriodoId,
             },
           },
           update: {
             monto: Number(data.monto) || 0,
+            fecha: fechaVal,
           },
           create: {
             campo_fondo_id: campo.id,
-            periodo_id: data.periodo_id,
+            periodo_id: targetPeriodoId,
             monto: Number(data.monto) || 0,
+            fecha: fechaVal,
           },
         });
       }
@@ -271,7 +277,7 @@ export class GastosService {
         entidad: EntidadAuditoria.campo_plantilla,
         entidadId: campo.id,
         accion: "creacion",
-        valorNuevo: { ...campo, monto_inicial: data.monto },
+        valorNuevo: { ...campo, monto_inicial: data.monto, fecha_ingreso: data.fecha, periodo_id: targetPeriodoId },
         realizadoPor,
       });
 
@@ -285,6 +291,7 @@ export class GastosService {
       nombre?: string;
       monto?: number;
       periodo_id?: string;
+      fecha?: string;
       es_transito?: boolean;
       ente_superior_nombre?: string;
       es_acumulable?: boolean;
@@ -309,21 +316,39 @@ export class GastosService {
         data: updatedData,
       });
 
-      if (data.monto !== undefined && data.monto !== null && data.periodo_id) {
+      let targetPeriodoId = data.periodo_id;
+      if (!targetPeriodoId && data.fecha) {
+        const matchPeriod = await tx.periodo.findFirst({
+          where: {
+            fecha_inicio: { lte: new Date(data.fecha) },
+            fecha_fin: { gte: new Date(data.fecha) },
+          },
+        });
+        targetPeriodoId = matchPeriod?.id;
+      }
+      if (!targetPeriodoId) {
+        const earliest = await tx.periodo.findFirst({ orderBy: { fecha_inicio: "asc" } });
+        targetPeriodoId = earliest?.id;
+      }
+
+      if (data.monto !== undefined && data.monto !== null && targetPeriodoId) {
+        const fechaVal = data.fecha ? new Date(data.fecha) : new Date();
         await tx.ingresoFondo.upsert({
           where: {
             campo_fondo_id_periodo_id: {
               campo_fondo_id: id,
-              periodo_id: data.periodo_id,
+              periodo_id: targetPeriodoId,
             },
           },
           update: {
             monto: Number(data.monto) || 0,
+            fecha: fechaVal,
           },
           create: {
             campo_fondo_id: id,
-            periodo_id: data.periodo_id,
+            periodo_id: targetPeriodoId,
             monto: Number(data.monto) || 0,
+            fecha: fechaVal,
           },
         });
       }
@@ -333,7 +358,7 @@ export class GastosService {
         entidadId: id,
         accion: "actualizacion",
         valorAnterior: campo,
-        valorNuevo: { ...updatedCampo, monto_actualizado: data.monto },
+        valorNuevo: { ...updatedCampo, monto_actualizado: data.monto, fecha_ingreso: data.fecha, periodo_id: targetPeriodoId },
         realizadoPor,
       });
 
@@ -343,28 +368,47 @@ export class GastosService {
 
   async setMontoFondo(
     id: string,
-    data: { monto: number; periodo_id: string; observacion?: string },
+    data: { monto: number; periodo_id?: string; fecha?: string; observacion?: string },
     realizadoPor: string,
     userRol: string,
   ) {
     if (userRol !== "tesorero") throw new ForbiddenException("Solo el tesorero puede actualizar montos de fondos.");
-    if (!data.periodo_id) throw new BadRequestException("El periodo_id es requerido.");
+
+    let targetPeriodoId = data.periodo_id;
+    if (!targetPeriodoId && data.fecha) {
+      const matchPeriod = await this.prisma.periodo.findFirst({
+        where: {
+          fecha_inicio: { lte: new Date(data.fecha) },
+          fecha_fin: { gte: new Date(data.fecha) },
+        },
+      });
+      targetPeriodoId = matchPeriod?.id;
+    }
+    if (!targetPeriodoId) {
+      const earliest = await this.prisma.periodo.findFirst({ orderBy: { fecha_inicio: "asc" } });
+      targetPeriodoId = earliest?.id;
+    }
+    if (!targetPeriodoId) throw new BadRequestException("No se encontró período contable para este fondo.");
+
+    const fechaVal = data.fecha ? new Date(data.fecha) : new Date();
 
     return this.prisma.ingresoFondo.upsert({
       where: {
         campo_fondo_id_periodo_id: {
           campo_fondo_id: id,
-          periodo_id: data.periodo_id,
+          periodo_id: targetPeriodoId,
         },
       },
       update: {
         monto: Number(data.monto) || 0,
+        fecha: fechaVal,
         observacion: data.observacion || null,
       },
       create: {
         campo_fondo_id: id,
-        periodo_id: data.periodo_id,
+        periodo_id: targetPeriodoId,
         monto: Number(data.monto) || 0,
+        fecha: fechaVal,
         observacion: data.observacion || null,
       },
     });

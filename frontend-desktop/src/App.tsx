@@ -218,6 +218,8 @@ export default function App() {
     id?: string;
     nombre: string;
     monto: number;
+    fecha: string;
+    periodo_id: string;
     es_transito: boolean;
     ente_superior_nombre: string;
     es_acumulable: boolean;
@@ -225,6 +227,8 @@ export default function App() {
     id: '',
     nombre: '',
     monto: 0,
+    fecha: new Date().toISOString().split('T')[0],
+    periodo_id: '',
     es_transito: false,
     ente_superior_nombre: '',
     es_acumulable: true,
@@ -236,11 +240,15 @@ export default function App() {
     fondoId: string;
     fondoNombre: string;
     monto: number;
+    fecha: string;
+    periodo_id: string;
     observacion?: string;
   }>({
     fondoId: '',
     fondoNombre: '',
     monto: 0,
+    fecha: new Date().toISOString().split('T')[0],
+    periodo_id: '',
     observacion: '',
   });
   const [savingFondoMonto, setSavingFondoMonto] = useState(false);
@@ -1313,6 +1321,8 @@ export default function App() {
       id: '',
       nombre: '',
       monto: 0,
+      fecha: new Date().toISOString().split('T')[0],
+      periodo_id: selectedPeriodoId || (periodos[0]?.id || ''),
       es_transito: false,
       ente_superior_nombre: '',
       es_acumulable: true,
@@ -1325,6 +1335,8 @@ export default function App() {
       id: fondo.campo_fondo_id,
       nombre: fondo.campo_fondo_nombre,
       monto: Number(fondo.fondo_periodo || 0),
+      fecha: new Date().toISOString().split('T')[0],
+      periodo_id: selectedPeriodoId || (periodos[0]?.id || ''),
       es_transito: Boolean(fondo.es_transito),
       ente_superior_nombre: fondo.ente_superior_nombre || '',
       es_acumulable: Boolean(fondo.es_acumulable),
@@ -1337,6 +1349,8 @@ export default function App() {
       fondoId: fondo.campo_fondo_id,
       fondoNombre: fondo.campo_fondo_nombre,
       monto: Number(fondo.fondo_periodo || 0),
+      fecha: new Date().toISOString().split('T')[0],
+      periodo_id: selectedPeriodoId || (periodos[0]?.id || ''),
       observacion: '',
     });
     setShowFondoMontoModal(true);
@@ -1373,7 +1387,8 @@ export default function App() {
           body: JSON.stringify({
             nombre: fondoModalData.nombre,
             monto: fondoModalData.monto,
-            periodo_id: selectedPeriodoId,
+            fecha: fondoModalData.fecha,
+            periodo_id: fondoModalData.periodo_id || selectedPeriodoId,
             es_transito: fondoModalData.es_transito,
             ente_superior_nombre: fondoModalData.ente_superior_nombre,
             es_acumulable: fondoModalData.es_acumulable,
@@ -1395,7 +1410,8 @@ export default function App() {
           body: JSON.stringify({
             nombre: fondoModalData.nombre,
             monto: fondoModalData.monto,
-            periodo_id: selectedPeriodoId,
+            fecha: fondoModalData.fecha,
+            periodo_id: fondoModalData.periodo_id || selectedPeriodoId,
             es_transito: fondoModalData.es_transito,
             ente_superior_nombre: fondoModalData.ente_superior_nombre,
             es_acumulable: fondoModalData.es_acumulable,
@@ -1430,7 +1446,8 @@ export default function App() {
         },
         body: JSON.stringify({
           monto: Number(fondoMontoData.monto) || 0,
-          periodo_id: selectedPeriodoId,
+          fecha: fondoMontoData.fecha,
+          periodo_id: fondoMontoData.periodo_id || selectedPeriodoId,
           observacion: fondoMontoData.observacion,
         }),
       });
@@ -1438,7 +1455,7 @@ export default function App() {
         const err = await res.json();
         throw new Error(err.message || 'Error al actualizar valor del fondo.');
       }
-      triggerToast('Valor del fondo actualizado para este período.', 'success');
+      triggerToast('Valor del fondo actualizado.', 'success');
       setShowFondoMontoModal(false);
       await fetchGastos();
     } catch (err: any) {
@@ -4178,10 +4195,10 @@ export default function App() {
         onClose={() => setShowFondoModal(false)}
         fondoData={fondoModalData}
         setFondoData={setFondoModalData}
+        periodos={periodos}
         onSave={saveFondo}
         onDelete={fondoModalData.id ? () => deleteFondo({ campo_fondo_id: fondoModalData.id, campo_fondo_nombre: fondoModalData.nombre }) : undefined}
         saving={savingFondo}
-        periodoNombre={selectedPeriodObj?.nombre || 'Período Actual'}
       />
 
       {/* ── MODAL: INGRESAR / MODIFICAR VALOR DEL FONDO ── */}
@@ -4190,9 +4207,9 @@ export default function App() {
         onClose={() => setShowFondoMontoModal(false)}
         data={fondoMontoData}
         setData={setFondoMontoData}
+        periodos={periodos}
         onSave={saveFondoMonto}
         saving={savingFondoMonto}
-        periodoNombre={selectedPeriodObj?.nombre || 'Período Actual'}
       />
 
       {/* ── COLUMN CONFIG DRAWER (GLOBAL: PLANILLA, CAMPOS, GASTOS & FONDOS) ── */}

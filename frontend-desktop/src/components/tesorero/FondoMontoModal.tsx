@@ -1,5 +1,5 @@
 import React from "react";
-import { X, Coins, CheckCircle2 } from "lucide-react";
+import { X, Coins, Calendar, Info } from "lucide-react";
 import { formatCOP } from "../../utils/formatters";
 
 interface FondoMontoModalProps {
@@ -9,6 +9,8 @@ interface FondoMontoModalProps {
     fondoId: string;
     fondoNombre: string;
     monto: number;
+    fecha: string;
+    periodo_id: string;
     observacion?: string;
   };
   setData: React.Dispatch<
@@ -16,12 +18,14 @@ interface FondoMontoModalProps {
       fondoId: string;
       fondoNombre: string;
       monto: number;
+      fecha: string;
+      periodo_id: string;
       observacion?: string;
     }>
   >;
+  periodos?: Array<{ id: string; nombre: string; fecha_inicio?: string; fecha_fin?: string }>;
   onSave: (e: React.FormEvent) => void;
   saving: boolean;
-  periodoNombre: string;
 }
 
 export function FondoMontoModal({
@@ -29,11 +33,16 @@ export function FondoMontoModal({
   onClose,
   data,
   setData,
+  periodos = [],
   onSave,
   saving,
-  periodoNombre,
 }: FondoMontoModalProps) {
   if (!isOpen) return null;
+
+  const isPastYear = Boolean(
+    data.fecha &&
+      new Date(data.fecha).getFullYear() < new Date().getFullYear()
+  );
 
   return (
     <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-in fade-in duration-200">
@@ -61,16 +70,6 @@ export function FondoMontoModal({
         </div>
 
         <form onSubmit={onSave} className="p-5 space-y-4">
-          <div className="p-3 bg-emerald-50/70 dark:bg-emerald-950/40 border border-emerald-100 dark:border-emerald-900/40 rounded-xl flex items-center gap-2.5 text-xs text-emerald-900 dark:text-emerald-200">
-            <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-            <div>
-              <p className="font-bold">Período Contable: {periodoNombre}</p>
-              <p className="text-[11px] text-emerald-700 dark:text-emerald-400">
-                El monto ingresado aquí sumará al recaudo de este fondo para este período.
-              </p>
-            </div>
-          </div>
-
           {/* Monto Input */}
           <div>
             <div className="flex justify-between items-center mb-1">
@@ -86,7 +85,7 @@ export function FondoMontoModal({
               <input
                 type="number"
                 min="0"
-                step="1000"
+                step="any"
                 required
                 autoFocus
                 className="w-full pl-8 pr-3.5 py-2.5 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl text-base font-bold text-slate-900 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500"
@@ -102,15 +101,73 @@ export function FondoMontoModal({
             </div>
           </div>
 
+          {/* Fecha y Período */}
+          <div className="p-3 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-200 dark:border-slate-700 space-y-2.5">
+            <div className="flex items-center gap-1.5 text-[11px] font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
+              <Calendar className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+              Fecha y Período del Ingreso
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+              <div>
+                <label className="block text-[10px] font-bold text-slate-500 uppercase mb-0.5">Fecha Exacta:</label>
+                <input
+                  type="date"
+                  className="w-full px-2.5 py-1.5 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg text-xs font-semibold text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-500 cursor-pointer"
+                  value={data.fecha}
+                  onChange={(e) => {
+                    const newFecha = e.target.value;
+                    let matchedPeriodoId = data.periodo_id;
+                    if (newFecha && periodos.length > 0) {
+                      const match = periodos.find((p) => {
+                        if (!p.fecha_inicio || !p.fecha_fin) return false;
+                        return newFecha >= p.fecha_inicio && newFecha <= p.fecha_fin;
+                      });
+                      if (match) matchedPeriodoId = match.id;
+                      else if (new Date(newFecha) < new Date(periodos[0].fecha_inicio || '2026-01-01')) {
+                        matchedPeriodoId = periodos[0].id;
+                      }
+                    }
+                    setData({ ...data, fecha: newFecha, periodo_id: matchedPeriodoId });
+                  }}
+                />
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-bold text-slate-500 uppercase mb-0.5">Período Destino:</label>
+                <select
+                  className="w-full px-2.5 py-1.5 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg text-xs font-semibold text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-500 cursor-pointer"
+                  value={data.periodo_id}
+                  onChange={(e) => setData({ ...data, periodo_id: e.target.value })}
+                >
+                  {periodos.map((p, idx) => (
+                    <option key={p.id} value={p.id}>
+                      {idx === 0 ? `🔹 ${p.nombre} (Saldo Inicial)` : p.nombre}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            {isPastYear && (
+              <div className="p-1.5 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900/50 rounded-md flex items-start gap-1.5 text-[10px] text-amber-900 dark:text-amber-200">
+                <Info className="w-3 h-3 text-amber-600 shrink-0 mt-0.5" />
+                <span>
+                  <strong>Años Anteriores ({new Date(data.fecha).getFullYear()}):</strong> Se acumulará como saldo inicial a partir del primer período.
+                </span>
+              </div>
+            )}
+          </div>
+
           {/* Observación */}
           <div>
             <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1">
-              Observación / Origen del dinero (Opcional)
+              Observación / Concepto del Dinero (Opcional)
             </label>
             <input
               type="text"
               className="w-full px-3 py-1.5 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 font-medium"
-              placeholder="ej. Aporte especial, donación, recaudo convención, etc."
+              placeholder="ej. Saldo inicial años anteriores, donación extraordinaria, etc."
               value={data.observacion || ""}
               onChange={(e) => setData({ ...data, observacion: e.target.value })}
             />
@@ -138,3 +195,4 @@ export function FondoMontoModal({
     </div>
   );
 }
+

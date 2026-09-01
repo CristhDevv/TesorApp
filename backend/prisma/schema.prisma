@@ -343,6 +343,7 @@ model IngresoFondo {
   campo_fondo_id String         @db.Uuid
   periodo_id     String         @db.Uuid
   monto          Decimal        @default(0) @db.Decimal(18, 2)
+  fecha          DateTime?      @default(now()) @db.Date
   observacion    String?
   creado_en      DateTime       @default(now())
   actualizado_en DateTime       @updatedAt

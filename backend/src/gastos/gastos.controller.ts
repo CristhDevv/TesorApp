@@ -32,6 +32,7 @@ export class GastosController {
       nombre: string;
       monto?: number;
       periodo_id?: string;
+      fecha?: string;
       es_transito?: boolean;
       ente_superior_nombre?: string;
       es_acumulable?: boolean;
@@ -49,6 +50,7 @@ export class GastosController {
       nombre?: string;
       monto?: number;
       periodo_id?: string;
+      fecha?: string;
       es_transito?: boolean;
       ente_superior_nombre?: string;
       es_acumulable?: boolean;
@@ -61,7 +63,7 @@ export class GastosController {
   @Put("fondos/:id/monto")
   setMontoFondo(
     @Param("id") id: string,
-    @Body() body: { monto: number; periodo_id: string; observacion?: string },
+    @Body() body: { monto: number; periodo_id?: string; fecha?: string; observacion?: string },
     @Request() req: any,
   ) {
     return this.gastosService.setMontoFondo(id, body, req.user.userId, req.user.rol);
