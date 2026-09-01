@@ -1,4 +1,4 @@
-﻿import { Controller, Get, Post, Put, Delete, Body, Param, Query, Request, UseGuards } from "@nestjs/common";
+import { Controller, Get, Post, Put, Delete, Body, Param, Query, Request, UseGuards } from "@nestjs/common";
 import { GastosService } from "./gastos.service";
 import { JwtAuthGuard } from "../auth/jwt-auth.guard";
 
@@ -23,6 +23,53 @@ export class GastosController {
   @Get(":id")
   findOne(@Param("id") id: string) {
     return this.gastosService.findOne(id);
+  }
+
+  @Post("fondos")
+  createFondo(
+    @Body()
+    body: {
+      nombre: string;
+      monto?: number;
+      periodo_id?: string;
+      es_transito?: boolean;
+      ente_superior_nombre?: string;
+      es_acumulable?: boolean;
+    },
+    @Request() req: any,
+  ) {
+    return this.gastosService.createFondoManual(body, req.user.userId, req.user.rol);
+  }
+
+  @Put("fondos/:id")
+  updateFondo(
+    @Param("id") id: string,
+    @Body()
+    body: {
+      nombre?: string;
+      monto?: number;
+      periodo_id?: string;
+      es_transito?: boolean;
+      ente_superior_nombre?: string;
+      es_acumulable?: boolean;
+    },
+    @Request() req: any,
+  ) {
+    return this.gastosService.updateFondoManual(id, body, req.user.userId, req.user.rol);
+  }
+
+  @Put("fondos/:id/monto")
+  setMontoFondo(
+    @Param("id") id: string,
+    @Body() body: { monto: number; periodo_id: string; observacion?: string },
+    @Request() req: any,
+  ) {
+    return this.gastosService.setMontoFondo(id, body, req.user.userId, req.user.rol);
+  }
+
+  @Delete("fondos/:id")
+  removeFondo(@Param("id") id: string, @Request() req: any) {
+    return this.gastosService.removeFondo(id, req.user.userId, req.user.rol);
   }
 
   @Post()

@@ -95,6 +95,8 @@ import { NotificationCenter } from './components/notifications/NotificationCente
 // Gastos Feature
 import { GastosPanel } from './components/tesorero/GastosPanel';
 import { GastoModal } from './components/tesorero/GastoModal';
+import { FondoModal } from './components/tesorero/FondoModal';
+import { FondoMontoModal } from './components/tesorero/FondoMontoModal';
 import { GastoVoucherModal, GastoVoucherData } from './components/tesorero/GastoVoucherModal';
 
 // Reports Feature
@@ -209,6 +211,39 @@ export default function App() {
   });
   const [savingGasto, setSavingGasto] = useState(false);
   const [voucherGasto, setVoucherGasto] = useState<GastoVoucherData | null>(null);
+
+  // Manual Fondos Modals State
+  const [showFondoModal, setShowFondoModal] = useState(false);
+  const [fondoModalData, setFondoModalData] = useState<{
+    id?: string;
+    nombre: string;
+    monto: number;
+    es_transito: boolean;
+    ente_superior_nombre: string;
+    es_acumulable: boolean;
+  }>({
+    id: '',
+    nombre: '',
+    monto: 0,
+    es_transito: false,
+    ente_superior_nombre: '',
+    es_acumulable: true,
+  });
+  const [savingFondo, setSavingFondo] = useState(false);
+
+  const [showFondoMontoModal, setShowFondoMontoModal] = useState(false);
+  const [fondoMontoData, setFondoMontoData] = useState<{
+    fondoId: string;
+    fondoNombre: string;
+    monto: number;
+    observacion?: string;
+  }>({
+    fondoId: '',
+    fondoNombre: '',
+    monto: 0,
+    observacion: '',
+  });
+  const [savingFondoMonto, setSavingFondoMonto] = useState(false);
 
   // Selected states (with localStorage persistence for active table, period, and cell)
   const [selectedPeriodoId, setSelectedPeriodoId] = useState<string>(
@@ -1273,33 +1308,171 @@ export default function App() {
     setShowColumnDrawer(true);
   };
 
-  const openFieldModalForNewFondo = () => {
-    setFieldModalData({
+  const openNewFondo = () => {
+    setFondoModalData({
       id: '',
       nombre: '',
-      tipo: 'moneda',
-      modo_calculo: 'manual',
-      formula: '',
-      tipo_redondeo: 'ninguno',
-      multiplo_redondeo: 1,
-      es_acumulable: true,
-      es_fondo: true,
+      monto: 0,
       es_transito: false,
       ente_superior_nombre: '',
-      seccion: 'Egresos',
-      seccion_iglesia: 'Egresos',
-      seccion_tesorero: 'Egresos',
-      orden: campos.length,
-      aplica_a_todas_las_iglesias: true,
-      visible_para_iglesia: true,
-      visible_para_tesorero: true,
-      es_temporal: false,
-      periodo_id: selectedPeriodoId || (periodos[0]?.id || null),
-      periodo_ids: selectedPeriodoId ? [selectedPeriodoId] : (periodos[0]?.id ? [periodos[0].id] : []),
-      iglesias_especificas: [],
+      es_acumulable: true,
     });
-    setFormulaAssistantTab('porcentaje');
-    setShowColumnDrawer(true);
+    setShowFondoModal(true);
+  };
+
+  const openEditFondo = (fondo: any) => {
+    setFondoModalData({
+      id: fondo.campo_fondo_id,
+      nombre: fondo.campo_fondo_nombre,
+      monto: Number(fondo.fondo_periodo || 0),
+      es_transito: Boolean(fondo.es_transito),
+      ente_superior_nombre: fondo.ente_superior_nombre || '',
+      es_acumulable: Boolean(fondo.es_acumulable),
+    });
+    setShowFondoModal(true);
+  };
+
+  const openEditFondoMonto = (fondo: any) => {
+    setFondoMontoData({
+      fondoId: fondo.campo_fondo_id,
+      fondoNombre: fondo.campo_fondo_nombre,
+      monto: Number(fondo.fondo_periodo || 0),
+      observacion: '',
+    });
+    setShowFondoMontoModal(true);
+  };
+
+  const openRegisterGastoForFondo = (fondo: any) => {
+    setGastoModalData({
+      id: '',
+      descripcion: '',
+      monto: '',
+      fecha: new Date().toISOString().split('T')[0],
+      campo_fondo_id: fondo.campo_fondo_id,
+      periodo_id: selectedPeriodoId || (periodos[0]?.id || ''),
+    });
+    setShowGastoModal(true);
+  };
+
+  const saveFondo = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!fondoModalData.nombre.trim()) {
+      triggerToast('Por favor escribe el nombre del fondo.', 'error');
+      return;
+    }
+    setSavingFondo(true);
+    try {
+      if (fondoModalData.id) {
+        // Edit existing fund
+        const res = await fetch(`${API_BASE}/gastos/fondos/${fondoModalData.id}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            nombre: fondoModalData.nombre,
+            monto: fondoModalData.monto,
+            periodo_id: selectedPeriodoId,
+            es_transito: fondoModalData.es_transito,
+            ente_superior_nombre: fondoModalData.ente_superior_nombre,
+            es_acumulable: fondoModalData.es_acumulable,
+          }),
+        });
+        if (!res.ok) {
+          const err = await res.json();
+          throw new Error(err.message || 'Error al actualizar fondo.');
+        }
+        triggerToast('Fondo actualizado exitosamente.', 'success');
+      } else {
+        // Create new manual fund
+        const res = await fetch(`${API_BASE}/gastos/fondos`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            nombre: fondoModalData.nombre,
+            monto: fondoModalData.monto,
+            periodo_id: selectedPeriodoId,
+            es_transito: fondoModalData.es_transito,
+            ente_superior_nombre: fondoModalData.ente_superior_nombre,
+            es_acumulable: fondoModalData.es_acumulable,
+          }),
+        });
+        if (!res.ok) {
+          const err = await res.json();
+          throw new Error(err.message || 'Error al crear fondo.');
+        }
+        triggerToast('Fondo manual creado exitosamente.', 'success');
+      }
+      setShowFondoModal(false);
+      await fetchGastos();
+      await fetchCampos();
+    } catch (err: any) {
+      triggerToast(err.message, 'error');
+    } finally {
+      setSavingFondo(false);
+    }
+  };
+
+  const saveFondoMonto = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!fondoMontoData.fondoId) return;
+    setSavingFondoMonto(true);
+    try {
+      const res = await fetch(`${API_BASE}/gastos/fondos/${fondoMontoData.fondoId}/monto`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          monto: Number(fondoMontoData.monto) || 0,
+          periodo_id: selectedPeriodoId,
+          observacion: fondoMontoData.observacion,
+        }),
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.message || 'Error al actualizar valor del fondo.');
+      }
+      triggerToast('Valor del fondo actualizado para este período.', 'success');
+      setShowFondoMontoModal(false);
+      await fetchGastos();
+    } catch (err: any) {
+      triggerToast(err.message, 'error');
+    } finally {
+      setSavingFondoMonto(false);
+    }
+  };
+
+  const deleteFondo = (fondo: any) => {
+    setConfirmConfig({
+      isOpen: true,
+      title: 'Eliminar Fondo de Tesorería',
+      message: `¿Estás seguro de que deseas eliminar el fondo «${fondo.campo_fondo_nombre}»? Esta acción no se puede deshacer.`,
+      confirmText: 'Sí, Eliminar Fondo',
+      variant: 'danger',
+      onConfirm: async () => {
+        try {
+          const res = await fetch(`${API_BASE}/gastos/fondos/${fondo.campo_fondo_id}`, {
+            method: 'DELETE',
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          if (!res.ok) {
+            const err = await res.json();
+            throw new Error(err.message || 'Error al eliminar fondo.');
+          }
+          triggerToast('Fondo eliminado exitosamente.', 'success');
+          await fetchGastos();
+          await fetchCampos();
+        } catch (err: any) {
+          triggerToast(err.message, 'error');
+        }
+      },
+    });
   };
 
   const openFieldModalForEdit = (field: any) => {
@@ -3463,7 +3636,11 @@ export default function App() {
           resumen={gastosResumen}
           loading={gastosLoading}
           onNew={openNewGasto}
-          onNewFondo={openFieldModalForNewFondo}
+          onNewFondo={openNewFondo}
+          onEditFondo={openEditFondo}
+          onEditFondoMonto={openEditFondoMonto}
+          onDeleteFondo={deleteFondo}
+          onRegisterGastoForFondo={openRegisterGastoForFondo}
           onEdit={openEditGasto}
           onDelete={deleteGasto}
           onOpenVoucher={(g) => {
@@ -3993,6 +4170,29 @@ export default function App() {
       <HelpModal
         isOpen={showHelpModal}
         onClose={() => setShowHelpModal(false)}
+      />
+
+      {/* ── MODAL: FONDO MANUAL (CREAR / EDITAR) ── */}
+      <FondoModal
+        isOpen={showFondoModal}
+        onClose={() => setShowFondoModal(false)}
+        fondoData={fondoModalData}
+        setFondoData={setFondoModalData}
+        onSave={saveFondo}
+        onDelete={fondoModalData.id ? () => deleteFondo({ campo_fondo_id: fondoModalData.id, campo_fondo_nombre: fondoModalData.nombre }) : undefined}
+        saving={savingFondo}
+        periodoNombre={selectedPeriodObj?.nombre || 'Período Actual'}
+      />
+
+      {/* ── MODAL: INGRESAR / MODIFICAR VALOR DEL FONDO ── */}
+      <FondoMontoModal
+        isOpen={showFondoMontoModal}
+        onClose={() => setShowFondoMontoModal(false)}
+        data={fondoMontoData}
+        setData={setFondoMontoData}
+        onSave={saveFondoMonto}
+        saving={savingFondoMonto}
+        periodoNombre={selectedPeriodObj?.nombre || 'Período Actual'}
       />
 
       {/* ── COLUMN CONFIG DRAWER (GLOBAL: PLANILLA, CAMPOS, GASTOS & FONDOS) ── */}

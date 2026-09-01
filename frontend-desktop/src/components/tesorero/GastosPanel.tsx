@@ -35,6 +35,8 @@ export interface ResumenFondo {
   modo_calculo?: string;
   es_acumulable: boolean;
   es_transito?: boolean;
+  es_manual?: boolean;
+  es_columna?: boolean;
   ente_superior_nombre?: string | null;
   seccion?: string;
   // Período actual
@@ -57,6 +59,10 @@ interface GastosPanelProps {
   loading: boolean;
   onNew: () => void;
   onNewFondo?: () => void;
+  onEditFondo?: (fondo: ResumenFondo) => void;
+  onEditFondoMonto?: (fondo: ResumenFondo) => void;
+  onDeleteFondo?: (fondo: ResumenFondo) => void;
+  onRegisterGastoForFondo?: (fondo: ResumenFondo) => void;
   onEdit: (gasto: Gasto) => void;
   onDelete: (gasto: Gasto) => void;
   onOpenVoucher?: (gasto: Gasto) => void;
@@ -92,6 +98,10 @@ export function GastosPanel({
   loading,
   onNew,
   onNewFondo,
+  onEditFondo,
+  onEditFondoMonto,
+  onDeleteFondo,
+  onRegisterGastoForFondo,
   onEdit,
   onDelete,
   onOpenVoucher,
@@ -377,15 +387,17 @@ export function GastosPanel({
                               ⚡ Fondo de Período
                             </span>
                           )}
-                          {r.modo_calculo === 'manual' ? (
-                            <span className="text-[10px] font-bold text-emerald-800 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/60 px-1.5 py-0.5 rounded border border-emerald-200 dark:border-emerald-800" title="Fondo alimentado por dinero digitado manualmente">
-                              ✋ Dinero Manual
+
+                          {r.es_manual ? (
+                            <span className="text-[10px] font-bold text-purple-800 dark:text-purple-300 bg-purple-50 dark:bg-purple-950/60 px-1.5 py-0.5 rounded border border-purple-200 dark:border-purple-800" title="Fondo manual independiente de tesorería (no es columna de planilla)">
+                              ✍️ Fondo Manual
                             </span>
                           ) : (
-                            <span className="text-[10px] font-bold text-blue-800 dark:text-blue-300 bg-blue-50 dark:bg-blue-950/60 px-1.5 py-0.5 rounded border border-blue-200 dark:border-blue-800" title="Fondo calculado automáticamente por fórmula">
-                              ⚡ Calculado
+                            <span className="text-[10px] font-bold text-blue-800 dark:text-blue-300 bg-blue-50 dark:bg-blue-950/60 px-1.5 py-0.5 rounded border border-blue-200 dark:border-blue-800" title="Fondo alimentado mediante columnas de la planilla contable">
+                              🏛️ Columna Planilla
                             </span>
                           )}
+
                           {r.ente_superior_nombre && (
                             <span className="text-[10px] font-bold text-amber-800 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/60 px-1.5 py-0.5 rounded border border-amber-200 dark:border-amber-800">
                               Destino: {r.ente_superior_nombre}
@@ -484,6 +496,61 @@ export function GastosPanel({
                     <div className="flex justify-between items-center mt-1.5">
                       <span className="text-[10px] text-slate-400 dark:text-slate-500 font-medium">{pct}% egresado</span>
                       <SaldoBadge saldo={displaySaldo} total={displayTotalFondo} />
+                    </div>
+
+                    {/* Action Buttons Toolbar on each card */}
+                    <div className="mt-3 pt-2.5 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between gap-1.5">
+                      <div className="flex items-center gap-1.5">
+                        {/* 1. Registrar Gasto con este fondo preseleccionado */}
+                        <button
+                          type="button"
+                          onClick={() => onRegisterGastoForFondo ? onRegisterGastoForFondo(r) : onNew()}
+                          className="px-2.5 py-1 bg-indigo-50 dark:bg-indigo-950/60 hover:bg-indigo-100 dark:hover:bg-indigo-900/60 text-indigo-700 dark:text-indigo-300 rounded-lg text-[11px] font-bold flex items-center gap-1 transition cursor-pointer"
+                          title="Registrar un nuevo gasto contra este fondo"
+                        >
+                          <Plus className="w-3 h-3" />
+                          Gasto
+                        </button>
+
+                        {/* 2. Ingresar / Modificar Valor (para fondos manuales) */}
+                        {r.es_manual && onEditFondoMonto && (
+                          <button
+                            type="button"
+                            onClick={() => onEditFondoMonto(r)}
+                            className="px-2.5 py-1 bg-emerald-50 dark:bg-emerald-950/60 hover:bg-emerald-100 dark:hover:bg-emerald-900/60 text-emerald-700 dark:text-emerald-300 rounded-lg text-[11px] font-bold flex items-center gap-1 transition cursor-pointer"
+                            title="Ingresar o modificar el valor de este fondo para el período"
+                          >
+                            <Coins className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
+                            Valor
+                          </button>
+                        )}
+                      </div>
+
+                      <div className="flex items-center gap-1">
+                        {/* 3. Editar Fondo */}
+                        {onEditFondo && (
+                          <button
+                            type="button"
+                            onClick={() => onEditFondo(r)}
+                            className="p-1.5 text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition cursor-pointer"
+                            title="Editar nombre y configuración del fondo"
+                          >
+                            <Pencil className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+
+                        {/* 4. Eliminar Fondo */}
+                        {onDeleteFondo && (
+                          <button
+                            type="button"
+                            onClick={() => onDeleteFondo(r)}
+                            className="p-1.5 text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-lg transition cursor-pointer"
+                            title="Eliminar este fondo"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </div>

@@ -6,6 +6,7 @@ import {
 } from "@nestjs/common";
 import { PrismaService } from "../prisma/prisma.service";
 import { HistorialService } from "../historial/historial.service";
+import { EntidadAuditoria } from "@prisma/client";
 
 @Injectable()
 export class GastosService {
@@ -45,7 +46,7 @@ export class GastosService {
       priorPeriodIds.push(periodoId);
     }
 
-    // 2. Fetch all active designated fund fields (both permanent AND temporal)
+    // 2. Fetch all active designated fund fields (both column funds and standalone manual funds)
     const camposFondo = await this.prisma.campoPlantilla.findMany({
       where: {
         es_fondo: true,
@@ -61,10 +62,25 @@ export class GastosService {
         es_transito: true,
         ente_superior_nombre: true,
         seccion: true, 
-        orden: true 
+        orden: true,
+        visible_para_tesorero: true,
+        visible_para_iglesia: true,
       },
       orderBy: [{ seccion: "asc" }, { orden: "asc" }],
     });
+
+    // 2b. Fetch manual fund incomes for current period and prior periods
+    const currentIngresos = await this.prisma.ingresoFondo.findMany({
+      where: { periodo_id: periodoId },
+    });
+    const currentIngresosMap = new Map(currentIngresos.map((i) => [i.campo_fondo_id, Number(i.monto)]));
+
+    const accumIngresos = await this.prisma.ingresoFondo.groupBy({
+      by: ["campo_fondo_id"],
+      where: { periodo_id: { in: priorPeriodIds } },
+      _sum: { monto: true },
+    });
+    const accumIngresosMap = new Map(accumIngresos.map((i) => [i.campo_fondo_id, Number(i._sum.monto ?? 0)]));
 
     // 3. Gastos in current period
     const periodGastos = await this.prisma.gasto.groupBy({
@@ -82,7 +98,7 @@ export class GastosService {
     });
     const accumGastosMap = new Map(accumGastos.map((g) => [g.campo_fondo_id, Number(g._sum.monto ?? 0)]));
 
-    // 5. Current period values
+    // 5. Current period values from planilla
     const currentValores = await this.prisma.valor.groupBy({
       by: ["campo_id"],
       where: { periodo_id: periodoId },
@@ -90,7 +106,7 @@ export class GastosService {
     });
     const currentValMap = new Map(currentValores.map((v) => [v.campo_id, v]));
 
-    // 6. All prior periods values sum (fallback if valor_acumulado not yet populated)
+    // 6. All prior periods values sum from planilla
     const priorValores = await this.prisma.valor.groupBy({
       by: ["campo_id"],
       where: { periodo_id: { in: priorPeriodIds } },
@@ -105,16 +121,28 @@ export class GastosService {
 
     // 7. Map each fund field to its summary
     return camposFondo.map((f) => {
+      const isColumna = f.visible_para_tesorero !== false || f.visible_para_iglesia !== false;
+      const isManual = !isColumna;
+
       const curVal = currentValMap.get(f.id);
-      const fondoPeriodo = Number(curVal?._sum.valor_manual ?? 0) + Number(curVal?._sum.valor_calculado ?? 0);
+      const manualPeriodVal = currentIngresosMap.get(f.id);
+      const colPeriodVal = Number(curVal?._sum.valor_manual ?? 0) + Number(curVal?._sum.valor_calculado ?? 0);
+      const fondoPeriodo = isManual ? (manualPeriodVal !== undefined ? manualPeriodVal : colPeriodVal) : colPeriodVal;
+
       const gastosPeriodo = periodGastosMap.get(f.id) || 0;
       const saldoPeriodo = fondoPeriodo - gastosPeriodo;
 
       // Accumulated calculation:
-      // All designated funds maintain their accumulated balance across periods even if temporal
       const recordedAccum = Number(curVal?._sum.valor_acumulado ?? 0);
-      const calculatedAccum = priorSumMap.get(f.id) ?? fondoPeriodo;
-      const fondoAcumulado = f.es_acumulable || f.es_temporal ? (recordedAccum > 0 ? recordedAccum : calculatedAccum) : calculatedAccum;
+      const colPriorSum = priorSumMap.get(f.id);
+      const manualAccum = accumIngresosMap.get(f.id);
+      
+      let calculatedAccum = colPriorSum ?? fondoPeriodo;
+      if (isManual && manualAccum !== undefined) {
+        calculatedAccum = manualAccum;
+      }
+      
+      const fondoAcumulado = f.es_acumulable || f.es_temporal ? (recordedAccum > 0 && isColumna ? recordedAccum : calculatedAccum) : calculatedAccum;
       const gastosAcumulados = accumGastosMap.get(f.id) || 0;
       const saldoAcumulado = fondoAcumulado - gastosAcumulados;
 
@@ -129,6 +157,8 @@ export class GastosService {
         campo_fondo_slug: f.slug,
         es_acumulable: f.es_acumulable,
         es_transito: f.es_transito,
+        es_manual: isManual,
+        es_columna: isColumna,
         ente_superior_nombre: f.ente_superior_nombre,
         seccion: f.seccion,
         // Período actual
@@ -158,6 +188,217 @@ export class GastosService {
     });
     if (!gasto) throw new NotFoundException("Gasto no encontrado.");
     return gasto;
+  }
+
+  async createFondoManual(
+    data: {
+      nombre: string;
+      monto?: number;
+      periodo_id?: string;
+      es_transito?: boolean;
+      ente_superior_nombre?: string;
+      es_acumulable?: boolean;
+    },
+    realizadoPor: string,
+    userRol: string,
+  ) {
+    if (userRol !== "tesorero") throw new ForbiddenException("Solo el tesorero puede crear fondos.");
+    if (!data.nombre || !data.nombre.trim()) throw new BadRequestException("El nombre del fondo es requerido.");
+
+    let slug = data.nombre
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/%/g, "_porciento")
+      .replace(/[^a-z0-9]/g, "_")
+      .replace(/_+/g, "_")
+      .replace(/^_+|_+$/g, "");
+
+    if (!slug || /^[0-9]/.test(slug)) {
+      slug = "f_" + (slug || "fondo");
+    }
+
+    // Ensure unique slug
+    let finalSlug = slug;
+    let counter = 1;
+    while (await this.prisma.campoPlantilla.findUnique({ where: { slug: finalSlug } })) {
+      finalSlug = `${slug}_${counter++}`;
+    }
+
+    return this.prisma.$transaction(async (tx) => {
+      const campo = await tx.campoPlantilla.create({
+        data: {
+          nombre: data.nombre.trim(),
+          slug: finalSlug,
+          tipo: "moneda",
+          modo_calculo: "manual",
+          es_fondo: true,
+          es_acumulable: data.es_acumulable ?? true,
+          es_transito: data.es_transito ?? false,
+          ente_superior_nombre: data.es_transito ? (data.ente_superior_nombre || null) : null,
+          seccion: "Egresos",
+          seccion_iglesia: "Egresos",
+          seccion_tesorero: "Egresos",
+          orden: 999,
+          aplica_a_todas_las_iglesias: false,
+          visible_para_iglesia: false,
+          visible_para_tesorero: false, // NOT a column in the planilla
+          es_temporal: false,
+          activo: true,
+        },
+      });
+
+      if (data.monto !== undefined && data.monto !== null && data.periodo_id) {
+        await tx.ingresoFondo.upsert({
+          where: {
+            campo_fondo_id_periodo_id: {
+              campo_fondo_id: campo.id,
+              periodo_id: data.periodo_id,
+            },
+          },
+          update: {
+            monto: Number(data.monto) || 0,
+          },
+          create: {
+            campo_fondo_id: campo.id,
+            periodo_id: data.periodo_id,
+            monto: Number(data.monto) || 0,
+          },
+        });
+      }
+
+      await this.historial.log(tx, {
+        entidad: EntidadAuditoria.campo_plantilla,
+        entidadId: campo.id,
+        accion: "creacion",
+        valorNuevo: { ...campo, monto_inicial: data.monto },
+        realizadoPor,
+      });
+
+      return campo;
+    });
+  }
+
+  async updateFondoManual(
+    id: string,
+    data: {
+      nombre?: string;
+      monto?: number;
+      periodo_id?: string;
+      es_transito?: boolean;
+      ente_superior_nombre?: string;
+      es_acumulable?: boolean;
+    },
+    realizadoPor: string,
+    userRol: string,
+  ) {
+    if (userRol !== "tesorero") throw new ForbiddenException("Solo el tesorero puede modificar fondos.");
+
+    return this.prisma.$transaction(async (tx) => {
+      const campo = await tx.campoPlantilla.findUnique({ where: { id } });
+      if (!campo) throw new NotFoundException("Fondo no encontrado.");
+
+      const updatedData: any = {};
+      if (data.nombre && data.nombre.trim()) updatedData.nombre = data.nombre.trim();
+      if (data.es_transito !== undefined) updatedData.es_transito = data.es_transito;
+      if (data.ente_superior_nombre !== undefined) updatedData.ente_superior_nombre = data.ente_superior_nombre;
+      if (data.es_acumulable !== undefined) updatedData.es_acumulable = data.es_acumulable;
+
+      const updatedCampo = await tx.campoPlantilla.update({
+        where: { id },
+        data: updatedData,
+      });
+
+      if (data.monto !== undefined && data.monto !== null && data.periodo_id) {
+        await tx.ingresoFondo.upsert({
+          where: {
+            campo_fondo_id_periodo_id: {
+              campo_fondo_id: id,
+              periodo_id: data.periodo_id,
+            },
+          },
+          update: {
+            monto: Number(data.monto) || 0,
+          },
+          create: {
+            campo_fondo_id: id,
+            periodo_id: data.periodo_id,
+            monto: Number(data.monto) || 0,
+          },
+        });
+      }
+
+      await this.historial.log(tx, {
+        entidad: EntidadAuditoria.campo_plantilla,
+        entidadId: id,
+        accion: "actualizacion",
+        valorAnterior: campo,
+        valorNuevo: { ...updatedCampo, monto_actualizado: data.monto },
+        realizadoPor,
+      });
+
+      return updatedCampo;
+    });
+  }
+
+  async setMontoFondo(
+    id: string,
+    data: { monto: number; periodo_id: string; observacion?: string },
+    realizadoPor: string,
+    userRol: string,
+  ) {
+    if (userRol !== "tesorero") throw new ForbiddenException("Solo el tesorero puede actualizar montos de fondos.");
+    if (!data.periodo_id) throw new BadRequestException("El periodo_id es requerido.");
+
+    return this.prisma.ingresoFondo.upsert({
+      where: {
+        campo_fondo_id_periodo_id: {
+          campo_fondo_id: id,
+          periodo_id: data.periodo_id,
+        },
+      },
+      update: {
+        monto: Number(data.monto) || 0,
+        observacion: data.observacion || null,
+      },
+      create: {
+        campo_fondo_id: id,
+        periodo_id: data.periodo_id,
+        monto: Number(data.monto) || 0,
+        observacion: data.observacion || null,
+      },
+    });
+  }
+
+  async removeFondo(id: string, realizadoPor: string, userRol: string) {
+    if (userRol !== "tesorero") throw new ForbiddenException("Solo el tesorero puede eliminar fondos.");
+
+    return this.prisma.$transaction(async (tx) => {
+      const campo = await tx.campoPlantilla.findUnique({ where: { id } });
+      if (!campo) throw new NotFoundException("Fondo no encontrado.");
+
+      // Check if there are associated expenses
+      const gastosCount = await tx.gasto.count({ where: { campo_fondo_id: id } });
+      if (gastosCount > 0) {
+        // Soft delete to preserve historical expense relations
+        await tx.campoPlantilla.update({
+          where: { id },
+          data: { activo: false, es_fondo: false },
+        });
+      } else {
+        await tx.campoPlantilla.delete({ where: { id } });
+      }
+
+      await this.historial.log(tx, {
+        entidad: EntidadAuditoria.campo_plantilla,
+        entidadId: id,
+        accion: "eliminacion",
+        valorAnterior: campo,
+        realizadoPor,
+      });
+
+      return { success: true, message: "Fondo eliminado exitosamente." };
+    });
   }
 
   async create(
@@ -275,3 +516,4 @@ export class GastosService {
     });
   }
 }
+

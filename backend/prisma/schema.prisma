@@ -154,6 +154,7 @@ model CampoPlantilla {
   valores                      Valor[]
   campos_por_tabla             CamposPorTabla[]
   gastos_como_fondo            Gasto[]            @relation("GastosFondo")
+  ingresos_fondos              IngresoFondo[]
 
   @@map("campos_plantilla")
 }
@@ -214,6 +215,7 @@ model Periodo {
   campos_por_periodo CamposPorPeriodo[]
   gastos         Gasto[]
   informes_periodo InformePeriodo[]
+  ingresos_fondos IngresoFondo[]
 
   @@index([fecha_inicio, fecha_fin])
   @@map("periodos")
@@ -335,3 +337,20 @@ model InformePeriodo {
   @@index([periodo_id, estado])
   @@map("informes_periodo")
 }
+
+model IngresoFondo {
+  id             String         @id @default(uuid()) @db.Uuid
+  campo_fondo_id String         @db.Uuid
+  periodo_id     String         @db.Uuid
+  monto          Decimal        @default(0) @db.Decimal(18, 2)
+  observacion    String?
+  creado_en      DateTime       @default(now())
+  actualizado_en DateTime       @updatedAt
+
+  campo_fondo    CampoPlantilla @relation(fields: [campo_fondo_id], references: [id], onDelete: Cascade)
+  periodo        Periodo        @relation(fields: [periodo_id], references: [id], onDelete: Cascade)
+
+  @@unique([campo_fondo_id, periodo_id])
+  @@map("ingresos_fondos")
+}
+
