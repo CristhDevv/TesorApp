@@ -75,11 +75,15 @@ export class GastosService {
     });
     const currentIngresosMap = new Map(currentIngresos.map((i) => [i.campo_fondo_id, Number(i.monto)]));
 
-    const accumIngresos = await this.prisma.ingresoFondo.groupBy({
-      by: ["campo_fondo_id"],
-      _sum: { monto: true },
+    // Fetch ALL ingresos for manual funds - no period restriction (manual funds have historical dates)
+    const allManualIngresos = await this.prisma.ingresoFondo.findMany({
+      select: { campo_fondo_id: true, monto: true },
     });
-    const accumIngresosMap = new Map(accumIngresos.map((i) => [i.campo_fondo_id, Number(i._sum.monto ?? 0)]));
+    const accumIngresosMap = new Map<string, number>();
+    for (const i of allManualIngresos) {
+      const current = accumIngresosMap.get(i.campo_fondo_id) || 0;
+      accumIngresosMap.set(i.campo_fondo_id, current + Number(i.monto));
+    }
 
     // 3. Gastos in current period
     const periodGastos = await this.prisma.gasto.groupBy({
@@ -120,28 +124,28 @@ export class GastosService {
 
     // 7. Map each fund field to its summary
     return camposFondo.map((f) => {
-      const isColumna = f.visible_para_tesorero !== false || f.visible_para_iglesia !== false;
-      const isManual = !isColumna;
-
       const curVal = currentValMap.get(f.id);
       const manualPeriodVal = currentIngresosMap.get(f.id);
       const colPeriodVal = Number(curVal?._sum.valor_manual ?? 0) + Number(curVal?._sum.valor_calculado ?? 0);
-      const fondoPeriodo = isManual ? (manualPeriodVal !== undefined ? manualPeriodVal : colPeriodVal) : colPeriodVal;
+      const fondoPeriodo = (manualPeriodVal !== undefined ? manualPeriodVal : 0) + colPeriodVal;
 
       const gastosPeriodo = periodGastosMap.get(f.id) || 0;
       const saldoPeriodo = fondoPeriodo - gastosPeriodo;
 
       // Accumulated calculation:
       const recordedAccum = Number(curVal?._sum.valor_acumulado ?? 0);
-      const colPriorSum = priorSumMap.get(f.id);
-      const manualAccum = accumIngresosMap.get(f.id);
+      const colPriorSum = priorSumMap.get(f.id) ?? 0;
+      const manualAccum = accumIngresosMap.get(f.id) ?? 0;
       
-      let calculatedAccum = colPriorSum ?? fondoPeriodo;
-      if (isManual && manualAccum !== undefined) {
-        calculatedAccum = manualAccum;
-      }
+      const calculatedAccum = colPriorSum + manualAccum;
       
-      const fondoAcumulado = f.es_acumulable || f.es_temporal ? (recordedAccum > 0 && isColumna ? recordedAccum : calculatedAccum) : calculatedAccum;
+      const isColumna = f.visible_para_tesorero !== false || f.visible_para_iglesia !== false;
+      const isManual = !isColumna || (manualAccum > 0 && colPriorSum === 0);
+
+      const fondoAcumulado = f.es_acumulable || f.es_temporal 
+        ? (recordedAccum > 0 && isColumna && manualAccum === 0 ? recordedAccum : calculatedAccum) 
+        : (fondoPeriodo > 0 ? fondoPeriodo : calculatedAccum);
+        
       const gastosAcumulados = accumGastosMap.get(f.id) || 0;
       const saldoAcumulado = fondoAcumulado - gastosAcumulados;
 
@@ -157,7 +161,7 @@ export class GastosService {
         es_acumulable: f.es_acumulable,
         es_transito: f.es_transito,
         es_manual: isManual,
-        es_columna: isColumna,
+        es_columna: !isManual,
         ente_superior_nombre: f.ente_superior_nombre,
         seccion: f.seccion,
         // Período actual
