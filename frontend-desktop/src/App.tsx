@@ -3759,6 +3759,8 @@ export default function App() {
               });
             }}
             onDeleteIngreso={handleDeleteFondoIngreso}
+            onEditGasto={openEditGasto}
+            onDeleteGasto={deleteGasto}
           />
         ) : (
           <GastosPanel
