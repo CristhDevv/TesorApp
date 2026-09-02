@@ -260,24 +260,15 @@ export class GastosService {
         targetPeriodoId = earliest?.id;
       }
 
-      if (data.monto !== undefined && data.monto !== null && targetPeriodoId) {
+      if (data.monto !== undefined && data.monto !== null && Number(data.monto) > 0) {
         const fechaVal = data.fecha ? new Date(data.fecha) : new Date();
-        await tx.ingresoFondo.upsert({
-          where: {
-            campo_fondo_id_periodo_id: {
-              campo_fondo_id: campo.id,
-              periodo_id: targetPeriodoId,
-            },
-          },
-          update: {
-            monto: Number(data.monto) || 0,
-            fecha: fechaVal,
-          },
-          create: {
+        await tx.ingresoFondo.create({
+          data: {
             campo_fondo_id: campo.id,
             periodo_id: targetPeriodoId,
             monto: Number(data.monto) || 0,
             fecha: fechaVal,
+            descripcion: "Monto / Recaudo inicial",
           },
         });
       }
@@ -382,7 +373,7 @@ export class GastosService {
 
   async setMontoFondo(
     id: string,
-    data: { monto: number; periodo_id?: string; fecha?: string; observacion?: string },
+    data: { monto: number; periodo_id?: string; fecha?: string; observacion?: string; descripcion?: string },
     realizadoPor: string,
     userRol: string,
   ) {
@@ -402,30 +393,253 @@ export class GastosService {
       const earliest = await this.prisma.periodo.findFirst({ orderBy: { fecha_inicio: "asc" } });
       targetPeriodoId = earliest?.id;
     }
-    if (!targetPeriodoId) throw new BadRequestException("No se encontró período contable para este fondo.");
 
     const fechaVal = data.fecha ? new Date(data.fecha) : new Date();
 
-    return this.prisma.ingresoFondo.upsert({
-      where: {
-        campo_fondo_id_periodo_id: {
-          campo_fondo_id: id,
-          periodo_id: targetPeriodoId,
+    const existing = await this.prisma.ingresoFondo.findFirst({
+      where: { campo_fondo_id: id },
+    });
+
+    if (existing) {
+      return this.prisma.ingresoFondo.update({
+        where: { id: existing.id },
+        data: {
+          monto: Number(data.monto) || 0,
+          fecha: fechaVal,
+          descripcion: data.descripcion || data.observacion || null,
+          observacion: data.observacion || null,
+          ...(targetPeriodoId ? { periodo_id: targetPeriodoId } : {}),
         },
-      },
-      update: {
-        monto: Number(data.monto) || 0,
-        fecha: fechaVal,
-        observacion: data.observacion || null,
-      },
-      create: {
+      });
+    }
+
+    return this.prisma.ingresoFondo.create({
+      data: {
         campo_fondo_id: id,
         periodo_id: targetPeriodoId,
         monto: Number(data.monto) || 0,
         fecha: fechaVal,
+        descripcion: data.descripcion || data.observacion || null,
         observacion: data.observacion || null,
       },
     });
+  }
+
+  async addIngresoFondo(
+    campoFondoId: string,
+    data: { monto: number; fecha?: string; descripcion?: string; observacion?: string; periodo_id?: string },
+    realizadoPor: string,
+    userRol: string,
+  ) {
+    if (userRol !== "tesorero") throw new ForbiddenException("Solo el tesorero puede registrar ingresos a fondos.");
+    if (!data.monto || Number(data.monto) <= 0) throw new BadRequestException("El monto debe ser mayor a 0.");
+
+    const campo = await this.prisma.campoPlantilla.findUnique({ where: { id: campoFondoId } });
+    if (!campo) throw new NotFoundException("Fondo no encontrado.");
+
+    let targetPeriodoId = data.periodo_id;
+    if (!targetPeriodoId && data.fecha) {
+      const matchPeriod = await this.prisma.periodo.findFirst({
+        where: {
+          fecha_inicio: { lte: new Date(data.fecha) },
+          fecha_fin: { gte: new Date(data.fecha) },
+        },
+      });
+      targetPeriodoId = matchPeriod?.id;
+    }
+    if (!targetPeriodoId) {
+      const earliest = await this.prisma.periodo.findFirst({ orderBy: { fecha_inicio: "asc" } });
+      targetPeriodoId = earliest?.id;
+    }
+
+    const fechaVal = data.fecha ? new Date(data.fecha) : new Date();
+
+    const ingreso = await this.prisma.ingresoFondo.create({
+      data: {
+        campo_fondo_id: campoFondoId,
+        periodo_id: targetPeriodoId,
+        monto: Number(data.monto),
+        fecha: fechaVal,
+        descripcion: data.descripcion?.trim() || null,
+        observacion: data.observacion?.trim() || null,
+      },
+    });
+
+    await this.historial.log(this.prisma, {
+      entidad: EntidadAuditoria.campo_plantilla,
+      entidadId: campoFondoId,
+      accion: "actualizacion",
+      valorNuevo: {
+        tipo_accion: "nuevo_ingreso_fondo",
+        ingreso_id: ingreso.id,
+        monto: data.monto,
+        fecha: data.fecha,
+        descripcion: data.descripcion,
+      },
+      realizadoPor,
+    });
+
+    return ingreso;
+  }
+
+  async updateIngresoFondo(
+    ingresoId: string,
+    data: { monto?: number; fecha?: string; descripcion?: string; observacion?: string },
+    realizadoPor: string,
+    userRol: string,
+  ) {
+    if (userRol !== "tesorero") throw new ForbiddenException("Solo el tesorero puede modificar ingresos.");
+
+    const existing = await this.prisma.ingresoFondo.findUnique({ where: { id: ingresoId } });
+    if (!existing) throw new NotFoundException("Ingreso no encontrado.");
+
+    const updatedData: any = {};
+    if (data.monto !== undefined) updatedData.monto = Number(data.monto);
+    if (data.fecha) updatedData.fecha = new Date(data.fecha);
+    if (data.descripcion !== undefined) updatedData.descripcion = data.descripcion?.trim() || null;
+    if (data.observacion !== undefined) updatedData.observacion = data.observacion?.trim() || null;
+
+    const updated = await this.prisma.ingresoFondo.update({
+      where: { id: ingresoId },
+      data: updatedData,
+    });
+
+    await this.historial.log(this.prisma, {
+      entidad: EntidadAuditoria.campo_plantilla,
+      entidadId: existing.campo_fondo_id,
+      accion: "actualizacion",
+      valorAnterior: existing,
+      valorNuevo: updated,
+      realizadoPor,
+    });
+
+    return updated;
+  }
+
+  async deleteIngresoFondo(ingresoId: string, realizadoPor: string, userRol: string) {
+    if (userRol !== "tesorero") throw new ForbiddenException("Solo el tesorero puede eliminar ingresos.");
+
+    const existing = await this.prisma.ingresoFondo.findUnique({ where: { id: ingresoId } });
+    if (!existing) throw new NotFoundException("Ingreso no encontrado.");
+
+    await this.prisma.ingresoFondo.delete({ where: { id: ingresoId } });
+
+    await this.historial.log(this.prisma, {
+      entidad: EntidadAuditoria.campo_plantilla,
+      entidadId: existing.campo_fondo_id,
+      accion: "eliminacion",
+      valorAnterior: existing,
+      realizadoPor,
+    });
+
+    return { success: true, message: "Ingreso eliminado correctamente." };
+  }
+
+  async getMovimientosFondo(campoFondoId: string) {
+    const campo = await this.prisma.campoPlantilla.findUnique({
+      where: { id: campoFondoId },
+    });
+    if (!campo) throw new NotFoundException("Fondo no encontrado.");
+
+    const [ingresos, gastos] = await Promise.all([
+      this.prisma.ingresoFondo.findMany({
+        where: { campo_fondo_id: campoFondoId },
+        include: {
+          periodo: { select: { id: true, nombre: true } },
+        },
+        orderBy: [{ fecha: "asc" }, { creado_en: "asc" }],
+      }),
+      this.prisma.gasto.findMany({
+        where: { campo_fondo_id: campoFondoId },
+        include: {
+          periodo: { select: { id: true, nombre: true } },
+          creado_por: { select: { id: true, nombre_completo: true } },
+        },
+        orderBy: [{ fecha: "asc" }, { creado_en: "asc" }],
+      }),
+    ]);
+
+    // Format all items into unified ledger entries
+    const items: Array<{
+      id: string;
+      tipo: 'ingreso' | 'egreso';
+      fecha: string;
+      monto: number;
+      descripcion: string;
+      observacion?: string | null;
+      periodo_nombre?: string | null;
+      creado_por_nombre?: string | null;
+      creado_en: Date;
+    }> = [];
+
+    for (const ing of ingresos) {
+      items.push({
+        id: ing.id,
+        tipo: 'ingreso',
+        fecha: ing.fecha ? ing.fecha.toISOString().split('T')[0] : ing.creado_en.toISOString().split('T')[0],
+        monto: Number(ing.monto),
+        descripcion: ing.descripcion || ing.observacion || 'Aporte / Ingreso al fondo',
+        observacion: ing.observacion,
+        periodo_nombre: ing.periodo?.nombre || null,
+        creado_por_nombre: 'Tesorero',
+        creado_en: ing.creado_en,
+      });
+    }
+
+    for (const gst of gastos) {
+      items.push({
+        id: gst.id,
+        tipo: 'egreso',
+        fecha: gst.fecha ? gst.fecha.toISOString().split('T')[0] : gst.creado_en.toISOString().split('T')[0],
+        monto: Number(gst.monto),
+        descripcion: gst.descripcion,
+        observacion: null,
+        periodo_nombre: gst.periodo?.nombre || null,
+        creado_por_nombre: gst.creado_por?.nombre_completo || null,
+        creado_en: gst.creado_en,
+      });
+    }
+
+    // Sort chronologically (oldest to newest)
+    items.sort((a, b) => {
+      const dateCmp = a.fecha.localeCompare(b.fecha);
+      if (dateCmp !== 0) return dateCmp;
+      return new Date(a.creado_en).getTime() - new Date(b.creado_en).getTime();
+    });
+
+    // Calculate running balance
+    let runningBalance = 0;
+    let totalIngresos = 0;
+    let totalEgresos = 0;
+
+    const movimientos = items.map((item) => {
+      if (item.tipo === 'ingreso') {
+        runningBalance += item.monto;
+        totalIngresos += item.monto;
+      } else {
+        runningBalance -= item.monto;
+        totalEgresos += item.monto;
+      }
+      return {
+        ...item,
+        saldo_resultante: runningBalance,
+      };
+    });
+
+    return {
+      campo_fondo: {
+        id: campo.id,
+        nombre: campo.nombre,
+        slug: campo.slug,
+        es_acumulable: campo.es_acumulable,
+        es_transito: campo.es_transito,
+        ente_superior_nombre: campo.ente_superior_nombre,
+      },
+      total_ingresos: totalIngresos,
+      total_egresos: totalEgresos,
+      saldo_actual: runningBalance,
+      movimientos: movimientos.reverse(), // Return newest first for UI display
+    };
   }
 
   async removeFondo(id: string, realizadoPor: string, userRol: string) {

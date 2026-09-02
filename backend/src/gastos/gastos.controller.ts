@@ -69,6 +69,34 @@ export class GastosController {
     return this.gastosService.setMontoFondo(id, body, req.user.userId, req.user.rol);
   }
 
+  @Get("fondos/:id/movimientos")
+  getMovimientosFondo(@Param("id") id: string) {
+    return this.gastosService.getMovimientosFondo(id);
+  }
+
+  @Post("fondos/:id/ingresos")
+  addIngresoFondo(
+    @Param("id") id: string,
+    @Body() body: { monto: number; fecha?: string; descripcion?: string; observacion?: string; periodo_id?: string },
+    @Request() req: any,
+  ) {
+    return this.gastosService.addIngresoFondo(id, body, req.user.userId, req.user.rol);
+  }
+
+  @Put("fondos/ingresos/:ingresoId")
+  updateIngresoFondo(
+    @Param("ingresoId") ingresoId: string,
+    @Body() body: { monto?: number; fecha?: string; descripcion?: string; observacion?: string },
+    @Request() req: any,
+  ) {
+    return this.gastosService.updateIngresoFondo(ingresoId, body, req.user.userId, req.user.rol);
+  }
+
+  @Delete("fondos/ingresos/:ingresoId")
+  deleteIngresoFondo(@Param("ingresoId") ingresoId: string, @Request() req: any) {
+    return this.gastosService.deleteIngresoFondo(ingresoId, req.user.userId, req.user.rol);
+  }
+
   @Delete("fondos/:id")
   removeFondo(@Param("id") id: string, @Request() req: any) {
     return this.gastosService.removeFondo(id, req.user.userId, req.user.rol);

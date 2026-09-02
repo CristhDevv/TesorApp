@@ -62,6 +62,8 @@ interface GastosPanelProps {
   onNewFondo?: () => void;
   onEditFondo?: (fondo: ResumenFondo) => void;
   onEditFondoMonto?: (fondo: ResumenFondo) => void;
+  onAddIngresoFondo?: (fondo: ResumenFondo) => void;
+  onViewMovimientos?: (fondo: ResumenFondo) => void;
   onDeleteFondo?: (fondo: ResumenFondo) => void;
   onRegisterGastoForFondo?: (fondo: ResumenFondo) => void;
   onEdit: (gasto: Gasto) => void;
@@ -100,7 +102,8 @@ export function GastosPanel({
   onNew,
   onNewFondo,
   onEditFondo,
-  onEditFondoMonto,
+  onAddIngresoFondo,
+  onViewMovimientos,
   onDeleteFondo,
   onRegisterGastoForFondo,
   onEdit,
@@ -500,35 +503,48 @@ export function GastosPanel({
                     </div>
 
                     {/* Action Buttons Toolbar on each card */}
-                    <div className="mt-3 pt-2.5 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between gap-1.5">
-                      <div className="flex items-center gap-1.5">
+                    <div className="mt-3 pt-2.5 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between gap-1.5 flex-wrap">
+                      <div className="flex items-center gap-1.5 flex-wrap">
                         {/* 1. Registrar Gasto con este fondo preseleccionado */}
                         <button
                           type="button"
                           onClick={() => onRegisterGastoForFondo ? onRegisterGastoForFondo(r) : onNew()}
-                          className="px-2.5 py-1 bg-indigo-50 dark:bg-indigo-950/60 hover:bg-indigo-100 dark:hover:bg-indigo-900/60 text-indigo-700 dark:text-indigo-300 rounded-lg text-[11px] font-bold flex items-center gap-1 transition cursor-pointer"
+                          className="px-2.5 py-1 bg-indigo-50 dark:bg-indigo-950/60 hover:bg-indigo-100 dark:hover:bg-indigo-900/60 text-indigo-700 dark:text-indigo-300 rounded-lg text-[11px] font-bold flex items-center gap-1 transition cursor-pointer shadow-xs"
                           title="Registrar un nuevo gasto contra este fondo"
                         >
                           <Plus className="w-3 h-3" />
                           Gasto
                         </button>
 
-                        {/* 2. Ingresar / Modificar Valor (para fondos manuales) */}
-                        {r.es_manual && onEditFondoMonto && (
+                        {/* 2. Registrar Ingreso / Aporte (para fondos manuales e incrementales) */}
+                        {onAddIngresoFondo && (
                           <button
                             type="button"
-                            onClick={() => onEditFondoMonto(r)}
-                            className="px-2.5 py-1 bg-emerald-50 dark:bg-emerald-950/60 hover:bg-emerald-100 dark:hover:bg-emerald-900/60 text-emerald-700 dark:text-emerald-300 rounded-lg text-[11px] font-bold flex items-center gap-1 transition cursor-pointer"
-                            title="Ingresar o modificar el valor de este fondo para el período"
+                            onClick={() => onAddIngresoFondo(r)}
+                            className="px-2.5 py-1 bg-emerald-50 dark:bg-emerald-950/60 hover:bg-emerald-100 dark:hover:bg-emerald-900/60 text-emerald-700 dark:text-emerald-300 rounded-lg text-[11px] font-bold flex items-center gap-1 transition cursor-pointer shadow-xs"
+                            title="Registrar un nuevo ingreso o aporte monetario a este fondo"
                           >
-                            <Coins className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
-                            Valor
+                            <ArrowUpRight className="w-3 h-3 text-emerald-600 dark:text-emerald-400 stroke-[2.5]" />
+                            + Ingreso
+                          </button>
+                        )}
+
+                        {/* 3. Ver Movimientos / Extracto */}
+                        {onViewMovimientos && (
+                          <button
+                            type="button"
+                            onClick={() => onViewMovimientos(r)}
+                            className="px-2 py-1 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200/80 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-lg text-[11px] font-semibold flex items-center gap-1 transition cursor-pointer shadow-xs"
+                            title="Ver libro mayor cronológico de entradas y salidas de este fondo"
+                          >
+                            <History className="w-3 h-3 text-slate-500 dark:text-slate-400" />
+                            Movimientos
                           </button>
                         )}
                       </div>
 
                       <div className="flex items-center gap-1">
-                        {/* 3. Editar Fondo */}
+                        {/* 4. Editar Fondo */}
                         {onEditFondo && (
                           <button
                             type="button"
@@ -540,7 +556,7 @@ export function GastosPanel({
                           </button>
                         )}
 
-                        {/* 4. Eliminar Fondo */}
+                        {/* 5. Eliminar Fondo */}
                         {onDeleteFondo && (
                           <button
                             type="button"

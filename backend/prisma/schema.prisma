@@ -341,17 +341,18 @@ model InformePeriodo {
 model IngresoFondo {
   id             String         @id @default(uuid()) @db.Uuid
   campo_fondo_id String         @db.Uuid
-  periodo_id     String         @db.Uuid
+  periodo_id     String?        @db.Uuid
   monto          Decimal        @default(0) @db.Decimal(18, 2)
   fecha          DateTime?      @default(now()) @db.Date
+  descripcion    String?
   observacion    String?
   creado_en      DateTime       @default(now())
   actualizado_en DateTime       @updatedAt
 
   campo_fondo    CampoPlantilla @relation(fields: [campo_fondo_id], references: [id], onDelete: Cascade)
-  periodo        Periodo        @relation(fields: [periodo_id], references: [id], onDelete: Cascade)
+  periodo        Periodo?       @relation(fields: [periodo_id], references: [id], onDelete: SetNull)
 
-  @@unique([campo_fondo_id, periodo_id])
+  @@index([campo_fondo_id, fecha])
   @@map("ingresos_fondos")
 }
 

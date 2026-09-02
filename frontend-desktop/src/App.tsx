@@ -97,6 +97,8 @@ import { GastosPanel } from './components/tesorero/GastosPanel';
 import { GastoModal } from './components/tesorero/GastoModal';
 import { FondoModal } from './components/tesorero/FondoModal';
 import { FondoMontoModal } from './components/tesorero/FondoMontoModal';
+import { FondoIngresoModal } from './components/tesorero/FondoIngresoModal';
+import { FondoMovimientosModal } from './components/tesorero/FondoMovimientosModal';
 import { GastoVoucherModal, GastoVoucherData } from './components/tesorero/GastoVoucherModal';
 
 // Reports Feature
@@ -250,6 +252,14 @@ export default function App() {
     observacion: '',
   });
   const [savingFondoMonto, setSavingFondoMonto] = useState(false);
+
+  // Incremental Fund Incomes & Movements State
+  const [showFondoIngresoModal, setShowFondoIngresoModal] = useState(false);
+  const [selectedFondoForIngreso, setSelectedFondoForIngreso] = useState<any | null>(null);
+  const [savingFondoIngreso, setSavingFondoIngreso] = useState(false);
+
+  const [showFondoMovimientosModal, setShowFondoMovimientosModal] = useState(false);
+  const [selectedFondoForMovimientos, setSelectedFondoForMovimientos] = useState<any | null>(null);
 
   // Selected states (with localStorage persistence for active table, period, and cell)
   const [selectedPeriodoId, setSelectedPeriodoId] = useState<string>(
@@ -1502,6 +1512,73 @@ export default function App() {
         }
       },
     });
+  };
+
+  const openAddIngresoFondo = (fondo: any) => {
+    setSelectedFondoForIngreso(fondo);
+    setShowFondoIngresoModal(true);
+  };
+
+  const handleSaveFondoIngreso = async (data: {
+    monto: number;
+    fecha: string;
+    descripcion: string;
+    observacion?: string;
+  }) => {
+    if (!selectedFondoForIngreso?.campo_fondo_id) return;
+    setSavingFondoIngreso(true);
+    try {
+      const res = await fetch(`${API_BASE}/gastos/fondos/${selectedFondoForIngreso.campo_fondo_id}/ingresos`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          monto: data.monto,
+          fecha: data.fecha,
+          descripcion: data.descripcion,
+          observacion: data.observacion,
+          periodo_id: selectedPeriodoId || undefined,
+        }),
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.message || 'Error al registrar ingreso en el fondo.');
+      }
+      triggerToast('Ingreso registrado exitosamente en el fondo.', 'success');
+      setShowFondoIngresoModal(false);
+      await fetchGastos();
+    } catch (err: any) {
+      triggerToast(err.message, 'error');
+    } finally {
+      setSavingFondoIngreso(false);
+    }
+  };
+
+  const handleDeleteFondoIngreso = async (ingresoId: string) => {
+    try {
+      const res = await fetch(`${API_BASE}/gastos/fondos/ingresos/${ingresoId}`, {
+        method: 'DELETE',
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.message || 'Error al eliminar ingreso.');
+      }
+      triggerToast('Ingreso eliminado correctamente.', 'success');
+      await fetchGastos();
+    } catch (err: any) {
+      triggerToast(err.message, 'error');
+      throw err;
+    }
+  };
+
+  const openViewMovimientos = (fondo: any) => {
+    setSelectedFondoForMovimientos(fondo);
+    setShowFondoMovimientosModal(true);
   };
 
   const openFieldModalForEdit = (field: any) => {
@@ -3670,6 +3747,8 @@ export default function App() {
           onNewFondo={openNewFondo}
           onEditFondo={openEditFondo}
           onEditFondoMonto={openEditFondoMonto}
+          onAddIngresoFondo={openAddIngresoFondo}
+          onViewMovimientos={openViewMovimientos}
           onDeleteFondo={deleteFondo}
           onRegisterGastoForFondo={openRegisterGastoForFondo}
           onEdit={openEditGasto}
@@ -4223,6 +4302,29 @@ export default function App() {
         periodos={periodos}
         onSave={saveFondoMonto}
         saving={savingFondoMonto}
+      />
+
+      {/* ── MODAL: REGISTRAR INGRESO / APORTE AL FONDO (INCREMENTAL) ── */}
+      <FondoIngresoModal
+        isOpen={showFondoIngresoModal}
+        onClose={() => setShowFondoIngresoModal(false)}
+        fondo={selectedFondoForIngreso}
+        onSave={handleSaveFondoIngreso}
+        loading={savingFondoIngreso}
+      />
+
+      {/* ── MODAL: LIBRO DE MOVIMIENTOS DEL FONDO ── */}
+      <FondoMovimientosModal
+        isOpen={showFondoMovimientosModal}
+        onClose={() => setShowFondoMovimientosModal(false)}
+        fondo={selectedFondoForMovimientos}
+        apiBase={API_BASE}
+        token={token}
+        onOpenNewIngreso={(fondo) => {
+          setSelectedFondoForIngreso(fondo);
+          setShowFondoIngresoModal(true);
+        }}
+        onDeleteIngreso={handleDeleteFondoIngreso}
       />
 
       {/* ── COLUMN CONFIG DRAWER (GLOBAL: PLANILLA, CAMPOS, GASTOS & FONDOS) ── */}

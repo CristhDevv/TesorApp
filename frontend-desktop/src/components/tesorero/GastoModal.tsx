@@ -55,9 +55,44 @@ export function GastoModal({
   const camposSafe = Array.isArray(campos) ? campos : [];
   const resumenSafe = Array.isArray(resumen) ? resumen : [];
 
-  const fondosDisponibles = camposSafe.filter(
-    (c) => Boolean(c?.es_fondo) || c?.id === data.campo_fondo_id
-  );
+  // Combine all funds from resumen (which includes manual funds) + any fund in campos
+  const allFondosMap = new Map<
+    string,
+    {
+      id: string;
+      nombre: string;
+      es_acumulable?: boolean;
+      es_transito?: boolean;
+      es_manual?: boolean;
+      saldo: number;
+    }
+  >();
+
+  for (const r of resumenSafe) {
+    allFondosMap.set(r.campo_fondo_id, {
+      id: r.campo_fondo_id,
+      nombre: r.campo_fondo_nombre,
+      es_acumulable: r.es_acumulable,
+      es_transito: r.es_transito,
+      es_manual: r.es_manual,
+      saldo: r.saldo_disponible ?? r.saldo_acumulado ?? r.saldo_periodo ?? 0,
+    });
+  }
+
+  for (const c of camposSafe) {
+    if ((c.es_fondo || c.id === data.campo_fondo_id) && !allFondosMap.has(c.id)) {
+      allFondosMap.set(c.id, {
+        id: c.id,
+        nombre: c.nombre,
+        es_acumulable: c.es_acumulable,
+        es_transito: false,
+        es_manual: false,
+        saldo: 0,
+      });
+    }
+  }
+
+  const fondosDisponibles = Array.from(allFondosMap.values());
 
   // Find info about the currently selected fund
   const selectedResumen = resumenSafe.find((r) => r.campo_fondo_id === data.campo_fondo_id);
@@ -105,7 +140,7 @@ export function GastoModal({
               <div className="flex items-start gap-2 p-3 bg-amber-50 dark:bg-amber-950/60 border border-amber-200 dark:border-amber-800 rounded-xl">
                 <AlertTriangle className="w-4 h-4 text-amber-500 flex-shrink-0 mt-0.5" />
                 <p className="text-xs text-amber-800 dark:text-amber-300 leading-relaxed">
-                  No hay columnas configuradas como <strong>Fondos de Tesorería</strong>. Ve a <strong>Columnas &amp; Fórmulas</strong>, edita la columna deseada y activa <em>«Habilitar como Fondo de Tesorería»</em>.
+                  No hay columnas o fondos manuales registrados en Tesorería.
                 </p>
               </div>
             ) : (
@@ -116,18 +151,12 @@ export function GastoModal({
                 required
               >
                 <option value="">— Seleccionar fondo de tesorería —</option>
-                {fondosDisponibles.map((c) => {
-                  const r = resumenSafe.find((item) => item.campo_fondo_id === c.id);
-                  const isAcum = r?.es_acumulable ?? c.es_acumulable;
-                  const saldo = r ? (isAcum ? r.saldo_acumulado : r.saldo_periodo) : null;
-                  return (
-                    <option key={c.id} value={c.id}>
-                      {isAcum ? "🏛️ [Acumulativo] " : "⚡ [Período] "}
-                      {c.nombre}
-                      {saldo !== null ? ` (Saldo: ${formatCOP(saldo)})` : ""}
-                    </option>
-                  );
-                })}
+                {fondosDisponibles.map((f) => (
+                  <option key={f.id} value={f.id}>
+                    {f.es_manual ? "✍️ [Manual] " : f.es_acumulable ? "🏛️ [Acumulativo] " : "⚡ [Período] "}
+                    {f.nombre} (Saldo: {formatCOP(f.saldo)})
+                  </option>
+                ))}
               </select>
             )}
 
