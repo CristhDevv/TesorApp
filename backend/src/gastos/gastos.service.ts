@@ -77,12 +77,17 @@ export class GastosService {
 
     // Fetch ALL ingresos for manual funds - no period restriction (manual funds have historical dates)
     const allManualIngresos = await this.prisma.ingresoFondo.findMany({
-      select: { campo_fondo_id: true, monto: true },
+      select: { campo_fondo_id: true, monto: true, fecha: true },
+      orderBy: { fecha: "desc" },
     });
     const accumIngresosMap = new Map<string, number>();
+    const latestFechaMap = new Map<string, string>();
     for (const i of allManualIngresos) {
       const current = accumIngresosMap.get(i.campo_fondo_id) || 0;
       accumIngresosMap.set(i.campo_fondo_id, current + Number(i.monto));
+      if (!latestFechaMap.has(i.campo_fondo_id) && i.fecha) {
+        latestFechaMap.set(i.campo_fondo_id, i.fecha.toISOString().split("T")[0]);
+      }
     }
 
     // 3. Gastos in current period
@@ -164,6 +169,7 @@ export class GastosService {
         es_columna: !isManual,
         ente_superior_nombre: f.ente_superior_nombre,
         seccion: f.seccion,
+        fecha_ingreso: latestFechaMap.get(f.id) || null,
         // Período actual
         fondo_periodo: fondoPeriodo,
         gastos_periodo: gastosPeriodo,
@@ -334,26 +340,31 @@ export class GastosService {
         targetPeriodoId = earliest?.id;
       }
 
-      if (data.monto !== undefined && data.monto !== null && targetPeriodoId) {
+      if (data.monto !== undefined && data.monto !== null) {
         const fechaVal = data.fecha ? new Date(data.fecha) : new Date();
-        await tx.ingresoFondo.upsert({
-          where: {
-            campo_fondo_id_periodo_id: {
+        const existing = await tx.ingresoFondo.findFirst({
+          where: { campo_fondo_id: id },
+        });
+
+        if (existing) {
+          await tx.ingresoFondo.update({
+            where: { id: existing.id },
+            data: {
+              monto: Number(data.monto) || 0,
+              fecha: fechaVal,
+              ...(targetPeriodoId ? { periodo_id: targetPeriodoId } : {}),
+            },
+          });
+        } else if (targetPeriodoId) {
+          await tx.ingresoFondo.create({
+            data: {
               campo_fondo_id: id,
               periodo_id: targetPeriodoId,
+              monto: Number(data.monto) || 0,
+              fecha: fechaVal,
             },
-          },
-          update: {
-            monto: Number(data.monto) || 0,
-            fecha: fechaVal,
-          },
-          create: {
-            campo_fondo_id: id,
-            periodo_id: targetPeriodoId,
-            monto: Number(data.monto) || 0,
-            fecha: fechaVal,
-          },
-        });
+          });
+        }
       }
 
       await this.historial.log(tx, {

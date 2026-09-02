@@ -1347,11 +1347,11 @@ export default function App() {
     setFondoModalData({
       id: fondo.campo_fondo_id,
       nombre: fondo.campo_fondo_nombre,
-      monto: Number(fondo.fondo_periodo || 0),
+      monto: Number(fondo.fondo_acumulado ?? fondo.fondo_periodo ?? fondo.total_fondo ?? 0),
       fecha: fondo.fecha_ingreso || new Date().toISOString().split('T')[0],
       es_transito: Boolean(fondo.es_transito),
       ente_superior_nombre: fondo.ente_superior_nombre || '',
-      es_acumulable: Boolean(fondo.es_acumulable),
+      es_acumulable: fondo.es_acumulable !== undefined ? Boolean(fondo.es_acumulable) : true,
     });
     setShowFondoModal(true);
   };

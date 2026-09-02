@@ -39,6 +39,7 @@ export interface ResumenFondo {
   es_columna?: boolean;
   ente_superior_nombre?: string | null;
   seccion?: string;
+  fecha_ingreso?: string | null;
   // Período actual
   fondo_periodo: number;
   gastos_periodo: number;
