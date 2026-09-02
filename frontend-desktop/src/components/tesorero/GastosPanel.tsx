@@ -170,12 +170,12 @@ export function GastosPanel({
       {/* Top bar */}
       <div className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 px-6 py-4 flex flex-wrap items-center justify-between gap-4">
         <div className="flex items-center gap-3">
-          <div className="p-2.5 bg-rose-100 dark:bg-rose-950/60 rounded-xl">
-            <TrendingDown className="w-6 h-6 text-rose-600 dark:text-rose-400" />
+          <div className="p-2.5 bg-indigo-100 dark:bg-indigo-950/60 rounded-xl text-indigo-600 dark:text-indigo-400">
+            <Wallet className="w-6 h-6 stroke-[2.2]" />
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h1 className="text-lg font-bold text-slate-900 dark:text-white">Gastos y Control de Fondos</h1>
+              <h1 className="text-lg font-bold text-slate-900 dark:text-white">Fondos de Tesorería</h1>
               <span className="px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-wider bg-indigo-100 dark:bg-indigo-900/50 text-indigo-800 dark:text-indigo-300 rounded-full border border-indigo-200 dark:border-indigo-800">
                 Tesorería Zona 52
               </span>

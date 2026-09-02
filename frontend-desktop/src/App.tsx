@@ -20,7 +20,7 @@ import {
   ArrowDown,
   ArrowUpDown,
   TrendingUp,
-  TrendingDown,
+  Wallet,
   Smartphone,
   Sparkles,
   ChevronRight,
@@ -2403,17 +2403,17 @@ export default function App() {
                 onClick={() => setActiveTab('gastos')}
                 className={`w-full px-3 py-2 rounded-xl text-xs font-semibold flex items-center justify-between transition-all duration-150 cursor-pointer ${
                   activeTab === 'gastos'
-                    ? 'bg-rose-50 text-rose-800 font-extrabold border border-rose-200 dark:bg-rose-600 dark:text-white dark:border-transparent dark:shadow-md'
+                    ? 'bg-indigo-50 text-indigo-800 font-extrabold border border-indigo-200 dark:bg-indigo-600 dark:text-white dark:border-transparent dark:shadow-md'
                     : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-900/80'
                 }`}
               >
                 <div className="flex items-center gap-2.5">
-                  <TrendingDown className={`w-4 h-4 ${activeTab === 'gastos' ? 'text-rose-600 dark:text-white' : 'text-slate-400'}`} />
-                  <span>Gastos</span>
+                  <Wallet className={`w-4 h-4 ${activeTab === 'gastos' ? 'text-indigo-600 dark:text-white' : 'text-slate-400'}`} />
+                  <span>Fondos</span>
                 </div>
-                {gastos.length > 0 && (
-                  <span className="text-[10px] font-mono font-bold bg-rose-100 text-rose-800 dark:bg-rose-800 dark:text-rose-300 px-1.5 py-0.5 rounded border border-rose-200 dark:border-rose-700">
-                    {gastos.length}
+                {gastosResumen.length > 0 && (
+                  <span className="text-[10px] font-mono font-bold bg-indigo-100 text-indigo-800 dark:bg-indigo-800 dark:text-indigo-300 px-1.5 py-0.5 rounded border border-indigo-200 dark:border-indigo-700">
+                    {gastosResumen.length}
                   </span>
                 )}
               </button>
@@ -2488,7 +2488,7 @@ export default function App() {
                 {activeTab === 'campos' && 'Estructura de Columnas & Fórmulas'}
                 {activeTab === 'usuarios' && 'Gestión de Usuarios & Accesos'}
                 {activeTab === 'historial' && 'Auditoría & Trazabilidad de Cambios'}
-                {activeTab === 'gastos' && 'Gastos & Control de Fondos'}
+                {activeTab === 'gastos' && 'Fondos de Tesorería'}
                 {activeTab === 'reportes' && 'Centro de Reportes & Consolidados'}
               </span>
             </div>
