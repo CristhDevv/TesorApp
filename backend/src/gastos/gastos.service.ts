@@ -541,7 +541,7 @@ export class GastosService {
     });
     if (!campo) throw new NotFoundException("Fondo no encontrado.");
 
-    const [ingresos, gastos] = await Promise.all([
+    const [ingresos, gastos, planillaValores, periodos] = await Promise.all([
       this.prisma.ingresoFondo.findMany({
         where: { campo_fondo_id: campoFondoId },
         include: {
@@ -557,7 +557,20 @@ export class GastosService {
         },
         orderBy: [{ fecha: "asc" }, { creado_en: "asc" }],
       }),
+      this.prisma.valor.groupBy({
+        by: ["periodo_id"],
+        where: { campo_id: campoFondoId },
+        _sum: {
+          valor_manual: true,
+          valor_calculado: true,
+        },
+      }),
+      this.prisma.periodo.findMany({
+        orderBy: { fecha_inicio: "asc" },
+      }),
     ]);
+
+    const periodoMap = new Map(periodos.map((p) => [p.id, p]));
 
     // Format all items into unified ledger entries
     const items: Array<{
@@ -570,8 +583,34 @@ export class GastosService {
       periodo_nombre?: string | null;
       creado_por_nombre?: string | null;
       creado_en: Date;
+      es_manual: boolean;
     }> = [];
 
+    // 1. Planilla monthly collections
+    for (const pv of planillaValores) {
+      const montoTotal = Number(pv._sum.valor_manual ?? 0) + Number(pv._sum.valor_calculado ?? 0);
+      if (montoTotal > 0) {
+        const per = periodoMap.get(pv.periodo_id);
+        const fechaStr = per?.fecha_inicio
+          ? per.fecha_inicio.toISOString().split('T')[0]
+          : new Date().toISOString().split('T')[0];
+
+        items.push({
+          id: `planilla-${pv.periodo_id}`,
+          tipo: 'ingreso',
+          fecha: fechaStr,
+          monto: montoTotal,
+          descripcion: `Recaudo mensual planilla (${per?.nombre || 'Período'})`,
+          observacion: 'Recaudado automáticamente desde los informes de las congregaciones',
+          periodo_nombre: per?.nombre || null,
+          creado_por_nombre: 'Planilla Contable',
+          creado_en: per?.fecha_inicio ? new Date(per.fecha_inicio) : new Date(),
+          es_manual: false,
+        });
+      }
+    }
+
+    // 2. Manual Incomes
     for (const ing of ingresos) {
       items.push({
         id: ing.id,
@@ -583,9 +622,11 @@ export class GastosService {
         periodo_nombre: ing.periodo?.nombre || null,
         creado_por_nombre: 'Tesorero',
         creado_en: ing.creado_en,
+        es_manual: true,
       });
     }
 
+    // 3. Expenses
     for (const gst of gastos) {
       items.push({
         id: gst.id,
@@ -597,13 +638,16 @@ export class GastosService {
         periodo_nombre: gst.periodo?.nombre || null,
         creado_por_nombre: gst.creado_por?.nombre_completo || null,
         creado_en: gst.creado_en,
+        es_manual: true,
       });
     }
 
-    // Sort chronologically (oldest to newest)
+    // Sort chronologically (oldest to newest):
+    // Incomes before expenses on the same date
     items.sort((a, b) => {
       const dateCmp = a.fecha.localeCompare(b.fecha);
       if (dateCmp !== 0) return dateCmp;
+      if (a.tipo !== b.tipo) return a.tipo === 'ingreso' ? -1 : 1;
       return new Date(a.creado_en).getTime() - new Date(b.creado_en).getTime();
     });
 

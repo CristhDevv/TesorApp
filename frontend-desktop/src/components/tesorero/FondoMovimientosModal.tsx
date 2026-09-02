@@ -24,6 +24,7 @@ export interface MovimientoItem {
   creado_por_nombre?: string | null;
   creado_en: string;
   saldo_resultante: number;
+  es_manual?: boolean;
 }
 
 export interface FondoMovimientosData {
@@ -293,7 +294,7 @@ export const FondoMovimientosModal: React.FC<FondoMovimientosModalProps> = ({
                         </div>
                       </div>
 
-                      {isIngreso && (
+                      {isIngreso && mov.es_manual !== false && (
                         <button
                           onClick={() => handleDeleteItem(mov)}
                           disabled={deletingId === mov.id}
