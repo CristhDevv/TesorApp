@@ -98,7 +98,7 @@ import { GastoModal } from './components/tesorero/GastoModal';
 import { FondoModal } from './components/tesorero/FondoModal';
 import { FondoMontoModal } from './components/tesorero/FondoMontoModal';
 import { FondoIngresoModal } from './components/tesorero/FondoIngresoModal';
-import { FondoMovimientosModal } from './components/tesorero/FondoMovimientosModal';
+import { FondoMovimientosView } from './components/tesorero/FondoMovimientosView';
 import { GastoVoucherModal, GastoVoucherData } from './components/tesorero/GastoVoucherModal';
 
 // Reports Feature
@@ -257,8 +257,6 @@ export default function App() {
   const [showFondoIngresoModal, setShowFondoIngresoModal] = useState(false);
   const [selectedFondoForIngreso, setSelectedFondoForIngreso] = useState<any | null>(null);
   const [savingFondoIngreso, setSavingFondoIngreso] = useState(false);
-
-  const [showFondoMovimientosModal, setShowFondoMovimientosModal] = useState(false);
   const [selectedFondoForMovimientos, setSelectedFondoForMovimientos] = useState<any | null>(null);
 
   // Selected states (with localStorage persistence for active table, period, and cell)
@@ -1578,7 +1576,6 @@ export default function App() {
 
   const openViewMovimientos = (fondo: any) => {
     setSelectedFondoForMovimientos(fondo);
-    setShowFondoMovimientosModal(true);
   };
 
   const openFieldModalForEdit = (field: any) => {
@@ -3739,34 +3736,60 @@ export default function App() {
 
       {/* ── TAB 7: GASTOS ── */}
       {activeTab === 'gastos' && (
-        <GastosPanel
-          gastos={gastos}
-          resumen={gastosResumen}
-          loading={gastosLoading}
-          onNew={openNewGasto}
-          onNewFondo={openNewFondo}
-          onEditFondo={openEditFondo}
-          onEditFondoMonto={openEditFondoMonto}
-          onAddIngresoFondo={openAddIngresoFondo}
-          onViewMovimientos={openViewMovimientos}
-          onDeleteFondo={deleteFondo}
-          onRegisterGastoForFondo={openRegisterGastoForFondo}
-          onEdit={openEditGasto}
-          onDelete={deleteGasto}
-          onOpenVoucher={(g) => {
-            setVoucherGasto({
-              id: g.id,
-              descripcion: g.descripcion,
-              monto: Number(g.monto),
-              fecha: g.fecha,
-              campo_fondo_nombre: g.campo_fondo?.nombre,
-              periodo_nombre: g.periodo?.nombre || selectedPeriodObj?.nombre,
-              creado_por_nombre: g.creado_por?.nombre_completo || user?.nombre_completo,
-            });
-          }}
-          selectedPeriodoNombre={selectedPeriodObj?.nombre || ''}
-          isPeriodOpen={isPeriodOpen}
-        />
+        selectedFondoForMovimientos ? (
+          <FondoMovimientosView
+            fondo={selectedFondoForMovimientos}
+            fondosList={gastosResumen}
+            onSelectFondo={(f) => setSelectedFondoForMovimientos(f)}
+            onBack={() => setSelectedFondoForMovimientos(null)}
+            apiBase={API_BASE}
+            token={token}
+            periodos={periodos}
+            onOpenNewIngreso={openAddIngresoFondo}
+            onOpenNewGasto={openRegisterGastoForFondo}
+            onOpenVoucher={(mov) => {
+              setVoucherGasto({
+                id: mov.id,
+                descripcion: mov.descripcion,
+                monto: Number(mov.monto),
+                fecha: mov.fecha,
+                campo_fondo_nombre: selectedFondoForMovimientos.campo_fondo_nombre,
+                periodo_nombre: mov.periodo_nombre || selectedPeriodObj?.nombre,
+                creado_por_nombre: mov.creado_por_nombre || user?.nombre_completo,
+              });
+            }}
+            onDeleteIngreso={handleDeleteFondoIngreso}
+          />
+        ) : (
+          <GastosPanel
+            gastos={gastos}
+            resumen={gastosResumen}
+            loading={gastosLoading}
+            onNew={openNewGasto}
+            onNewFondo={openNewFondo}
+            onEditFondo={openEditFondo}
+            onEditFondoMonto={openEditFondoMonto}
+            onAddIngresoFondo={openAddIngresoFondo}
+            onViewMovimientos={openViewMovimientos}
+            onDeleteFondo={deleteFondo}
+            onRegisterGastoForFondo={openRegisterGastoForFondo}
+            onEdit={openEditGasto}
+            onDelete={deleteGasto}
+            onOpenVoucher={(g) => {
+              setVoucherGasto({
+                id: g.id,
+                descripcion: g.descripcion,
+                monto: Number(g.monto),
+                fecha: g.fecha,
+                campo_fondo_nombre: g.campo_fondo?.nombre,
+                periodo_nombre: g.periodo?.nombre || selectedPeriodObj?.nombre,
+                creado_por_nombre: g.creado_por?.nombre_completo || user?.nombre_completo,
+              });
+            }}
+            selectedPeriodoNombre={selectedPeriodObj?.nombre || ''}
+            isPeriodOpen={isPeriodOpen}
+          />
+        )
       )}
 
       {/* ── TAB 8: REPORTES ── */}
@@ -4311,20 +4334,6 @@ export default function App() {
         fondo={selectedFondoForIngreso}
         onSave={handleSaveFondoIngreso}
         loading={savingFondoIngreso}
-      />
-
-      {/* ── MODAL: LIBRO DE MOVIMIENTOS DEL FONDO ── */}
-      <FondoMovimientosModal
-        isOpen={showFondoMovimientosModal}
-        onClose={() => setShowFondoMovimientosModal(false)}
-        fondo={selectedFondoForMovimientos}
-        apiBase={API_BASE}
-        token={token}
-        onOpenNewIngreso={(fondo) => {
-          setSelectedFondoForIngreso(fondo);
-          setShowFondoIngresoModal(true);
-        }}
-        onDeleteIngreso={handleDeleteFondoIngreso}
       />
 
       {/* ── COLUMN CONFIG DRAWER (GLOBAL: PLANILLA, CAMPOS, GASTOS & FONDOS) ── */}
