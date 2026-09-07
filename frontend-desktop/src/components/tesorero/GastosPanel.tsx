@@ -71,6 +71,7 @@ interface GastosPanelProps {
   onOpenVoucher?: (gasto: Gasto) => void;
   selectedPeriodoNombre: string;
   isPeriodOpen: boolean;
+  isTesorero?: boolean;
 }
 
 function SaldoBadge({ saldo, total }: { saldo: number; total: number }) {
@@ -111,6 +112,7 @@ export function GastosPanel({
   onOpenVoucher,
   selectedPeriodoNombre,
   isPeriodOpen,
+  isTesorero = true,
 }: GastosPanelProps) {
   const [filterType, setFilterType] = useState<"all" | "propios" | "transito" | "acumulable">("all");
   const [searchTerm, setSearchTerm] = useState("");
@@ -192,7 +194,7 @@ export function GastosPanel({
         </div>
 
         <div className="flex items-center gap-2">
-          {onNewFondo && (
+          {isTesorero && onNewFondo && (
             <button
               type="button"
               onClick={onNewFondo}
@@ -203,7 +205,7 @@ export function GastosPanel({
               <span>+ Nuevo Fondo</span>
             </button>
           )}
-          {isPeriodOpen && (
+          {isTesorero && isPeriodOpen && (
             <button
               type="button"
               onClick={onNew}
@@ -506,18 +508,20 @@ export function GastosPanel({
                     <div className="mt-3 pt-2.5 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between gap-1.5 flex-wrap">
                       <div className="flex items-center gap-1.5 flex-wrap">
                         {/* 1. Registrar Gasto con este fondo preseleccionado */}
-                        <button
-                          type="button"
-                          onClick={() => onRegisterGastoForFondo ? onRegisterGastoForFondo(r) : onNew()}
-                          className="px-2.5 py-1 bg-indigo-50 dark:bg-indigo-950/60 hover:bg-indigo-100 dark:hover:bg-indigo-900/60 text-indigo-700 dark:text-indigo-300 rounded-lg text-[11px] font-bold flex items-center gap-1 transition cursor-pointer shadow-xs"
-                          title="Registrar un nuevo gasto contra este fondo"
-                        >
-                          <Plus className="w-3 h-3" />
-                          Gasto
-                        </button>
+                        {isTesorero && (
+                          <button
+                            type="button"
+                            onClick={() => onRegisterGastoForFondo ? onRegisterGastoForFondo(r) : onNew()}
+                            className="px-2.5 py-1 bg-indigo-50 dark:bg-indigo-950/60 hover:bg-indigo-100 dark:hover:bg-indigo-900/60 text-indigo-700 dark:text-indigo-300 rounded-lg text-[11px] font-bold flex items-center gap-1 transition cursor-pointer shadow-xs"
+                            title="Registrar un nuevo gasto contra este fondo"
+                          >
+                            <Plus className="w-3 h-3" />
+                            Gasto
+                          </button>
+                        )}
 
                         {/* 2. Registrar Ingreso / Aporte (para fondos manuales e incrementales) */}
-                        {onAddIngresoFondo && (
+                        {isTesorero && onAddIngresoFondo && (
                           <button
                             type="button"
                             onClick={() => onAddIngresoFondo(r)}
@@ -543,31 +547,33 @@ export function GastosPanel({
                         )}
                       </div>
 
-                      <div className="flex items-center gap-1">
-                        {/* 4. Editar Fondo */}
-                        {onEditFondo && (
-                          <button
-                            type="button"
-                            onClick={() => onEditFondo(r)}
-                            className="p-1.5 text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition cursor-pointer"
-                            title="Editar nombre y configuración del fondo"
-                          >
-                            <Pencil className="w-3.5 h-3.5" />
-                          </button>
-                        )}
+                      {isTesorero && (
+                        <div className="flex items-center gap-1">
+                          {/* 4. Editar Fondo */}
+                          {onEditFondo && (
+                            <button
+                              type="button"
+                              onClick={() => onEditFondo(r)}
+                              className="p-1.5 text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition cursor-pointer"
+                              title="Editar nombre y configuración del fondo"
+                            >
+                              <Pencil className="w-3.5 h-3.5" />
+                            </button>
+                          )}
 
-                        {/* 5. Eliminar Fondo */}
-                        {onDeleteFondo && (
-                          <button
-                            type="button"
-                            onClick={() => onDeleteFondo(r)}
-                            className="p-1.5 text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-lg transition cursor-pointer"
-                            title="Eliminar este fondo"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
-                        )}
-                      </div>
+                          {/* 5. Eliminar Fondo */}
+                          {onDeleteFondo && (
+                            <button
+                              type="button"
+                              onClick={() => onDeleteFondo(r)}
+                              className="p-1.5 text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-lg transition cursor-pointer"
+                              title="Eliminar este fondo"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          )}
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -691,7 +697,7 @@ export function GastosPanel({
                               <FileText className="w-3.5 h-3.5" />
                               <span>Voucher</span>
                             </button>
-                            {isPeriodOpen && (
+                            {isTesorero && isPeriodOpen && (
                               <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition">
                                 <button
                                   type="button"

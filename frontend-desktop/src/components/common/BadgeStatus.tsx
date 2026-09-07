@@ -11,8 +11,10 @@ const variantMap: Record<string, string> = {
   informativo: 'bg-slate-100 text-slate-700 border-slate-200',
   totales:     'bg-indigo-50 text-indigo-700 border-indigo-200',
   resumen:     'bg-violet-50 text-violet-700 border-violet-200',
-  tesorero:    'bg-slate-800 text-white border-slate-700',
-  iglesia:     'bg-slate-100 text-slate-800 border-slate-300',
+  tesorero:    'bg-slate-800 text-white border-slate-700 dark:bg-slate-700 dark:text-white dark:border-slate-600',
+  secretario:  'bg-blue-50 text-blue-800 border-blue-200 dark:bg-blue-950/60 dark:text-blue-300 dark:border-blue-800',
+  presbitero:  'bg-amber-50 text-amber-800 border-amber-300 dark:bg-amber-950/60 dark:text-amber-300 dark:border-amber-800',
+  iglesia:     'bg-slate-100 text-slate-800 border-slate-300 dark:bg-slate-800 dark:text-slate-200 dark:border-slate-700',
 };
 
 interface BadgeStatusProps {

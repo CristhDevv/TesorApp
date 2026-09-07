@@ -104,6 +104,9 @@ import { GastoVoucherModal, GastoVoucherData } from './components/tesorero/Gasto
 // Reports Feature
 import { ReportsPanel } from './components/reports/ReportsPanel';
 
+// Presbítero Feature
+import { PresbiteroDashboard } from './components/presbitero/PresbiteroDashboard';
+
 
 const API_BASE = window.location.origin;
 axios.defaults.timeout = 60000;
@@ -445,6 +448,9 @@ export default function App() {
 
   // ─── Core Computed Roles and Selected Objects (declared early to prevent TDZ) ───
   const isTesorero = user?.rol === 'tesorero';
+  const isSecretario = user?.rol === 'secretario';
+  const isPresbitero = user?.rol === 'presbitero';
+  const isIglesia = user?.rol === 'iglesia';
   const selectedTableObj = tablas.find((t) => t.id === selectedTablaId);
   const selectedPeriodObj = periodos.find((p) => p.id === selectedPeriodoId);
   const isPeriodOpen = selectedPeriodObj?.estado === 'abierto';
@@ -2163,12 +2169,12 @@ export default function App() {
       const vals = Array.isArray(fila.valores) ? fila.valores : [];
       for (const val of vals) {
         const isCalc = val.modo_calculo === 'calculado';
-        const canEdit = isPeriodOpen && (isTesorero || (!isCalc && val.editable !== false));
+        const canEdit = !isPresbitero && isPeriodOpen && ((isTesorero || isSecretario) || (!isCalc && val.editable !== false));
         if (canEdit) order.push(`${fila.iglesia_id}__${val.campo_id}`);
       }
     }
     return order;
-  }, [gridData, sortedAndFilteredGridRows, isPeriodOpen, isTesorero]);
+  }, [gridData, sortedAndFilteredGridRows, isPeriodOpen, isTesorero, isSecretario, isPresbitero]);
 
   // Excel-like Keyboard navigation
   useGridKeyboardNav({
@@ -2287,7 +2293,7 @@ export default function App() {
 
         {/* Navigation Items (Single Word & Minimalist) */}
         <div className="flex-1 overflow-y-auto p-3 space-y-1">
-          {isTesorero && (
+          {(isTesorero || isSecretario || isPresbitero) && (
             <button
               onClick={() => setActiveTab('dashboard')}
               className={`w-full px-3 py-2 rounded-xl text-xs font-semibold flex items-center justify-between transition-all duration-150 cursor-pointer ${
@@ -2298,7 +2304,7 @@ export default function App() {
             >
               <div className="flex items-center gap-2.5">
                 <TrendingUp className={`w-4 h-4 ${activeTab === 'dashboard' ? 'text-indigo-600 dark:text-amber-300' : 'text-slate-400'}`} />
-                <span>Tablero</span>
+                <span>{isPresbitero ? 'Resumen' : 'Tablero'}</span>
               </div>
               {activeTab === 'dashboard' && <ChevronRight className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-200" />}
             </button>
@@ -2314,7 +2320,7 @@ export default function App() {
           >
             <div className="flex items-center gap-2.5">
               <FileSpreadsheet className={`w-4 h-4 ${activeTab === 'sheet' ? 'text-indigo-600 dark:text-white' : 'text-slate-400'}`} />
-              <span>{isTesorero ? 'Planilla' : 'Reporte'}</span>
+              <span>{isIglesia ? 'Reporte' : 'Planilla'}</span>
             </div>
             {activeTab === 'sheet' && <ChevronRight className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-200" />}
           </button>
@@ -2334,23 +2340,25 @@ export default function App() {
             {activeTab === 'reportes' && <ChevronRight className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-200" />}
           </button>
 
+          {(isTesorero || isSecretario || isPresbitero) && (
+            <button
+              onClick={() => setActiveTab('iglesias')}
+              className={`w-full px-3 py-2 rounded-xl text-xs font-semibold flex items-center justify-between transition-all duration-150 cursor-pointer ${
+                activeTab === 'iglesias'
+                  ? 'bg-indigo-50 text-indigo-800 font-extrabold border border-indigo-200 dark:bg-indigo-600 dark:text-white dark:border-transparent dark:shadow-md'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-900/80'
+              }`}
+            >
+              <div className="flex items-center gap-2.5">
+                <Building2 className={`w-4 h-4 ${activeTab === 'iglesias' ? 'text-indigo-600 dark:text-white' : 'text-slate-400'}`} />
+                <span>Iglesias</span>
+              </div>
+              {activeTab === 'iglesias' && <ChevronRight className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-200" />}
+            </button>
+          )}
+
           {isTesorero && (
             <>
-              <button
-                onClick={() => setActiveTab('iglesias')}
-                className={`w-full px-3 py-2 rounded-xl text-xs font-semibold flex items-center justify-between transition-all duration-150 cursor-pointer ${
-                  activeTab === 'iglesias'
-                    ? 'bg-indigo-50 text-indigo-800 font-extrabold border border-indigo-200 dark:bg-indigo-600 dark:text-white dark:border-transparent dark:shadow-md'
-                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-900/80'
-                }`}
-              >
-                <div className="flex items-center gap-2.5">
-                  <Building2 className={`w-4 h-4 ${activeTab === 'iglesias' ? 'text-indigo-600 dark:text-white' : 'text-slate-400'}`} />
-                  <span>Iglesias</span>
-                </div>
-                {activeTab === 'iglesias' && <ChevronRight className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-200" />}
-              </button>
-
               <button
                 onClick={() => setActiveTab('campos')}
                 className={`w-full px-3 py-2 rounded-xl text-xs font-semibold flex items-center justify-between transition-all duration-150 cursor-pointer ${
@@ -2380,7 +2388,11 @@ export default function App() {
                 </div>
                 {activeTab === 'usuarios' && <ChevronRight className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-200" />}
               </button>
+            </>
+          )}
 
+          {(isTesorero || isSecretario || isPresbitero) && (
+            <>
               <button
                 onClick={() => setActiveTab('historial')}
                 className={`w-full px-3 py-2 rounded-xl text-xs font-semibold flex items-center justify-between transition-all duration-150 cursor-pointer ${
@@ -2479,8 +2491,8 @@ export default function App() {
 
             <div className="flex items-center gap-2 min-w-0">
               <span className="text-[11px] sm:text-xs font-extrabold uppercase tracking-wider text-slate-700 dark:text-slate-200 truncate max-w-[140px] xs:max-w-[200px] sm:max-w-[320px] md:max-w-none">
-                {activeTab === 'dashboard' && 'Tablero Ejecutivo & Métricas'}
-                {activeTab === 'sheet' && 'Planilla Contable General'}
+                {activeTab === 'dashboard' && (isPresbitero ? 'Supervisión Pastoral & Auditoría' : 'Tablero Ejecutivo & Métricas')}
+                {activeTab === 'sheet' && (isPresbitero ? 'Planilla de la Zona (Solo Lectura)' : 'Planilla Contable General')}
                 {activeTab === 'iglesias' && 'Directorio de Congregaciones'}
                 {activeTab === 'campos' && 'Estructura de Columnas & Fórmulas'}
                 {activeTab === 'usuarios' && 'Gestión de Usuarios & Accesos'}
@@ -2556,31 +2568,60 @@ export default function App() {
         <div className="flex-1 flex flex-col min-h-0 overflow-hidden relative">
           {/* TAB 0: DASHBOARD */}
           {activeTab === 'dashboard' && (
-            <ExecutiveDashboard
-              gridData={gridData}
-              periodos={periodos}
-              selectedPeriodoId={selectedPeriodoId}
-              onSelectPeriodo={handlePeriodoChange}
-              tablas={tablas}
-              selectedTablaId={selectedTablaId}
-              onSelectTabla={handleTableChange}
-              iglesias={iglesias}
-              gastos={gastos}
-              gastosResumen={gastosResumen}
-              gastosLoading={gastosLoading}
-              onOpenCopilot={() => setShowAICopilot(true)}
-              onOpenChurchDetail={(_iglesiaId) => {
-                setActiveTab('sheet');
-              }}
-              onOpenHelp={() => setShowHelpModal(true)}
-            />
+            isPresbitero ? (
+              <PresbiteroDashboard
+                user={user}
+                periodos={periodos}
+                selectedPeriodoId={selectedPeriodoId}
+                onSelectPeriodo={handlePeriodoChange}
+                iglesias={iglesias}
+                gridData={gridData}
+                gastosResumen={gastosResumen}
+                onNavigateToTab={(tab) => setActiveTab(tab)}
+              />
+            ) : (
+              <ExecutiveDashboard
+                gridData={gridData}
+                periodos={periodos}
+                selectedPeriodoId={selectedPeriodoId}
+                onSelectPeriodo={handlePeriodoChange}
+                tablas={tablas}
+                selectedTablaId={selectedTablaId}
+                onSelectTabla={handleTableChange}
+                iglesias={iglesias}
+                gastos={gastos}
+                gastosResumen={gastosResumen}
+                gastosLoading={gastosLoading}
+                onOpenCopilot={() => setShowAICopilot(true)}
+                onOpenChurchDetail={(_iglesiaId) => {
+                  setActiveTab('sheet');
+                }}
+                onOpenHelp={() => setShowHelpModal(true)}
+              />
+            )
           )}
 
           {/* TAB 1: SHEET */}
           {activeTab === 'sheet' && (
             <div className="flex-1 flex flex-col min-h-0 overflow-hidden relative bg-white dark:bg-slate-950">
-          {/* Toolbar (Tesorero only) */}
-          {isTesorero ? (
+          {/* Friendly Presbitero Banner */}
+          {isPresbitero && (
+            <div className="bg-amber-50 dark:bg-amber-950/70 border-b border-amber-200 dark:border-amber-800/80 px-4 py-2 flex flex-wrap items-center justify-between gap-2 text-xs text-amber-950 dark:text-amber-200 shrink-0">
+              <div className="flex items-center gap-2">
+                <span className="font-extrabold text-amber-700 dark:text-amber-400">👁️ Modo Supervisión Pastoral (Solo Lectura):</span>
+                <span>Examinando planilla general de todas las congregaciones. Los datos se encuentran protegidos.</span>
+              </div>
+              <button
+                onClick={() => setActiveTab('dashboard')}
+                className="text-xs font-bold text-amber-800 dark:text-amber-300 hover:underline cursor-pointer"
+              >
+                Volver al Resumen Pastoral →
+              </button>
+            </div>
+          )}
+
+          {/* Toolbar (Tesorero, Secretario, Presbitero) */}
+          {(isTesorero || isSecretario || isPresbitero) ? (
             <TableFilterToolbar
               isTesorero={isTesorero}
               tablas={tablas}
@@ -2625,7 +2666,7 @@ export default function App() {
           ) : null}
 
           {/* Role views separation: Tesorero Spreadsheet vs Iglesia ChurchReportForm */}
-          {isTesorero ? (
+          {(isTesorero || isSecretario || isPresbitero) ? (
             <>
               {/* Formula Bar */}
               <FormulaBar
@@ -2645,6 +2686,7 @@ export default function App() {
                 editValue={editValue}
                 setEditValue={setEditValue}
                 onBeginEdit={(churchId, fieldId, currentValue) => {
+                  if (isPresbitero) return;
                   setEditingCell({ churchId, fieldId });
                   handleSetActiveCell({ churchId, fieldId });
                   setEditValue(currentValue === '0' ? '' : currentValue);
@@ -2658,7 +2700,7 @@ export default function App() {
                 }
                 onOpenWorkflow={(row) => setWorkflowRow(row)}
                 onOpenPasteModal={handleOpenPasteModal}
-                isTesorero={isTesorero}
+                isTesorero={isTesorero || isSecretario}
                 isPeriodOpen={isPeriodOpen ?? false}
                 gridSort={gridSort}
                 onSortChange={toggleGridSort}
@@ -3790,6 +3832,7 @@ export default function App() {
             }}
             selectedPeriodoNombre={selectedPeriodObj?.nombre || ''}
             isPeriodOpen={isPeriodOpen}
+            isTesorero={isTesorero}
           />
         )
       )}
@@ -4035,10 +4078,19 @@ export default function App() {
                   <select
                     className="w-full px-3 py-1.5 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded text-slate-900 dark:text-slate-100 focus:outline-none focus:border-indigo-600 text-xs font-semibold cursor-pointer"
                     value={userModalData.rol}
-                    onChange={(e) => setUserModalData({ ...userModalData, rol: e.target.value as any })}
+                    onChange={(e) => {
+                      const newRol = e.target.value as any;
+                      setUserModalData({
+                        ...userModalData,
+                        rol: newRol,
+                        iglesia_id: newRol === 'iglesia' ? userModalData.iglesia_id : '',
+                      });
+                    }}
                   >
+                    <option value="tesorero">Tesorero (Administrador General)</option>
+                    <option value="secretario">Secretario (Digitar y editar planilla)</option>
+                    <option value="presbitero">Presbítero (Supervisión y auditoría / Solo lectura)</option>
                     <option value="iglesia">Representante Iglesia</option>
-                    <option value="tesorero">Tesorero General</option>
                   </select>
                 </div>
                 <div>

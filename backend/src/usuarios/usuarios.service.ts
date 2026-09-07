@@ -78,7 +78,7 @@ export class UsuariosService {
           correo: data.correo,
           contrasena_hash,
           rol: data.rol,
-          iglesia_id: data.iglesia_id || null,
+          iglesia_id: data.rol === 'iglesia' ? (data.iglesia_id || null) : null,
         },
       });
 
@@ -127,7 +127,9 @@ export class UsuariosService {
         activo: data.activo,
       };
 
-      if (data.iglesia_id !== undefined) {
+      if (data.rol && data.rol !== 'iglesia') {
+        updatedData.iglesia_id = null;
+      } else if (data.iglesia_id !== undefined) {
         updatedData.iglesia_id = data.iglesia_id || null;
       }
 

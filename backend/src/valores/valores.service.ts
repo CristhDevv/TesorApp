@@ -97,7 +97,8 @@ export class ValoresService {
       const isEditable =
         f.modo_calculo === ModoCalculo.manual &&
         isPeriodOpen &&
-        (userRol === 'tesorero' || hasPerm);
+        userRol !== 'presbitero' &&
+        (userRol === 'tesorero' || userRol === 'secretario' || hasPerm);
 
       return {
         campo_id: f.id,
@@ -143,9 +144,12 @@ export class ValoresService {
     userIglesiaId?: string,
   ) {
     if (!periodoId) throw new BadRequestException('Se requiere periodo_id.');
+    if (userRol === 'presbitero') {
+      throw new ForbiddenException('El rol de Presbítero tiene permisos de solo lectura.');
+    }
     const periodo = await this.prisma.periodo.findUnique({ where: { id: periodoId } });
     if (!periodo) throw new NotFoundException('Periodo no encontrado');
-    if (periodo.estado === EstadoPeriodo.cerrado && userRol !== 'tesorero') {
+    if (periodo.estado === EstadoPeriodo.cerrado && userRol !== 'tesorero' && userRol !== 'secretario') {
       throw new BadRequestException('El periodo está cerrado y no se puede editar.');
     }
 
@@ -408,12 +412,15 @@ export class ValoresService {
     userRol: string,
     userIglesiaId?: string,
   ) {
+    if (userRol === 'presbitero') {
+      throw new ForbiddenException('El rol de Presbítero tiene permisos de solo lectura.');
+    }
     if (userRol === 'iglesia' && userIglesiaId !== iglesiaId) {
       throw new ForbiddenException('Acceso denegado a esta iglesia.');
     }
     const periodo = await this.prisma.periodo.findUnique({ where: { id: periodoId } });
     if (!periodo) throw new NotFoundException('Periodo no encontrado');
-    if (periodo.estado === EstadoPeriodo.cerrado && userRol !== 'tesorero') {
+    if (periodo.estado === EstadoPeriodo.cerrado && userRol !== 'tesorero' && userRol !== 'secretario') {
       throw new BadRequestException('El periodo está cerrado y no se puede editar.');
     }
 
@@ -1010,8 +1017,9 @@ export class ValoresService {
         const isEditable =
           f.modo_calculo === ModoCalculo.manual &&
           isPeriodOpen &&
+          userRol !== 'presbitero' &&
           !isReportLockedForChurch &&
-          (userRol === 'tesorero' || hasPerm);
+          (userRol === 'tesorero' || userRol === 'secretario' || hasPerm);
 
         return {
           campo_id: f.id,

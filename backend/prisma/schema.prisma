@@ -11,6 +11,8 @@ generator client {
 enum Rol {
   tesorero
   iglesia
+  secretario
+  presbitero
 }
 
 enum EstadoIglesia {
