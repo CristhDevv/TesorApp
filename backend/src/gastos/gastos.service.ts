@@ -269,6 +269,7 @@ export class GastosService {
             monto: Number(data.monto) || 0,
             fecha: fechaVal,
             descripcion: "Monto / Recaudo inicial",
+            creado_por_id: realizadoPor,
           },
         });
       }
@@ -462,6 +463,10 @@ export class GastosService {
         fecha: fechaVal,
         descripcion: data.descripcion?.trim() || null,
         observacion: data.observacion?.trim() || null,
+        creado_por_id: realizadoPor,
+      },
+      include: {
+        creado_por: { select: { id: true, nombre_completo: true } },
       },
     });
 
@@ -546,6 +551,7 @@ export class GastosService {
         where: { campo_fondo_id: campoFondoId },
         include: {
           periodo: { select: { id: true, nombre: true } },
+          creado_por: { select: { id: true, nombre_completo: true } },
         },
         orderBy: [{ fecha: "asc" }, { creado_en: "asc" }],
       }),
@@ -620,7 +626,7 @@ export class GastosService {
         descripcion: ing.descripcion || ing.observacion || 'Aporte / Ingreso al fondo',
         observacion: ing.observacion,
         periodo_nombre: ing.periodo?.nombre || null,
-        creado_por_nombre: 'Tesorero',
+        creado_por_nombre: ing.creado_por?.nombre_completo || 'Gabriel Mosquera',
         creado_en: ing.creado_en,
         es_manual: true,
       });

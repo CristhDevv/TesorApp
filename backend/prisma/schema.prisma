@@ -82,6 +82,7 @@ model Usuario {
   periodos_reabiertos Periodo[] @relation("ReabiertoPor")
   auditorias      HistorialCambios[]
   gastos_creados  Gasto[]
+  ingresos_creados IngresoFondo[]
   informes_enviados  InformePeriodo[] @relation("InformeEnviadoPor")
   informes_revisados InformePeriodo[] @relation("InformeRevisadoPor")
   informes_aprobados InformePeriodo[] @relation("InformeAprobadoPor")
@@ -348,11 +349,13 @@ model IngresoFondo {
   fecha          DateTime?      @default(now()) @db.Date
   descripcion    String?
   observacion    String?
+  creado_por_id  String?        @db.Uuid
   creado_en      DateTime       @default(now())
   actualizado_en DateTime       @updatedAt
 
   campo_fondo    CampoPlantilla @relation(fields: [campo_fondo_id], references: [id], onDelete: Cascade)
   periodo        Periodo?       @relation(fields: [periodo_id], references: [id], onDelete: SetNull)
+  creado_por     Usuario?       @relation(fields: [creado_por_id], references: [id], onDelete: SetNull)
 
   @@index([campo_fondo_id, fecha])
   @@map("ingresos_fondos")
