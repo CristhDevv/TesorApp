@@ -169,141 +169,277 @@ ${fundsList.length > 0 ? `• **Fondos Registrados:** ${fundsList.slice(0, 3).ma
   };
 
   const handlePrintMessage = (messageText: string) => {
-    const printWindow = window.open('', '_blank', 'width=850,height=900');
-    if (!printWindow) {
-      window.print();
-      return;
-    }
+    const printWindow = window.open('', '_blank', 'width=900,height=1100');
+    if (!printWindow) { window.print(); return; }
 
     const currentPeriodName = currentPeriod?.nombre || 'Período Contable Actual';
-    const dateStr = new Date().toLocaleDateString('es-CO', {
-      day: '2-digit',
-      month: 'long',
-      year: 'numeric',
-    });
+    const dateStr = new Date().toLocaleDateString('es-CO', { day: '2-digit', month: 'long', year: 'numeric' });
 
-    // Format simple markdown into clean HTML for printing
-    const formattedHtml = messageText
-      .replace(/### (.*)/g, '<h3 style="color:#0f172a; margin-top:18px; margin-bottom:6px; font-size:15px; font-weight:800;">$1</h3>')
-      .replace(/## (.*)/g, '<h2 style="color:#0f172a; margin-top:22px; margin-bottom:8px; font-size:17px; font-weight:900;">$1</h2>')
-      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-      .replace(/\*(.*?)\*/g, '<em>$1</em>')
-      .replace(/\[(.*?)\]\(.*?\)/g, '')
-      .replace(/•\s*(.*)/g, '<li style="margin-bottom:4px;">$1</li>')
-      .replace(/\n\n/g, '<br/><br/>')
-      .replace(/\n/g, '<br/>');
+    // ── Strip emojis (all unicode emoji ranges) ──────────────────────────────
+    const stripEmojis = (s: string) =>
+      s.replace(/([\u2700-\u27BF]|[\uE000-\uF8FF]|\uD83C[\uDC00-\uDFFF]|\uD83D[\uDC00-\uDFFF]|[\u2011-\u26FF]|\uD83E[\uDD10-\uDDFF]|[\u{1F000}-\u{1FFFF}])/gu, '')
+       .replace(/[🏛️📅📋💰📊🏆🎯💡⚠️✅🖨️📄👉•→←]/g, '')
+       .replace(/^\s*[>\-#*]+\s*/gm, (m) => m.replace(/[^\n\s#>*\-]/g, ''))
+       .replace(/>\s*/g, '') // blockquote markers
+       .trim();
 
-    printWindow.document.write(`
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <title>Informe Oficial de Tesorería — TesorApp</title>
-          <style>
-            body {
-              font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-              color: #1e293b;
-              padding: 40px;
-              line-height: 1.6;
-              font-size: 13px;
-              background: #ffffff;
-            }
-            .header {
-              border-bottom: 2px solid #0f172a;
-              padding-bottom: 16px;
-              margin-bottom: 24px;
-              display: flex;
-              justify-content: space-between;
-              align-items: center;
-            }
-            .title {
-              font-size: 18px;
-              font-weight: 900;
-              color: #0f172a;
-              text-transform: uppercase;
-              letter-spacing: 0.5px;
-            }
-            .subtitle {
-              font-size: 12px;
-              color: #64748b;
-              font-weight: 600;
-            }
-            .badge {
-              background: #f1f5f9;
-              border: 1px solid #cbd5e1;
-              padding: 6px 12px;
-              border-radius: 8px;
-              font-size: 11px;
-              font-weight: 700;
-              color: #334155;
-            }
-            .content {
-              margin-bottom: 40px;
-              background: #ffffff;
-            }
-            .signatures {
-              margin-top: 60px;
-              display: grid;
-              grid-template-columns: 1fr 1fr;
-              gap: 40px;
-              text-align: center;
-            }
-            .sign-line {
-              border-bottom: 1px solid #94a3b8;
-              height: 40px;
-              margin-bottom: 8px;
-            }
-            .footer {
-              margin-top: 50px;
-              border-top: 1px solid #e2e8f0;
-              padding-top: 12px;
-              font-size: 10px;
-              color: #94a3b8;
-              display: flex;
-              justify-content: space-between;
-            }
-            @media print {
-              body { padding: 0; }
-              @page { margin: 18mm; }
-            }
-          </style>
-        </head>
-        <body>
-          <div class="header">
-            <div>
-              <div class="title">🏛️ TesorApp — Informe Oficial de Tesorería</div>
-              <div class="subtitle">Sistema Financiero y Contabilidad Eclesiástica</div>
-            </div>
-            <div class="badge">
-              Período: ${currentPeriodName}
-            </div>
-          </div>
-          <div class="content">
-            ${formattedHtml}
-          </div>
-          <div class="signatures">
-            <div>
-              <div class="sign-line"></div>
-              <strong>Tesorero General / Encargado</strong>
-              <div style="font-size:11px; color:#64748b;">Firma y Sello Oficial</div>
-            </div>
-            <div>
-              <div class="sign-line"></div>
-              <strong>Pastor / Junta Directiva</strong>
-              <div style="font-size:11px; color:#64748b;">Visto Bueno y Aprobación</div>
-            </div>
-          </div>
-          <div class="footer">
-            <span>Certificado emitido por TesorApp Copilot</span>
-            <span>Fecha de emisión: ${dateStr}</span>
-          </div>
-          <script>
-            window.onload = function() {
-              window.print();
-            };
-          </script>
-        </body>
-      </html>
-    `);
+    // ── Parse markdown table into HTML <table> ────────────────────────────────
+    const parseMarkdownTable = (block: string): string => {
+      const lines = block.split('\n').map(l => l.trim()).filter(l => l.startsWith('|'));
+      if (lines.length < 2) return '';
+      const headers = lines[0].split('|').map(c => c.trim()).filter(c => c !== '');
+      const dataRows = lines.slice(2); // skip separator line
+      const rows = dataRows.map(row => row.split('|').map(c => c.trim()).filter(c => c !== ''));
+
+      const thead = `<thead><tr>${headers.map(h => `<th>${stripEmojis(h)}</th>`).join('')}</tr></thead>`;
+      const tbody = `<tbody>${rows.map((r, ri) => {
+        const isTotal = r[0] && /total|acumulado/i.test(r[0]);
+        return `<tr class="${isTotal ? 'total-row' : ri % 2 === 0 ? 'even' : ''}">${r.map(c => `<td>${stripEmojis(c)}</td>`).join('')}</tr>`;
+      }).join('')}</tbody>`;
+      return `<table>${thead}${tbody}</table>`;
+    };
+
+    // ── Extract chart data from text (key: value patterns) ────────────────────
+    interface ChartItem { label: string; value: number; }
+    const extractChartData = (text: string): ChartItem[] => {
+      const results: ChartItem[] = [];
+      // Match "Label: $ X.XXX.XXX" or "Label: X.XXX.XXX"
+      const pattern = /^(?:\d+\.\s+)?([A-ZÁÉÍÓÚÑa-záéíóúñ][^:\n]{2,50}):\s*\$?\s*([\d.,]+)/gm;
+      let m;
+      while ((m = pattern.exec(text)) !== null) {
+        const raw = m[2].replace(/\./g, '').replace(',', '.');
+        const val = parseFloat(raw);
+        if (!isNaN(val) && val > 0) {
+          results.push({ label: stripEmojis(m[1].trim()), value: val });
+        }
+      }
+      return results.slice(0, 12);
+    };
+
+    // ── Generate SVG horizontal bar chart ────────────────────────────────────
+    const generateBarChart = (data: ChartItem[], title: string): string => {
+      if (data.length === 0) return '';
+      const max = Math.max(...data.map(d => d.value));
+      const barH = 22;
+      const gap = 6;
+      const labelW = 180;
+      const chartW = 480;
+      const valueW = 110;
+      const totalW = labelW + chartW + valueW + 20;
+      const totalH = (barH + gap) * data.length + 40;
+
+      const formatM = (v: number) => {
+        if (v >= 1_000_000) return `$${(v/1_000_000).toFixed(1)}M`;
+        if (v >= 1_000) return `$${Math.round(v/1_000)}k`;
+        return `$${v}`;
+      };
+
+      const bars = data.map((d, i) => {
+        const w = max > 0 ? Math.round((d.value / max) * chartW) : 0;
+        const y = 30 + i * (barH + gap);
+        const pct = max > 0 ? ((d.value/max)*100).toFixed(0) : 0;
+        return `
+          <text x="${labelW - 6}" y="${y + barH/2 + 4}" text-anchor="end" font-size="10" fill="#374151" font-family="sans-serif">${d.label.length > 22 ? d.label.slice(0,20)+'…' : d.label}</text>
+          <rect x="${labelW}" y="${y}" width="${w}" height="${barH}" rx="2" fill="#1e3a5f" opacity="${0.5 + (d.value/max)*0.5}"/>
+          <text x="${labelW + w + 6}" y="${y + barH/2 + 4}" font-size="10" fill="#1e3a5f" font-weight="bold" font-family="sans-serif">${formatM(d.value)} (${pct}%)</text>`;
+      }).join('');
+
+      return `<div class="chart-wrap">
+        <div class="chart-title">${title}</div>
+        <svg width="${totalW}" height="${totalH}" style="display:block;margin:0 auto;overflow:visible">
+          <text x="0" y="16" font-size="11" fill="#6b7280" font-family="sans-serif">Distribución porcentual</text>
+          ${bars}
+        </svg>
+      </div>`;
+    };
+
+    // ── Convert the full markdown message to professional HTML ────────────────
+    const buildHtml = (raw: string): string => {
+      const clean = stripEmojis(raw);
+      const lines = clean.split('\n');
+      let html = '';
+      let i = 0;
+
+      while (i < lines.length) {
+        const line = lines[i];
+        const trimmed = line.trim();
+
+        // Blank line
+        if (!trimmed) { i++; continue; }
+
+        // Markdown table block: collect all pipe-lines
+        if (trimmed.startsWith('|')) {
+          let tableBlock = '';
+          while (i < lines.length && lines[i].trim().startsWith('|')) {
+            tableBlock += lines[i] + '\n';
+            i++;
+          }
+          html += parseMarkdownTable(tableBlock);
+          continue;
+        }
+
+        // ### Heading 3
+        if (trimmed.startsWith('### ')) {
+          html += `<h3>${stripEmojis(trimmed.slice(4))}</h3>`;
+          i++;
+          // Try to generate chart from the following section lines
+          const sectionLines: string[] = [];
+          while (i < lines.length && !lines[i].trim().startsWith('#') && !lines[i].trim().startsWith('|')) {
+            sectionLines.push(lines[i]);
+            i++;
+          }
+          const sectionText = sectionLines.join('\n');
+          const sectionHtml = sectionText
+            .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+            .replace(/\*(.*?)\*/g, '<em>$1</em>')
+            .replace(/\[(.*?)\]\(.*?\)/g, '$1')
+            .replace(/^[•\-]\s+(.+)$/gm, '<li>$1</li>')
+            .replace(/^(\d+)\.\s+(.+)$/gm, '<li><span class="num">$1.</span> $2</li>')
+            .replace(/\n{2,}/g, '<br/>')
+            .replace(/\n/g, '<br/>');
+          if (sectionText.trim()) html += `<div class="section-body">${sectionHtml}</div>`;
+          // Chart for certain sections (funds, congregaciones)
+          const chartData = extractChartData(sectionText);
+          if (chartData.length >= 3) {
+            html += generateBarChart(chartData, 'Distribución Visual');
+          }
+          continue;
+        }
+
+        // ## Heading 2
+        if (trimmed.startsWith('## ')) {
+          html += `<h2>${stripEmojis(trimmed.slice(3))}</h2>`;
+          i++; continue;
+        }
+
+        // # Heading 1
+        if (trimmed.startsWith('# ')) {
+          html += `<h2 class="main-section">${stripEmojis(trimmed.slice(2))}</h2>`;
+          i++; continue;
+        }
+
+        // Blockquote
+        if (trimmed.startsWith('>')) {
+          html += `<blockquote>${stripEmojis(trimmed.slice(1)).trim()}</blockquote>`;
+          i++; continue;
+        }
+
+        // Regular paragraph
+        const para = trimmed
+          .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+          .replace(/\*(.*?)\*/g, '<em>$1</em>')
+          .replace(/\[(.*?)\]\(.*?\)/g, '$1');
+        html += `<p>${para}</p>`;
+        i++;
+      }
+
+      return html;
+    };
+
+    const bodyHtml = buildHtml(messageText);
+
+    printWindow.document.write(`<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8"/>
+  <title>Informe Oficial de Tesorería — TesorApp</title>
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:'Segoe UI',Arial,sans-serif;color:#1a1a2e;background:#fff;font-size:11.5pt;line-height:1.55}
+    /* ── HEADER ── */
+    .doc-header{display:flex;justify-content:space-between;align-items:flex-end;border-bottom:2.5px solid #1e3a5f;padding-bottom:14px;margin-bottom:22px}
+    .org-name{font-size:9pt;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:1px;margin-bottom:3px}
+    .doc-title{font-size:16pt;font-weight:700;color:#1e3a5f;text-transform:uppercase;letter-spacing:.5px}
+    .doc-subtitle{font-size:9pt;color:#6b7280;margin-top:3px}
+    .doc-meta{text-align:right;font-size:9pt;color:#374151;line-height:1.7}
+    .doc-meta strong{display:block;font-size:10.5pt;color:#1e3a5f}
+    /* ── SECTIONS ── */
+    h2{font-size:12pt;font-weight:700;color:#1e3a5f;border-bottom:1px solid #d1d5db;padding-bottom:5px;margin:22px 0 12px}
+    h2.main-section{font-size:13pt;border-bottom:2px solid #1e3a5f;margin-top:28px}
+    h3{font-size:10.5pt;font-weight:700;color:#1e3a5f;margin:18px 0 8px;border-left:3px solid #1e3a5f;padding-left:8px}
+    p{margin:4px 0 7px;color:#1f2937;font-size:10.5pt}
+    blockquote{border-left:3px solid #9ca3af;padding:6px 12px;margin:10px 0;color:#6b7280;font-style:italic;font-size:9.5pt;background:#f9fafb}
+    .section-body{margin:0 0 10px;font-size:10.5pt;color:#1f2937}
+    .section-body li{list-style:none;padding:3px 0 3px 14px;border-bottom:1px solid #f3f4f6}
+    .section-body .num{font-weight:700;color:#1e3a5f;margin-right:4px}
+    strong{color:#111827}
+    /* ── TABLES ── */
+    table{width:100%;border-collapse:collapse;margin:12px 0 18px;font-size:9.5pt}
+    thead tr{background:#1e3a5f;color:#fff}
+    thead th{padding:7px 10px;text-align:left;font-weight:600;font-size:9pt;letter-spacing:.3px}
+    tbody td{padding:6px 10px;border-bottom:1px solid #e5e7eb;color:#1f2937}
+    tbody tr.even td{background:#f8fafc}
+    tbody tr.total-row td{background:#eff6ff;font-weight:700;color:#1e3a5f;border-top:2px solid #1e3a5f}
+    tbody tr:hover td{background:#f1f5f9}
+    /* ── CHARTS ── */
+    .chart-wrap{margin:10px 0 22px;padding:14px 16px;border:1px solid #e5e7eb;border-radius:4px;background:#fafafa;page-break-inside:avoid}
+    .chart-title{font-size:9.5pt;font-weight:600;color:#374151;margin-bottom:10px;text-transform:uppercase;letter-spacing:.5px}
+    /* ── KPI CARDS ── */
+    .kpi-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:14px 0 22px}
+    .kpi-card{border:1px solid #d1d5db;border-radius:4px;padding:12px 14px;background:#f8fafc}
+    .kpi-label{font-size:8pt;color:#6b7280;font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px}
+    .kpi-value{font-size:13pt;font-weight:700;color:#1e3a5f}
+    /* ── SIGNATURES ── */
+    .signatures{margin-top:50px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:28px;text-align:center;page-break-inside:avoid}
+    .sign-block{}
+    .sign-line{border-top:1px solid #374151;margin-bottom:8px;margin-top:44px}
+    .sign-role{font-size:10pt;font-weight:700;color:#1e3a5f}
+    .sign-sub{font-size:8.5pt;color:#6b7280;margin-top:3px}
+    /* ── FOOTER ── */
+    .doc-footer{margin-top:32px;padding-top:10px;border-top:1px solid #d1d5db;display:flex;justify-content:space-between;font-size:8.5pt;color:#9ca3af}
+    @media print{
+      body{padding:0}
+      @page{margin:18mm 16mm;size:A4}
+      .chart-wrap,.kpi-grid,.signatures{page-break-inside:avoid}
+    }
+    @page{margin:18mm 16mm;size:A4}
+  </style>
+</head>
+<body style="padding:22px 28px">
+  <!-- DOCUMENT HEADER -->
+  <div class="doc-header">
+    <div>
+      <div class="org-name">Asociación / Zona Eclesiástica</div>
+      <div class="doc-title">TesorApp &mdash; Informe Oficial de Tesorería</div>
+      <div class="doc-subtitle">Sistema Financiero y Contabilidad Eclesiástica</div>
+    </div>
+    <div class="doc-meta">
+      <strong>${currentPeriodName}</strong>
+      Fecha de emisión: ${dateStr}<br/>
+      Generado por: TesorApp Copilot
+    </div>
+  </div>
+
+  <!-- BODY -->
+  <div class="content">${bodyHtml}</div>
+
+  <!-- SIGNATURE BLOCK -->
+  <div class="signatures">
+    <div class="sign-block">
+      <div class="sign-line"></div>
+      <div class="sign-role">Tesorero</div>
+      <div class="sign-sub">Firma y Sello Oficial</div>
+    </div>
+    <div class="sign-block">
+      <div class="sign-line"></div>
+      <div class="sign-role">Secretario</div>
+      <div class="sign-sub">Firma y Constancia</div>
+    </div>
+    <div class="sign-block">
+      <div class="sign-line"></div>
+      <div class="sign-role">Presbítero</div>
+      <div class="sign-sub">Visto Bueno y Aprobación</div>
+    </div>
+  </div>
+
+  <!-- FOOTER -->
+  <div class="doc-footer">
+    <span>Documento generado automáticamente por TesorApp Copilot &mdash; Uso oficial interno</span>
+    <span>Fecha: ${dateStr}</span>
+  </div>
+  <script>window.onload=function(){window.print();}</script>
+</body>
+</html>`);
     printWindow.document.close();
   };
 

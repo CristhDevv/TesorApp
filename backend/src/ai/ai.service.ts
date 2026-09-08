@@ -331,18 +331,16 @@ export class AiService {
       });
 
       return {
-        text: `🏛️ **INFORME OFICIAL DE CONSOLIDACIÓN: ${matchedFund.name.toUpperCase()}**\n` +
-          `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n` +
-          `📅 **Período Consultado:** **${periodRangeTitle}** (${targetPeriods.length} ${targetPeriods.length === 1 ? 'mes' : 'meses'})\n` +
-          `📋 **Alcance:** **Todas las Tablas** (${allTables.map((t) => t.nombre).join(' + ')})\n` +
-          `💰 **Total Recaudado en este Concepto:** **${formatCOP(matchedFund.total)}**\n\n` +
-          `### 📊 Evolución Mes a Mes (${matchedFund.name}):\n` +
-          `| Período | Aporte del Mes | % del Total Acumulado |\n` +
+        text: `## INFORME OFICIAL — ${matchedFund.name.toUpperCase()}\n\n` +
+          `**Período:** ${periodRangeTitle} (${targetPeriods.length} ${targetPeriods.length === 1 ? 'mes' : 'meses'})\n` +
+          `**Alcance:** Todas las Tablas (${allTables.map((t) => t.nombre).join(' + ')})\n` +
+          `**Total Acumulado en este Concepto:** ${formatCOP(matchedFund.total)}\n\n` +
+          `### 1. Evolución Mes a Mes — ${matchedFund.name}\n\n` +
+          `| Período | Aporte del Mes | Participación |\n` +
           `|:---|:---|:---|\n` +
           monthlyFundEvolution.map((mf) => `| ${mf.month} | ${formatCOP(mf.total)} | ${matchedFund.total > 0 ? ((mf.total / matchedFund.total) * 100).toFixed(1) : '0'}% |`).join('\n') +
           `\n| **TOTAL ACUMULADO** | **${formatCOP(matchedFund.total)}** | **100%** |\n\n` +
-          `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
-          `👉 [🖨️ Imprimir / Guardar este Informe en PDF](#action:print) | [👉 Ver Planilla Contable](#tab:sheet) | [👉 Ver Fondos y Gastos](#tab:gastos)`,
+          `[Imprimir / Guardar este Informe en PDF](#action:print) | [Ver Planilla Contable](#tab:sheet) | [Ver Fondos y Gastos](#tab:gastos)`,
         modelUsed: 'TesorApp Engine (Consolidado Multi-Tabla)',
       };
     }
@@ -356,7 +354,7 @@ export class AiService {
 
     if (matchedChurch && (qNorm.includes('iglesia') || qNorm.includes('sede') || qNorm.includes('congregacion') || qNorm.includes(normalizeText(matchedChurch.name)))) {
       const monthlyChurchEvolution = monthlySummaries.map((m) => {
-        const ch = Object.entries(m.churchTotals).find(([id, obj]) => normalizeText(obj.name) === normalizeText(matchedChurch.name));
+        const ch = Object.entries(m.churchTotals).find(([, obj]) => normalizeText(obj.name) === normalizeText(matchedChurch.name));
         return {
           month: m.periodName,
           total: ch ? ch[1].total : 0,
@@ -366,20 +364,17 @@ export class AiService {
       });
 
       return {
-        text: `🏛️ **INFORME HISTÓRICO DE CONGREGACIÓN**\n` +
-          `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n` +
-          `⛪ **Congregación:** **${matchedChurch.name}**\n` +
-          `📋 **Tabla / Planilla:** **${matchedChurch.tableName}**\n` +
-          `📅 **Rango de Períodos:** **${periodRangeTitle}** (${targetPeriods.length} ${targetPeriods.length === 1 ? 'mes' : 'meses'})\n` +
-          `💰 **Total Aportado Acumulado:** **${formatCOP(matchedChurch.total)}**\n` +
-          `📊 **Meses con Informe Diligenciado:** **${matchedChurch.monthsActive} de ${targetPeriods.length} meses**\n\n` +
-          `### 📋 Desglose Mes a Mes:\n` +
+        text: `## INFORME DE CONGREGACIÓN — ${matchedChurch.name.toUpperCase()}\n\n` +
+          `**Planilla / Tabla:** ${matchedChurch.tableName}\n` +
+          `**Rango de Períodos:** ${periodRangeTitle} (${targetPeriods.length} ${targetPeriods.length === 1 ? 'mes' : 'meses'})\n` +
+          `**Total Aportado Acumulado:** ${formatCOP(matchedChurch.total)}\n` +
+          `**Meses con Informe Diligenciado:** ${matchedChurch.monthsActive} de ${targetPeriods.length} meses\n\n` +
+          `### 1. Desglose Mes a Mes\n\n` +
           `| Mes | Estado | Total Aportado |\n` +
           `|:---|:---|:---|\n` +
-          monthlyChurchEvolution.map((me) => `| ${me.month} | ${me.hasValues ? '✅ Al día' : '⏳ Pendiente'} | ${formatCOP(me.total)} |`).join('\n') +
+          monthlyChurchEvolution.map((me) => `| ${me.month} | ${me.hasValues ? 'Al dia' : 'Pendiente'} | ${formatCOP(me.total)} |`).join('\n') +
           `\n| **TOTAL ACUMULADO** | | **${formatCOP(matchedChurch.total)}** |\n\n` +
-          `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
-          `👉 [🖨️ Imprimir / Guardar este Informe en PDF](#action:print) | [👉 Ver Planilla Contable](#tab:sheet)`,
+          `[Imprimir / Guardar este Informe en PDF](#action:print) | [Ver Planilla Contable](#tab:sheet)`,
         modelUsed: 'TesorApp Engine (Consolidado Multi-Tabla)',
       };
     }
@@ -412,48 +407,48 @@ export class AiService {
     const periodIngresosFondos = allIngresosFondos.filter((ing) => !ing.periodo_id || targetPeriodIds.has(ing.periodo_id));
     const totalIngresosFondosMonto = periodIngresosFondos.reduce((sum, ing) => sum + Number(ing.monto || 0), 0);
 
-    const fullReportText = `🏛️ **INFORME OFICIAL Y CONSOLIDADO DE TESORERÍA**\n` +
-      `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n` +
-      `📅 **Período de Análisis:** **${periodRangeTitle}** (${targetPeriods.length} ${targetPeriods.length === 1 ? 'mes' : 'meses auditados'})\n` +
-      `📋 **Tablas / Planillas Incluidas:** **${tableNamesList.join(' y ')}** (100% de la Zona)\n` +
-      `💰 **Recaudo Total Consolidado:** **${formatCOP(grandTotalRecaudo)}**\n` +
-      `📊 **Promedio Mensual:** **${formatCOP(targetPeriods.length > 0 ? grandTotalRecaudo / targetPeriods.length : 0)}**\n\n` +
-      `### 📈 1. Evolución Mensual del Recaudo por Tablas:\n\n` +
+    const fullReportText =
+      `## INFORME OFICIAL Y CONSOLIDADO DE TESORERÍA\n\n` +
+      `**Período de Análisis:** ${periodRangeTitle} (${targetPeriods.length} ${targetPeriods.length === 1 ? 'mes' : 'meses auditados'})\n` +
+      `**Planillas Incluidas:** ${tableNamesList.join(' y ')} — 100% de la Zona\n` +
+      `**Recaudo Total Consolidado:** ${formatCOP(grandTotalRecaudo)}\n` +
+      `**Promedio Mensual:** ${formatCOP(targetPeriods.length > 0 ? grandTotalRecaudo / targetPeriods.length : 0)}\n\n` +
+      `### 1. Evolución Mensual del Recaudo por Planillas\n\n` +
       `| Período | ${tableHeaders} | Total Consolidado | Cumplimiento |\n` +
       `|:---| ${tableSeparators} |:---|:---|\n` +
       evolutionTableRows.join('\n') +
       `\n| **TOTAL ACUMULADO** | ${tableFooterTotals} | **${formatCOP(grandTotalRecaudo)}** | **Consolidado** |\n\n` +
-      `### 🏛️ 2. Aportes por Tablas / Planillas:\n` +
+      `### 2. Aportes por Planillas\n\n` +
       allTables
         .map((t) => {
           const tot = globalTableTotals[t.id]?.total || 0;
           const share = grandTotalRecaudo > 0 ? ((tot / grandTotalRecaudo) * 100).toFixed(1) : '0';
           const churchCount = globalTableTotals[t.id]?.churchCount || 0;
-          return `• **Tabla ${t.nombre}** (${churchCount} congregaciones): **${formatCOP(tot)}** (*${share}% del recaudo total*)`;
+          return `**Tabla ${t.nombre}** (${churchCount} congregaciones): ${formatCOP(tot)} — ${share}% del recaudo total`;
         })
         .join('\n') +
-      `\n\n### 💼 3. Consolidado Acumulado por Conceptos y Fondos:\n` +
+      `\n\n### 3. Consolidado Acumulado por Conceptos y Fondos\n\n` +
       topFunds
         .map((f) => {
-          const share = grandTotalRecaudo > 0 ? `*(${((f.total / grandTotalRecaudo) * 100).toFixed(1)}%)*` : '';
-          return `• **${f.name}:** **${formatCOP(f.total)}** ${share}`;
+          const share = grandTotalRecaudo > 0 ? `(${((f.total / grandTotalRecaudo) * 100).toFixed(1)}%)` : '';
+          return `${f.name}: ${formatCOP(f.total)} ${share}`;
         })
         .join('\n') +
-      `\n\n### 💰 4. Movimientos y Ejecución de Fondos de Tesorería:\n` +
-      `• **Recaudo Total por Planilla:** ${formatCOP(grandTotalRecaudo)}\n` +
-      `• **Ingresos y Aportes Directos a Fondos:** +${formatCOP(totalIngresosFondosMonto)}\n` +
-      `• **Egresos y Gastos Ejecutados:** −${formatCOP(totalGastosMonto)} (${periodGastos.length} gastos registrados)\n` +
-      `• **Saldo Neto en Caja de Fondos:** **${formatCOP(grandTotalRecaudo + totalIngresosFondosMonto - totalGastosMonto)}**\n\n` +
-      `### 🏆 5. Principales Congregaciones Aportantes (${periodRangeTitle}):\n` +
+      `\n\n### 4. Movimientos y Ejecucion de Fondos de Tesoreria\n\n` +
+      `Recaudo Total por Planilla: ${formatCOP(grandTotalRecaudo)}\n` +
+      `Ingresos y Aportes Directos a Fondos: ${formatCOP(totalIngresosFondosMonto)}\n` +
+      `Egresos y Gastos Ejecutados: ${formatCOP(totalGastosMonto)} (${periodGastos.length} gastos registrados)\n` +
+      `**Saldo Neto en Caja de Fondos: ${formatCOP(grandTotalRecaudo + totalIngresosFondosMonto - totalGastosMonto)}**\n\n` +
+      `### 5. Principales Congregaciones Aportantes — ${periodRangeTitle}\n\n` +
       topChurchesGlobal
         .map((c, idx) => {
-          const share = grandTotalRecaudo > 0 ? `(${((c.total / grandTotalRecaudo) * 100).toFixed(1)}%)` : '';
-          return `${idx + 1}. **${c.name}** *(${c.tableName})*: **${formatCOP(c.total)}** ${share} | ${c.monthsActive}/${targetPeriods.length} meses al día`;
+          const share = grandTotalRecaudo > 0 ? `${((c.total / grandTotalRecaudo) * 100).toFixed(1)}%` : '';
+          return `${idx + 1}. ${c.name} (${c.tableName}): ${formatCOP(c.total)} — ${share} | ${c.monthsActive}/${targetPeriods.length} meses al dia`;
         })
         .join('\n') +
-      `\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
-      `*Certificación emitida con base en los registros contables oficiales del sistema TesorApp para las tablas ${tableNamesList.join(', ')}.*\n\n` +
-      `👉 [🖨️ Imprimir / Guardar este Informe en PDF](#action:print) | [👉 Ver Planilla Contable](#tab:sheet) | [👉 Ver Fondos y Gastos](#tab:gastos)`;
+      `\n\n---\n` +
+      `Certificacion emitida con base en los registros contables oficiales del sistema TesorApp para las planillas ${tableNamesList.join(', ')}.\n\n` +
+      `[Imprimir / Guardar este Informe en PDF](#action:print) | [Ver Planilla Contable](#tab:sheet) | [Ver Fondos y Gastos](#tab:gastos)`;
 
     return {
       text: fullReportText,
