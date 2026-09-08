@@ -10,6 +10,7 @@ interface CopilotContext {
   gridData: any;
   currentPeriod: any;
   iglesias?: any[];
+  tablas?: any[];
 }
 
 export interface ColumnFinancialData {
@@ -226,6 +227,9 @@ export async function askGrokAI(
       context: {
         periodName: ctx.currentPeriod?.nombre || ctx.gridData?.periodo_nombre || 'Periodo Actual',
         tableName: ctx.gridData?.tabla_nombre || 'Planilla General',
+        // Send ALL table IDs and names so backend can query every table
+        allTablaIds: (ctx.tablas || []).map((t: any) => t.id),
+        allTablaNames: (ctx.tablas || []).map((t: any) => t.nombre),
         rows: (ctx.gridData?.filas || []).map((r: any) => ({
           iglesia_id: r.iglesia_id,
           iglesia_nombre: r.iglesia_nombre || r.iglesia?.nombre || ctx.iglesias?.find((i: any) => i.id === r.iglesia_id)?.nombre,

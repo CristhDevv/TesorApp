@@ -4323,6 +4323,7 @@ export default function App() {
         gridData={gridData}
         currentPeriod={periodos.find((p) => p.id === selectedPeriodoId)}
         iglesias={iglesias}
+        tablas={tablas}
         onNavigate={(tab) => {
           setActiveTab(tab as any);
           setShowAICopilot(false);

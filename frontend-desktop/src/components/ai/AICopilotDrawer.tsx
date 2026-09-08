@@ -18,6 +18,7 @@ interface AICopilotDrawerProps {
   gridData: any;
   currentPeriod: any;
   iglesias?: any[];
+  tablas?: any[];
   onNavigate?: (tab: string) => void;
   onOpenModal?: (modalName: string) => void;
 }
@@ -37,6 +38,7 @@ export function AICopilotDrawer({
   gridData,
   currentPeriod,
   iglesias,
+  tablas,
   onNavigate,
   onOpenModal,
 }: AICopilotDrawerProps) {
@@ -48,22 +50,39 @@ export function AICopilotDrawer({
   const chatEndRef = useRef<HTMLDivElement>(null);
   const rows = gridData?.filas || [];
 
+  // Build a label that reflects ALL tables, not just the active one
+  const allTablesLabel = tablas && tablas.length > 1
+    ? `Todas las planillas (${tablas.map((t: any) => t.nombre).join(' + ')})`
+    : tablas && tablas.length === 1
+    ? tablas[0].nombre
+    : gridData?.tabla_nombre || 'Todas las planillas';
+
+  const totalSedes = tablas && tablas.length > 1
+    ? `${tablas.reduce((acc: number, t: any) => acc + (t.total_iglesias || t.iglesias?.length || 0), 0)} sedes en ${tablas.length} planillas`
+    : `${rows.length} sedes`;
+
   // Initialize with initial financial brief when opened
   useEffect(() => {
     if (isOpen && messages.length === 0) {
       const periodName = currentPeriod?.nombre || gridData?.periodo_nombre || 'Periodo Actual';
-      const { tableName, totalGeneral, activeChurches, totalChurches, fundsList } = extractFinancialData({
+      const { totalGeneral, activeChurches, totalChurches, fundsList } = extractFinancialData({
         gridData,
         currentPeriod,
         iglesias,
       });
 
+      const tablasDesc = tablas && tablas.length > 1
+        ? `**${tablas.length} planillas consolidadas** (${tablas.map((t: any) => t.nombre).join(', ')})`
+        : `**${gridData?.tabla_nombre || 'Planilla General'}**`;
+
       const initialBrief = `🏛️ **¡Paz y bendiciones! Soy TesorApp Copilot**, tu asesor financiero y tutor contable.
 
-He analizado los registros de **${tableName}** (${periodName}):
-• **Recaudo Total:** **${formatCOP(totalGeneral)}**
+He analizado los registros de ${tablasDesc} para **${periodName}**:
+• **Recaudo Visible en Pantalla:** **${formatCOP(totalGeneral)}**
 • **Reportes al día:** **${activeChurches} de ${totalChurches} congregaciones**
 ${fundsList.length > 0 ? `• **Fondos Registrados:** ${fundsList.slice(0, 3).map((f) => `${f.name} (${formatCOP(f.total)})`).join(', ')}` : ''}
+
+> 💡 *Para informes consolidados de **TODAS las planillas** y **rangos de meses**, pregúntame directamente. Ej: «informe de enero hasta agosto», «consolidado de todas las tablas», «primer semestre».*
 
 ### 💡 ¿En qué te puedo asesorar hoy?
 1. Consultar el total de cualquier fondo (ej. *«informe del fondo misionero»* o *«fondo pro arriendo»*).
@@ -83,7 +102,7 @@ ${fundsList.length > 0 ? `• **Fondos Registrados:** ${fundsList.slice(0, 3).ma
         },
       ]);
     }
-  }, [isOpen, gridData, currentPeriod, iglesias]);
+  }, [isOpen, gridData, currentPeriod, iglesias, tablas]);
 
   // Scroll to bottom on message update
   useEffect(() => {
@@ -114,6 +133,7 @@ ${fundsList.length > 0 ? `• **Fondos Registrados:** ${fundsList.slice(0, 3).ma
           gridData,
           currentPeriod,
           iglesias,
+          tablas,
         }
       );
 
@@ -484,15 +504,15 @@ ${fundsList.length > 0 ? `• **Fondos Registrados:** ${fundsList.slice(0, 3).ma
         {/* Quick Context Bar */}
         <div className="px-4 py-2 bg-slate-100 dark:bg-slate-950 border-b border-slate-200 dark:border-slate-800 text-[11px] text-slate-600 dark:text-slate-400 flex items-center justify-between gap-2">
           <div className="flex items-center gap-1.5 min-w-0">
-            <span className="font-semibold text-slate-700 dark:text-slate-300 shrink-0">Tabla:</span>
-            <span className="bg-white dark:bg-slate-900 px-2 py-0.5 rounded border border-slate-200 dark:border-slate-700 font-bold text-indigo-700 dark:text-indigo-300 truncate max-w-[130px]" title={gridData?.tabla_nombre}>
-              {gridData?.tabla_nombre || 'Planilla'}
+            <span className="font-semibold text-slate-700 dark:text-slate-300 shrink-0">Alcance:</span>
+            <span className="bg-emerald-50 dark:bg-emerald-900/30 px-2 py-0.5 rounded border border-emerald-200 dark:border-emerald-700 font-bold text-emerald-700 dark:text-emerald-300 truncate max-w-[160px]" title={allTablesLabel}>
+              {allTablesLabel}
             </span>
           </div>
           <div className="flex items-center gap-1.5 shrink-0 text-slate-500 dark:text-slate-400 font-mono text-[10px]">
             <span>{currentPeriod?.nombre || gridData?.periodo_nombre || 'Actual'}</span>
             <span>•</span>
-            <span>{rows.length} sedes</span>
+            <span>{totalSedes}</span>
           </div>
         </div>
 
