@@ -4,13 +4,15 @@ import {
   Printer, 
   Share2, 
   FileText,
-  Download
+  Download,
+  Receipt
 } from 'lucide-react';
 import { formatCOP } from '../../utils/formatters';
 import { generateVoucherPDFBlob } from '../../utils/voucherPdfGenerator';
 
 export interface GastoVoucherData {
   id: string;
+  tipo?: 'egreso' | 'ingreso';
   descripcion: string;
   monto: number;
   fecha: string;
@@ -18,6 +20,7 @@ export interface GastoVoucherData {
   periodo_nombre?: string;
   creado_por_nombre?: string;
   beneficiario?: string;
+  observacion?: string;
 }
 
 interface GastoVoucherModalProps {
@@ -95,7 +98,15 @@ export function GastoVoucherModal({ isOpen, onClose, gasto }: GastoVoucherModalP
 
   if (!isOpen || !gasto) return null;
 
-  const voucherNumber = `CE-${new Date(gasto.fecha || Date.now()).getFullYear()}-${(gasto.id || '0000').slice(0, 6).toUpperCase()}`;
+  const isIngreso = gasto.tipo === 'ingreso';
+  const prefix = isIngreso ? 'CI' : 'CE';
+  const voucherTitle = isIngreso ? 'COMPROBANTE DE INGRESO' : 'COMPROBANTE DE EGRESO';
+  const voucherSubTitle = isIngreso ? 'Recibo Oficial de Caja / Aporte' : 'Sistema Contable & Tesorería';
+  const valorLabel = isIngreso ? 'Valor Recibido / Ingresado' : 'Valor Pagado / Deducido';
+  const conceptoLabel = isIngreso ? 'Por Concepto de Ingreso / Aporte' : 'Por Concepto de';
+  const authLabel = isIngreso ? 'Recibido y Contabilizado por' : 'Autorizado y Expedido por';
+
+  const voucherNumber = `${prefix}-${new Date(gasto.fecha || Date.now()).getFullYear()}-${(gasto.id || '0000').slice(0, 6).toUpperCase()}`;
   const montoLetras = numeroALetras(gasto.monto);
   const fechaFormateada = new Date(gasto.fecha).toLocaleDateString('es-CO', {
     day: '2-digit',
@@ -114,7 +125,7 @@ export function GastoVoucherModal({ isOpen, onClose, gasto }: GastoVoucherModalP
       <!DOCTYPE html>
       <html>
         <head>
-          <title>Comprobante de Egreso ${voucherNumber}</title>
+          <title>${voucherTitle} ${voucherNumber}</title>
           <style>
             * { box-sizing: border-box; margin: 0; padding: 0; }
             body {
@@ -229,10 +240,10 @@ export function GastoVoucherModal({ isOpen, onClose, gasto }: GastoVoucherModalP
               <tr>
                 <td>
                   <div class="title-main">TESORAPP — GESTIÓN FINANCIERA</div>
-                  <div class="title-sub">Sistema Contable &amp; Tesorería</div>
+                  <div class="title-sub">${voucherSubTitle}</div>
                 </td>
                 <td class="num-box">
-                  <div class="num-title">COMPROBANTE DE EGRESO</div>
+                  <div class="num-title">${voucherTitle}</div>
                   <div class="num-code">${voucherNumber}</div>
                 </td>
               </tr>
@@ -249,9 +260,17 @@ export function GastoVoucherModal({ isOpen, onClose, gasto }: GastoVoucherModalP
                   <span class="cell-value">${gasto.periodo_nombre || 'Período Actual'}</span>
                 </td>
               </tr>
+              ${gasto.campo_fondo_nombre ? `
               <tr>
                 <td colspan="2">
-                  <span class="cell-label">Valor Pagado / Deducido</span>
+                  <span class="cell-label">Fondo / Cuenta</span>
+                  <span class="cell-value">${gasto.campo_fondo_nombre}</span>
+                </td>
+              </tr>
+              ` : ''}
+              <tr>
+                <td colspan="2">
+                  <span class="cell-label">${valorLabel}</span>
                   <span class="cell-amount">${formatCOP(gasto.monto)} COP</span>
                 </td>
               </tr>
@@ -263,14 +282,22 @@ export function GastoVoucherModal({ isOpen, onClose, gasto }: GastoVoucherModalP
               </tr>
               <tr>
                 <td colspan="2">
-                  <span class="cell-label">Por Concepto de</span>
+                  <span class="cell-label">${conceptoLabel}</span>
                   <span class="cell-value" style="font-size: 13px;">${gasto.descripcion}</span>
                 </td>
               </tr>
+              ${gasto.observacion ? `
+              <tr>
+                <td colspan="2">
+                  <span class="cell-label">Observaciones / Detalles</span>
+                  <span class="cell-value" style="font-size: 12px; font-weight: normal; color: #4b5563;">${gasto.observacion}</span>
+                </td>
+              </tr>
+              ` : ''}
             </table>
 
             <div class="auth-box">
-              <span class="cell-label">Autorizado y Expedido por</span>
+              <span class="cell-label">${authLabel}</span>
               <div class="cell-value" style="font-size: 13px;">
                 ${gasto.creado_por_nombre || 'Tesorero'} — Tesorería Zona 52
               </div>
@@ -298,12 +325,15 @@ export function GastoVoucherModal({ isOpen, onClose, gasto }: GastoVoucherModalP
   const handleDownloadPDF = () => {
     const pdfBlob = generateVoucherPDFBlob({
       voucherNumber,
+      tipo: gasto.tipo,
       monto: gasto.monto,
       montoLetras,
       descripcion: gasto.descripcion,
       fecha: gasto.fecha,
       periodoNombre: gasto.periodo_nombre,
       creadoPorNombre: gasto.creado_por_nombre,
+      fondoNombre: gasto.campo_fondo_nombre,
+      observacion: gasto.observacion,
     });
     const url = URL.createObjectURL(pdfBlob);
     const a = document.createElement('a');
@@ -319,12 +349,15 @@ export function GastoVoucherModal({ isOpen, onClose, gasto }: GastoVoucherModalP
     const fileName = `Comprobante_${voucherNumber}.pdf`;
     const pdfBlob = generateVoucherPDFBlob({
       voucherNumber,
+      tipo: gasto.tipo,
       monto: gasto.monto,
       montoLetras,
       descripcion: gasto.descripcion,
       fecha: gasto.fecha,
       periodoNombre: gasto.periodo_nombre,
       creadoPorNombre: gasto.creado_por_nombre,
+      fondoNombre: gasto.campo_fondo_nombre,
+      observacion: gasto.observacion,
     });
     const pdfFile = new File([pdfBlob], fileName, { type: 'application/pdf' });
 
@@ -334,8 +367,10 @@ export function GastoVoucherModal({ isOpen, onClose, gasto }: GastoVoucherModalP
     if (isMobileDevice && navigator.canShare && navigator.canShare({ files: [pdfFile] })) {
       try {
         await navigator.share({
-          title: `Comprobante de Egreso ${voucherNumber}`,
-          text: `🏛️ *COMPROBANTE DE EGRESO - TESORERÍA ZONA 52*\n📄 *No:* ${voucherNumber}\n💰 *Monto:* ${formatCOP(gasto.monto)} COP\n📝 *Concepto:* ${gasto.descripcion}`,
+          title: `${voucherTitle} ${voucherNumber}`,
+          text: isIngreso
+            ? `🏛️ *COMPROBANTE DE INGRESO - TESORERÍA ZONA 52*\n📄 *No:* ${voucherNumber}\n💰 *Monto Recibido:* ${formatCOP(gasto.monto)} COP\n🏦 *Fondo:* ${gasto.campo_fondo_nombre || 'Tesorería'}\n📝 *Concepto:* ${gasto.descripcion}`
+            : `🏛️ *COMPROBANTE DE EGRESO - TESORERÍA ZONA 52*\n📄 *No:* ${voucherNumber}\n💰 *Monto Pagado:* ${formatCOP(gasto.monto)} COP\n📝 *Concepto:* ${gasto.descripcion}`,
           files: [pdfFile],
         });
         return;
@@ -349,16 +384,30 @@ export function GastoVoucherModal({ isOpen, onClose, gasto }: GastoVoucherModalP
     // On PC / Desktop: Download PDF instantly & open WhatsApp Web
     handleDownloadPDF();
 
-    const text = `*COMPROBANTE DE EGRESO — TESORERÍA ZONA 52*\n` +
-      `----------------------------------------\n` +
-      `• *No. Comprobante:* ${voucherNumber}\n` +
-      `• *Fecha:* ${fechaFormateada}\n` +
-      `• *Concepto:* ${gasto.descripcion}\n` +
-      `• *Monto:* ${formatCOP(gasto.monto)} COP\n` +
-      `• *Son:* ${montoLetras}\n` +
-      `• *Autorizado por:* ${gasto.creado_por_nombre || 'Tesorero'} — Tesorería Zona 52\n` +
-      `----------------------------------------\n` +
-      `_Documento oficial generado por TesorApp_`;
+    const text = isIngreso
+      ? `*COMPROBANTE DE INGRESO / RECIBO DE CAJA — TESORERÍA ZONA 52*\n` +
+        `----------------------------------------\n` +
+        `• *No. Comprobante:* ${voucherNumber}\n` +
+        `• *Fecha:* ${fechaFormateada}\n` +
+        `• *Fondo Destino:* ${gasto.campo_fondo_nombre || 'Fondo de Tesorería'}\n` +
+        `• *Concepto:* ${gasto.descripcion}\n` +
+        (gasto.observacion ? `• *Observaciones:* ${gasto.observacion}\n` : '') +
+        `• *Monto Recibido:* ${formatCOP(gasto.monto)} COP\n` +
+        `• *Son:* ${montoLetras}\n` +
+        `• *Recibido por:* ${gasto.creado_por_nombre || 'Tesorero'} — Tesorería Zona 52\n` +
+        `----------------------------------------\n` +
+        `_Documento oficial generado por TesorApp_`
+      : `*COMPROBANTE DE EGRESO — TESORERÍA ZONA 52*\n` +
+        `----------------------------------------\n` +
+        `• *No. Comprobante:* ${voucherNumber}\n` +
+        `• *Fecha:* ${fechaFormateada}\n` +
+        (gasto.campo_fondo_nombre ? `• *Fondo / Origen:* ${gasto.campo_fondo_nombre}\n` : '') +
+        `• *Concepto:* ${gasto.descripcion}\n` +
+        `• *Monto Pagado:* ${formatCOP(gasto.monto)} COP\n` +
+        `• *Son:* ${montoLetras}\n` +
+        `• *Autorizado por:* ${gasto.creado_por_nombre || 'Tesorero'} — Tesorería Zona 52\n` +
+        `----------------------------------------\n` +
+        `_Documento oficial generado por TesorApp_`;
 
     const encoded = encodeURIComponent(text);
     window.open(`https://wa.me/?text=${encoded}`, '_blank');
@@ -368,10 +417,16 @@ export function GastoVoucherModal({ isOpen, onClose, gasto }: GastoVoucherModalP
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4 animate-fade-in">
       <div className="bg-white w-full max-w-xl rounded-xl shadow-2xl border border-slate-300 overflow-hidden flex flex-col max-h-[92vh]">
         {/* Modal Top Bar */}
-        <div className="px-5 py-3.5 bg-slate-900 text-white flex items-center justify-between shrink-0">
+        <div className={`px-5 py-3.5 ${isIngreso ? 'bg-emerald-950' : 'bg-slate-900'} text-white flex items-center justify-between shrink-0`}>
           <div className="flex items-center gap-2">
-            <FileText className="w-4 h-4 text-slate-300" />
-            <h3 className="font-bold text-xs uppercase tracking-wider">Comprobante de Egreso</h3>
+            {isIngreso ? (
+              <Receipt className="w-4 h-4 text-emerald-300" />
+            ) : (
+              <FileText className="w-4 h-4 text-slate-300" />
+            )}
+            <h3 className="font-bold text-xs uppercase tracking-wider">
+              {isIngreso ? 'Comprobante de Ingreso / Recibo de Caja' : 'Comprobante de Egreso'}
+            </h3>
           </div>
 
           <div className="flex items-center gap-2">
@@ -425,13 +480,13 @@ export function GastoVoucherModal({ isOpen, onClose, gasto }: GastoVoucherModalP
                   TESORAPP — GESTIÓN FINANCIERA
                 </h1>
                 <p className="text-[11px] font-medium text-slate-600">
-                  Sistema Contable &amp; Tesorería
+                  {voucherSubTitle}
                 </p>
               </div>
 
               <div className="text-right">
-                <span className="text-[10px] font-extrabold uppercase text-slate-900 block tracking-wider">
-                  COMPROBANTE DE EGRESO
+                <span className={`text-[10px] font-extrabold uppercase block tracking-wider ${isIngreso ? 'text-emerald-900' : 'text-slate-900'}`}>
+                  {voucherTitle}
                 </span>
                 <span className="text-xs font-mono font-extrabold text-slate-900 block mt-0.5">
                   {voucherNumber}
@@ -456,9 +511,18 @@ export function GastoVoucherModal({ isOpen, onClose, gasto }: GastoVoucherModalP
                 </div>
               </div>
 
-              <div className="p-2.5 bg-slate-100/70">
-                <span className="text-[10px] uppercase font-bold text-slate-600 block mb-0.5">
-                  Valor Pagado / Deducido
+              {gasto.campo_fondo_nombre && (
+                <div className="p-2.5 bg-slate-50/50">
+                  <span className="text-[10px] uppercase font-bold text-slate-500 block mb-0.5">
+                    Fondo / Cuenta
+                  </span>
+                  <span className="font-bold text-slate-900">{gasto.campo_fondo_nombre}</span>
+                </div>
+              )}
+
+              <div className={`p-2.5 ${isIngreso ? 'bg-emerald-50/60' : 'bg-slate-100/70'}`}>
+                <span className={`text-[10px] uppercase font-bold block mb-0.5 ${isIngreso ? 'text-emerald-800' : 'text-slate-600'}`}>
+                  {valorLabel}
                 </span>
                 <span className="text-base font-mono font-extrabold text-slate-900">
                   {formatCOP(gasto.monto)} COP
@@ -476,18 +540,29 @@ export function GastoVoucherModal({ isOpen, onClose, gasto }: GastoVoucherModalP
 
               <div className="p-2.5">
                 <span className="text-[10px] uppercase font-bold text-slate-500 block mb-0.5">
-                  Por Concepto de
+                  {conceptoLabel}
                 </span>
                 <p className="font-bold text-slate-900 text-xs leading-relaxed">
                   {gasto.descripcion}
                 </p>
               </div>
+
+              {gasto.observacion && (
+                <div className="p-2.5 bg-slate-50/40">
+                  <span className="text-[10px] uppercase font-bold text-slate-500 block mb-0.5">
+                    Observaciones / Detalles
+                  </span>
+                  <p className="text-slate-700 text-xs leading-relaxed">
+                    {gasto.observacion}
+                  </p>
+                </div>
+              )}
             </div>
 
-            {/* Authorized By Box (NO signature lines, pure authorization) */}
+            {/* Authorized / Received By Box */}
             <div className="border border-slate-300 p-3 bg-slate-50/50 text-xs">
               <span className="text-[10px] uppercase font-bold text-slate-500 block mb-0.5">
-                Autorizado y Expedido por
+                {authLabel}
               </span>
               <div className="font-bold text-slate-900 text-xs">
                 {gasto.creado_por_nombre || 'Tesorero'} — Tesorería Zona 52

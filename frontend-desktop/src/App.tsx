@@ -870,6 +870,7 @@ export default function App() {
       const periodoObj = periodos.find((p: any) => p.id === (gastoModalData.periodo_id || selectedPeriodoId));
       setVoucherGasto({
         id: savedGastoId,
+        tipo: 'egreso',
         descripcion: gastoModalData.descripcion,
         monto: Number(gastoModalData.monto),
         fecha: gastoModalData.fecha,
@@ -1550,9 +1551,24 @@ export default function App() {
         const err = await res.json();
         throw new Error(err.message || 'Error al registrar ingreso en el fondo.');
       }
+      const savedIngreso = await res.json();
       triggerToast('Ingreso registrado exitosamente en el fondo.', 'success');
       setShowFondoIngresoModal(false);
       await fetchGastos();
+
+      // Automatically open income voucher modal so treasurer can share / print immediately
+      const fondoNombre = selectedFondoForIngreso?.campo_fondo_nombre || 'Fondo de Tesorería';
+      setVoucherGasto({
+        id: savedIngreso?.id || `ing_${Date.now()}`,
+        tipo: 'ingreso',
+        descripcion: data.descripcion,
+        observacion: data.observacion,
+        monto: Number(data.monto),
+        fecha: data.fecha,
+        campo_fondo_nombre: fondoNombre,
+        periodo_nombre: selectedPeriodObj?.nombre || 'Período Actual',
+        creado_por_nombre: user?.nombre_completo || 'Tesorería',
+      });
     } catch (err: any) {
       triggerToast(err.message, 'error');
     } finally {
@@ -3792,7 +3808,9 @@ export default function App() {
             onOpenVoucher={(mov) => {
               setVoucherGasto({
                 id: mov.id,
+                tipo: mov.tipo,
                 descripcion: mov.descripcion,
+                observacion: mov.observacion || undefined,
                 monto: Number(mov.monto),
                 fecha: mov.fecha,
                 campo_fondo_nombre: selectedFondoForMovimientos.campo_fondo_nombre,
@@ -3822,6 +3840,7 @@ export default function App() {
             onOpenVoucher={(g) => {
               setVoucherGasto({
                 id: g.id,
+                tipo: 'egreso',
                 descripcion: g.descripcion,
                 monto: Number(g.monto),
                 fecha: g.fecha,

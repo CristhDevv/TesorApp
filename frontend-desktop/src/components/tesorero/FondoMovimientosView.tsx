@@ -765,27 +765,52 @@ export const FondoMovimientosView: React.FC<FondoMovimientosViewProps> = ({
                           </>
                         )}
 
-                        {/* 2. INGRESO MANUAL: Eliminar */}
+                        {/* 2. INGRESO MANUAL: Voucher + Eliminar */}
                         {isIngreso && mov.es_manual !== false && (
-                          <button
-                            type="button"
-                            onClick={() => handleDeleteItem(mov)}
-                            disabled={deletingId === mov.id}
-                            title="Eliminar este ingreso manual"
-                            className="p-1 text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/60 rounded transition cursor-pointer"
-                          >
-                            <Trash2 className="w-3 h-3" />
-                          </button>
+                          <>
+                            {onOpenVoucher && (
+                              <button
+                                type="button"
+                                onClick={() => onOpenVoucher(mov)}
+                                title="Ver Comprobante de Ingreso / Recibo de Caja"
+                                className="p-1 text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/60 rounded transition cursor-pointer"
+                              >
+                                <Receipt className="w-3 h-3" />
+                              </button>
+                            )}
+
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteItem(mov)}
+                              disabled={deletingId === mov.id}
+                              title="Eliminar este ingreso manual"
+                              className="p-1 text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/60 rounded transition cursor-pointer"
+                            >
+                              <Trash2 className="w-3 h-3" />
+                            </button>
+                          </>
                         )}
 
-                        {/* 3. PLANILLA: Protegido */}
+                        {/* 3. PLANILLA: Voucher + Protegido */}
                         {isIngreso && mov.es_manual === false && (
-                          <span
-                            title="Recaudo mensual protegido proveniente de la planilla de iglesias"
-                            className="p-1 text-slate-300 dark:text-slate-600 cursor-default"
-                          >
-                            <Lock className="w-3 h-3" />
-                          </span>
+                          <>
+                            {onOpenVoucher && (
+                              <button
+                                type="button"
+                                onClick={() => onOpenVoucher(mov)}
+                                title="Ver Comprobante de Recaudo de Planilla"
+                                className="p-1 text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/60 rounded transition cursor-pointer"
+                              >
+                                <Receipt className="w-3 h-3" />
+                              </button>
+                            )}
+                            <span
+                              title="Recaudo mensual protegido proveniente de la planilla de iglesias"
+                              className="p-1 text-slate-300 dark:text-slate-600 cursor-default"
+                            >
+                              <Lock className="w-3 h-3" />
+                            </span>
+                          </>
                         )}
                       </div>
                     </td>
