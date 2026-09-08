@@ -45,12 +45,16 @@
       "destination": "https://backend-zeta-rouge-39.vercel.app/gastos/:path*"
     },
     {
-      "source": "/((?!assets/).*)",
-      "destination": "/index.html"
+      "source": "/ai/:path*",
+      "destination": "https://backend-zeta-rouge-39.vercel.app/ai/:path*"
     },
     {
       "source": "/informes/:path*",
       "destination": "https://backend-zeta-rouge-39.vercel.app/informes/:path*"
+    },
+    {
+      "source": "/((?!assets/).*)",
+      "destination": "/index.html"
     }
   ]
 }

@@ -233,12 +233,13 @@ export async function askGrokAI(
         })),
         columns: ctx.gridData?.columnas || [],
       },
-    }, { timeout: 10000 });
+    }, { timeout: 30000 });
 
     if (backendRes.data?.text) {
       return { text: backendRes.data.text, modelUsed: backendRes.data.modelUsed || '✨ Gemini Copilot' };
     }
-  } catch {
+  } catch (err) {
+    console.warn('Backend copilot error, falling back:', err);
     // Continue to direct API call or heuristic fallback
   }
 
