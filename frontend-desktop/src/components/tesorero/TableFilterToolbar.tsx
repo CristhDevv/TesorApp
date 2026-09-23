@@ -16,6 +16,8 @@ import { PeriodBadge } from '../common/PeriodBadge';
 interface TableFilterToolbarProps {
   // Tesorero mode
   isTesorero: boolean;
+  isSecretario?: boolean;
+  isPresbitero?: boolean;
   tablas: Tabla[];
   periodos: Periodo[];
   selectedTablaId: string;
@@ -54,6 +56,8 @@ interface TableFilterToolbarProps {
 
 export function TableFilterToolbar({
   isTesorero,
+  isSecretario = false,
+  isPresbitero = false,
   tablas,
   periodos,
   selectedTablaId,
@@ -107,7 +111,7 @@ export function TableFilterToolbar({
     <div className="min-h-[44px] bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 px-2.5 sm:px-3 py-1.5 flex flex-wrap items-center justify-between gap-y-1.5 gap-x-2 text-xs select-none shadow-2xs">
       {/* ─── LEFT SECTION: TABLE & PERIOD SELECTORS ─── */}
       <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap sm:flex-nowrap min-w-0">
-        {isTesorero ? (
+        {(isTesorero || isSecretario || isPresbitero) ? (
           <>
             {/* Table Selector */}
             <div className="flex items-center gap-1">
@@ -131,23 +135,27 @@ export function TableFilterToolbar({
                 <ChevronDown className="w-3 h-3 absolute right-1.5 top-2 text-slate-500 pointer-events-none" />
               </div>
 
-              <button
-                onClick={onOpenTableConfig}
-                disabled={!selectedTablaId || selectedTablaId === 'all'}
-                className="p-1 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 rounded border border-slate-300 dark:border-slate-700 transition disabled:opacity-40 shrink-0 cursor-pointer"
-                title={selectedTablaId === 'all' ? 'El consolidado general muestra todas las columnas activas' : 'Configurar columnas de la tabla activa'}
-              >
-                <Sliders className="w-3.5 h-3.5" />
-              </button>
+              {isTesorero && (
+                <>
+                  <button
+                    onClick={onOpenTableConfig}
+                    disabled={!selectedTablaId || selectedTablaId === 'all'}
+                    className="p-1 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 rounded border border-slate-300 dark:border-slate-700 transition disabled:opacity-40 shrink-0 cursor-pointer"
+                    title={selectedTablaId === 'all' ? 'El consolidado general muestra todas las columnas activas' : 'Configurar columnas de la tabla activa'}
+                  >
+                    <Sliders className="w-3.5 h-3.5" />
+                  </button>
 
-              <button
-                onClick={onNewTable}
-                className="px-1.5 sm:px-2 py-1 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-300 dark:border-slate-700 rounded font-semibold flex items-center gap-1 text-[10px] transition shrink-0 cursor-pointer"
-                title="Crear nueva tabla personalizada"
-              >
-                <Plus className="w-3 h-3" />
-                <span className="hidden sm:inline">Nueva</span>
-              </button>
+                  <button
+                    onClick={onNewTable}
+                    className="px-1.5 sm:px-2 py-1 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-300 dark:border-slate-700 rounded font-semibold flex items-center gap-1 text-[10px] transition shrink-0 cursor-pointer"
+                    title="Crear nueva tabla personalizada"
+                  >
+                    <Plus className="w-3 h-3" />
+                    <span className="hidden sm:inline">Nueva</span>
+                  </button>
+                </>
+              )}
             </div>
 
             <div className="hidden sm:block h-4 w-px bg-slate-200 dark:bg-slate-800 mx-0.5" />

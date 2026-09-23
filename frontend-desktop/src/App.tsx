@@ -2640,6 +2640,8 @@ export default function App() {
           {(isTesorero || isSecretario || isPresbitero) ? (
             <TableFilterToolbar
               isTesorero={isTesorero}
+              isSecretario={isSecretario}
+              isPresbitero={isPresbitero}
               tablas={tablas}
               periodos={periodos}
               selectedTablaId={selectedTablaId}
@@ -2865,25 +2867,27 @@ export default function App() {
                 />
               </div>
             </div>
-            <button
-              onClick={() => {
-                setChurchModalData({
-                  id: '',
-                  nombre: '',
-                  identificador_interno: '',
-                  estado: 'activa',
-                  nombre_pastor: '',
-                  direccion: '',
-                  codigo: '',
-                  telefono: '',
-                  correo: '',
-                });
-                setShowChurchModal(true);
-              }}
-              className="px-2.5 py-1 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded text-xs flex items-center gap-1 shadow-xs cursor-pointer"
-            >
-              <Plus className="w-3 h-3" /> Registrar Iglesia
-            </button>
+            {isTesorero && (
+              <button
+                onClick={() => {
+                  setChurchModalData({
+                    id: '',
+                    nombre: '',
+                    identificador_interno: '',
+                    estado: 'activa',
+                    nombre_pastor: '',
+                    direccion: '',
+                    codigo: '',
+                    telefono: '',
+                    correo: '',
+                  });
+                  setShowChurchModal(true);
+                }}
+                className="px-2.5 py-1 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded text-xs flex items-center gap-1 shadow-xs cursor-pointer"
+              >
+                <Plus className="w-3 h-3" /> Registrar Iglesia
+              </button>
+            )}
           </div>
           <div className="flex-1 min-h-0 overflow-auto">
             <table className="w-full border-collapse text-left text-xs">
@@ -2918,7 +2922,7 @@ export default function App() {
                   ))}
                   <th className="px-2.5 py-2 border-r border-slate-200 dark:border-slate-700">Tabla</th>
                   <th className="px-2.5 py-2 border-r border-slate-200 dark:border-slate-700 text-center">Estado</th>
-                  <th className="px-3 py-2 text-right">Acciones</th>
+                  {isTesorero && <th className="px-3 py-2 text-right">Acciones</th>}
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
@@ -2950,56 +2954,58 @@ export default function App() {
                       <td className="px-2.5 py-2 text-center border-r border-slate-200 dark:border-slate-800">
                         <BadgeStatus variant={ig.estado} label={ig.estado} />
                       </td>
-                      <td className="px-3 py-2 text-right space-x-1">
-                        <button
-                          onClick={() => {
-                            setUserModalData({
-                              id: '',
-                              nombre_completo: ig.nombre_pastor || `Encargado ${ig.nombre}`,
-                              correo: ig.correo || '',
-                              contrasena: '',
-                              rol: 'iglesia',
-                              iglesia_id: ig.id,
-                              activo: true,
-                            });
-                            setShowUserModal(true);
-                          }}
-                          className="px-2 py-1 text-[11px] bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded font-semibold inline-flex items-center gap-1 border border-slate-300 dark:border-slate-700 cursor-pointer"
-                        >
-                          <UserPlus className="w-3 h-3" /> + Usuario
-                        </button>
-                        <button
-                          onClick={() => {
-                            setChurchModalData({
-                              id: ig.id,
-                              nombre: ig.nombre,
-                              identificador_interno: ig.identificador_interno || '',
-                              estado: ig.estado,
-                              nombre_pastor: ig.nombre_pastor || '',
-                              direccion: ig.direccion || '',
-                              codigo: ig.codigo || '',
-                              telefono: ig.telefono || '',
-                              correo: ig.correo || '',
-                            });
-                            setShowChurchModal(true);
-                          }}
-                          className="px-2 py-1 text-[11px] border border-slate-300 dark:border-slate-700 rounded hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 font-semibold cursor-pointer"
-                        >
-                          Editar
-                        </button>
-                        <button
-                          onClick={() => toggleChurchStatus(ig.id, ig.estado)}
-                          className="px-2 py-1 text-[11px] border border-slate-300 dark:border-slate-700 rounded hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 font-semibold cursor-pointer"
-                        >
-                          {ig.estado === 'activa' ? 'Desactivar' : 'Activar'}
-                        </button>
-                        <button
-                          onClick={() => deleteChurch(ig.id, ig.nombre)}
-                          className="px-2 py-1 text-[11px] border border-rose-200 dark:border-rose-800 rounded hover:bg-rose-50 dark:hover:bg-rose-950/40 text-rose-600 dark:text-rose-400 font-semibold cursor-pointer"
-                        >
-                          Eliminar
-                        </button>
-                      </td>
+                      {isTesorero && (
+                        <td className="px-3 py-2 text-right space-x-1">
+                          <button
+                            onClick={() => {
+                              setUserModalData({
+                                id: '',
+                                nombre_completo: ig.nombre_pastor || `Encargado ${ig.nombre}`,
+                                correo: ig.correo || '',
+                                contrasena: '',
+                                rol: 'iglesia',
+                                iglesia_id: ig.id,
+                                activo: true,
+                              });
+                              setShowUserModal(true);
+                            }}
+                            className="px-2 py-1 text-[11px] bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded font-semibold inline-flex items-center gap-1 border border-slate-300 dark:border-slate-700 cursor-pointer"
+                          >
+                            <UserPlus className="w-3 h-3" /> + Usuario
+                          </button>
+                          <button
+                            onClick={() => {
+                              setChurchModalData({
+                                id: ig.id,
+                                nombre: ig.nombre,
+                                identificador_interno: ig.identificador_interno || '',
+                                estado: ig.estado,
+                                nombre_pastor: ig.nombre_pastor || '',
+                                direccion: ig.direccion || '',
+                                codigo: ig.codigo || '',
+                                telefono: ig.telefono || '',
+                                correo: ig.correo || '',
+                              });
+                              setShowChurchModal(true);
+                            }}
+                            className="px-2 py-1 text-[11px] border border-slate-300 dark:border-slate-700 rounded hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 font-semibold cursor-pointer"
+                          >
+                            Editar
+                          </button>
+                          <button
+                            onClick={() => toggleChurchStatus(ig.id, ig.estado)}
+                            className="px-2 py-1 text-[11px] border border-slate-300 dark:border-slate-700 rounded hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 font-semibold cursor-pointer"
+                          >
+                            {ig.estado === 'activa' ? 'Desactivar' : 'Activar'}
+                          </button>
+                          <button
+                            onClick={() => deleteChurch(ig.id, ig.nombre)}
+                            className="px-2 py-1 text-[11px] border border-rose-200 dark:border-rose-800 rounded hover:bg-rose-50 dark:hover:bg-rose-950/40 text-rose-600 dark:text-rose-400 font-semibold cursor-pointer"
+                          >
+                            Eliminar
+                          </button>
+                        </td>
+                      )}
                     </tr>
                   );
                 })}
@@ -3053,7 +3059,7 @@ export default function App() {
               )}
             </div>
 
-            {camposSubView === 'catalog' && (
+            {isTesorero && camposSubView === 'catalog' && (
               <button
                 onClick={openFieldModalForNew}
                 className="px-2.5 py-1 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded text-xs flex items-center gap-1 shadow-xs cursor-pointer"
@@ -3106,7 +3112,7 @@ export default function App() {
                     </th>
                   ))}
                   <th className="px-2.5 py-2 border-r border-slate-200 dark:border-slate-700">Visibilidad</th>
-                  <th className="px-3 py-2 text-right">Acciones</th>
+                  {isTesorero && <th className="px-3 py-2 text-right">Acciones</th>}
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
@@ -3192,20 +3198,22 @@ export default function App() {
                           {isTesoreroOnly ? 'Solo Tesorero' : isIglesiaOnly ? 'Solo Iglesia' : 'Ambos'}
                         </span>
                       </td>
-                      <td className="px-3 py-2 text-right space-x-1">
-                        <button
-                          onClick={() => openFieldModalForEdit(field)}
-                          className="px-2 py-1 text-[11px] border border-slate-300 dark:border-slate-700 rounded hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 font-semibold cursor-pointer"
-                        >
-                          Editar
-                        </button>
-                        <button
-                          onClick={() => deleteField(field.id)}
-                          className="px-2 py-1 text-[11px] border border-rose-200 dark:border-rose-800 rounded hover:bg-rose-50 dark:hover:bg-rose-950/40 text-rose-600 dark:text-rose-400 font-semibold cursor-pointer"
-                        >
-                          Eliminar
-                        </button>
-                      </td>
+                      {isTesorero && (
+                        <td className="px-3 py-2 text-right space-x-1">
+                          <button
+                            onClick={() => openFieldModalForEdit(field)}
+                            className="px-2 py-1 text-[11px] border border-slate-300 dark:border-slate-700 rounded hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 font-semibold cursor-pointer"
+                          >
+                            Editar
+                          </button>
+                          <button
+                            onClick={() => deleteField(field.id)}
+                            className="px-2 py-1 text-[11px] border border-rose-200 dark:border-rose-800 rounded hover:bg-rose-50 dark:hover:bg-rose-950/40 text-rose-600 dark:text-rose-400 font-semibold cursor-pointer"
+                          >
+                            Eliminar
+                          </button>
+                        </td>
+                      )}
                     </tr>
                   );
                 })}
@@ -3798,6 +3806,7 @@ export default function App() {
           <FondoMovimientosView
             fondo={selectedFondoForMovimientos}
             fondosList={gastosResumen}
+            isTesorero={isTesorero}
             onSelectFondo={(f) => setSelectedFondoForMovimientos(f)}
             onBack={() => setSelectedFondoForMovimientos(null)}
             apiBase={API_BASE}

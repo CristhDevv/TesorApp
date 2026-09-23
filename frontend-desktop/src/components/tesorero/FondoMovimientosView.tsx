@@ -70,6 +70,7 @@ interface FondoMovimientosViewProps {
   onDeleteIngreso: (ingresoId: string) => Promise<void>;
   onEditGasto?: (gasto: any) => void;
   onDeleteGasto?: (gasto: any) => void;
+  isTesorero?: boolean;
 }
 
 export const FondoMovimientosView: React.FC<FondoMovimientosViewProps> = ({
@@ -86,6 +87,7 @@ export const FondoMovimientosView: React.FC<FondoMovimientosViewProps> = ({
   onDeleteIngreso,
   onEditGasto,
   onDeleteGasto,
+  isTesorero = false,
 }) => {
   const [data, setData] = useState<FondoMovimientosData | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
@@ -341,27 +343,31 @@ export const FondoMovimientosView: React.FC<FondoMovimientosViewProps> = ({
 
         {/* Action Buttons Toolbar */}
         <div className="flex items-center gap-1.5">
-          <button
-            type="button"
-            onClick={() => onOpenNewIngreso(fondo)}
-            className="flex items-center gap-1 px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-lg transition cursor-pointer active:scale-95"
-            title="Registrar un aporte monetario a este fondo"
-          >
-            <ArrowUpRight className="w-3.5 h-3.5 stroke-[2.5]" />
-            <span>+ Ingreso</span>
-          </button>
+          {isTesorero && (
+            <>
+              <button
+                type="button"
+                onClick={() => onOpenNewIngreso(fondo)}
+                className="flex items-center gap-1 px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-lg transition cursor-pointer active:scale-95"
+                title="Registrar un aporte monetario a este fondo"
+              >
+                <ArrowUpRight className="w-3.5 h-3.5 stroke-[2.5]" />
+                <span>+ Ingreso</span>
+              </button>
 
-          <button
-            type="button"
-            onClick={() => onOpenNewGasto(fondo)}
-            className="flex items-center gap-1 px-2.5 py-1 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-lg transition cursor-pointer active:scale-95"
-            title="Registrar un gasto contra este fondo"
-          >
-            <Plus className="w-3.5 h-3.5" />
-            <span>− Gasto</span>
-          </button>
+              <button
+                type="button"
+                onClick={() => onOpenNewGasto(fondo)}
+                className="flex items-center gap-1 px-2.5 py-1 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-lg transition cursor-pointer active:scale-95"
+                title="Registrar un gasto contra este fondo"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span>− Gasto</span>
+              </button>
 
-          <span className="text-slate-300 dark:text-slate-700">|</span>
+              <span className="text-slate-300 dark:text-slate-700">|</span>
+            </>
+          )}
 
           <button
             type="button"
@@ -730,7 +736,7 @@ export const FondoMovimientosView: React.FC<FondoMovimientosViewProps> = ({
                         {/* 1. GASTO (EGRESO): Editar, Voucher, Eliminar */}
                         {!isIngreso && (
                           <>
-                            {onEditGasto && (
+                            {isTesorero && onEditGasto && (
                               <button
                                 type="button"
                                 onClick={() => handleEditGasto(mov)}
@@ -752,7 +758,7 @@ export const FondoMovimientosView: React.FC<FondoMovimientosViewProps> = ({
                               </button>
                             )}
 
-                            {onDeleteGasto && (
+                            {isTesorero && onDeleteGasto && (
                               <button
                                 type="button"
                                 onClick={() => handleDeleteItem(mov)}
@@ -779,15 +785,17 @@ export const FondoMovimientosView: React.FC<FondoMovimientosViewProps> = ({
                               </button>
                             )}
 
-                            <button
-                              type="button"
-                              onClick={() => handleDeleteItem(mov)}
-                              disabled={deletingId === mov.id}
-                              title="Eliminar este ingreso manual"
-                              className="p-1 text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/60 rounded transition cursor-pointer"
-                            >
-                              <Trash2 className="w-3 h-3" />
-                            </button>
+                            {isTesorero && (
+                              <button
+                                type="button"
+                                onClick={() => handleDeleteItem(mov)}
+                                disabled={deletingId === mov.id}
+                                title="Eliminar este ingreso manual"
+                                className="p-1 text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/60 rounded transition cursor-pointer"
+                              >
+                                <Trash2 className="w-3 h-3" />
+                              </button>
+                            )}
                           </>
                         )}
 
