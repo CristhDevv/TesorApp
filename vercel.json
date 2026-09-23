@@ -2,6 +2,14 @@
   "outputDirectory": "frontend-desktop/dist",
   "rewrites": [
     {
+      "source": "/ping",
+      "destination": "https://backend-zeta-rouge-39.vercel.app/ping"
+    },
+    {
+      "source": "/health",
+      "destination": "https://backend-zeta-rouge-39.vercel.app/health"
+    },
+    {
       "source": "/auth",
       "destination": "https://backend-zeta-rouge-39.vercel.app/auth"
     },

@@ -1,0 +1,26 @@
+﻿name: Keepalive Supabase DB
+
+on:
+  schedule:
+    # Se ejecuta cada 3 días a las 06:00 AM UTC (evita la pausa de los 7 días)
+    - cron: '0 6 */3 * *'
+  workflow_dispatch: # Permite ejecutar manualmente desde la pestaña Actions en GitHub
+
+jobs:
+  keepalive:
+    name: Ping Supabase & Backend
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout del repositorio
+        uses: actions/checkout@v4
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Ejecutar script de actividad Keepalive
+        run: |
+          node scripts/keepalive.js

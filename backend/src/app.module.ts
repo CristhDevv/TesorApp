@@ -18,8 +18,12 @@ import { AiModule } from './ai/ai.module';
 import { GastosModule } from './gastos/gastos.module';
 import { InformesModule } from './informes/informes.module';
 
+import { PrismaService } from './prisma/prisma.service';
+
 @Controller()
 export class AppController {
+  constructor(private readonly prisma: PrismaService) {}
+
   @Get()
   root(@Res() res: Response) {
     res.send(`
@@ -46,6 +50,32 @@ export class AppController {
       </body>
       </html>
     `);
+  }
+
+  @Get('health')
+  async health() {
+    const start = Date.now();
+    await this.prisma.$queryRaw`SELECT 1`;
+    const latencyMs = Date.now() - start;
+    return {
+      status: 'ok',
+      database: 'connected',
+      latencyMs,
+      timestamp: new Date().toISOString(),
+    };
+  }
+
+  @Get('ping')
+  async ping() {
+    const start = Date.now();
+    await this.prisma.$queryRaw`SELECT 1`;
+    const latencyMs = Date.now() - start;
+    return {
+      status: 'pong',
+      database: 'active',
+      latencyMs,
+      timestamp: new Date().toISOString(),
+    };
   }
 }
 
