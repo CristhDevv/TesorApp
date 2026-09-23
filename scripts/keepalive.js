@@ -1,4 +1,4 @@
-﻿/**
+/**
  * TesorApp - Supabase & Backend Keep-Alive Script
  * 
  * Este script realiza consultas periódicas a los endpoints del Backend y de Supabase
@@ -10,20 +10,20 @@ const https = require('https');
 
 const TARGETS = [
   {
-    name: 'TesorApp Backend (/ping - Query SQL activo)',
+    name: 'TesorApp Backend Direct (/ping - Query SQL activo)',
     url: 'https://backend-zeta-rouge-39.vercel.app/ping',
   },
   {
-    name: 'TesorApp Backend (/health)',
+    name: 'TesorApp Backend Direct (/health - DB Check)',
     url: 'https://backend-zeta-rouge-39.vercel.app/health',
+  },
+  {
+    name: 'TesorApp Frontend Proxy (/ping)',
+    url: 'https://tesor-app-nine.vercel.app/ping',
   },
   {
     name: 'Supabase Auth Health API',
     url: 'https://pezfespirobgfluznmey.supabase.co/auth/v1/health',
-  },
-  {
-    name: 'Supabase REST Root API',
-    url: 'https://pezfespirobgfluznmey.supabase.co/rest/v1/',
   },
 ];
 

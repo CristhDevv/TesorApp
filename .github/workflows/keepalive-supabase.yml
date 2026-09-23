@@ -1,4 +1,4 @@
-﻿name: Keepalive Supabase DB
+name: Keepalive Supabase DB
 
 on:
   schedule:
@@ -19,7 +19,7 @@ jobs:
       - name: Configurar Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
 
       - name: Ejecutar script de actividad Keepalive
         run: |
