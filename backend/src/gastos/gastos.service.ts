@@ -138,26 +138,21 @@ export class GastosService {
       const saldoPeriodo = fondoPeriodo - gastosPeriodo;
 
       // Accumulated calculation:
-      const recordedAccum = Number(curVal?._sum.valor_acumulado ?? 0);
+      // For any treasury fund (column-based or manual), the true cumulative collection up to this active period
+      // is the sum of all monthly collections from planillas (colPriorSum) + direct fund deposits (manualAccum).
       const colPriorSum = priorSumMap.get(f.id) ?? 0;
       const manualAccum = accumIngresosMap.get(f.id) ?? 0;
-      
-      const calculatedAccum = colPriorSum + manualAccum;
       
       const isColumna = f.visible_para_tesorero !== false || f.visible_para_iglesia !== false;
       const isManual = !isColumna || (manualAccum > 0 && colPriorSum === 0);
 
-      const fondoAcumulado = f.es_acumulable || f.es_temporal 
-        ? (recordedAccum > 0 && isColumna && manualAccum === 0 ? recordedAccum : calculatedAccum) 
-        : (fondoPeriodo > 0 ? fondoPeriodo : calculatedAccum);
+      const totalFondo = colPriorSum + manualAccum;
+      const fondoAcumulado = totalFondo;
         
       const gastosAcumulados = accumGastosMap.get(f.id) || 0;
-      const saldoAcumulado = fondoAcumulado - gastosAcumulados;
-
-      // Effective totals: funds preserve accumulated money even when not active in current period planilla
-      const totalFondo = fondoAcumulado;
       const totalGastos = gastosAcumulados;
-      const saldoDisponible = saldoAcumulado;
+      const saldoDisponible = totalFondo - totalGastos;
+      const saldoAcumulado = saldoDisponible;
 
       return {
         campo_fondo_id: f.id,
