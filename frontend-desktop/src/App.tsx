@@ -1988,34 +1988,6 @@ export default function App() {
     return list;
   }, [gridData, gridSearch, onlyOverriddenFilter, gridSort]);
 
-  const totalIngresosPeriodo = useMemo(() => {
-    if (!gridData?.filas || !gridData?.columnas) return 0;
-    const ingresoColIds = new Set(
-      gridData.columnas
-        .filter((c: any) => {
-          const sec = (c.seccion || c.seccion_iglesia || '').toLowerCase();
-          const name = (c.nombre || '').toLowerCase();
-          const slug = (c.slug || '').toLowerCase();
-          return sec === 'ingresos' || name.includes('diezmo') || name.includes('ofrenda') || slug.includes('diezmo') || slug.includes('ofrenda');
-        })
-        .map((c: any) => c.id)
-    );
-
-    let total = 0;
-    gridData.filas.forEach((row: any) => {
-      const vals = Array.isArray(row.valores) ? row.valores : [];
-      vals.forEach((v: any) => {
-        if (ingresoColIds.has(v.campo_id)) {
-          const isCalc = v.modo_calculo === 'calculado';
-          const isOverridden = isCalc && v.valor_manual !== null && v.valor_manual !== undefined;
-          const num = Number(isCalc ? (isOverridden ? v.valor_manual : (v.valor_calculado || 0)) : (v.valor_manual ?? 0));
-          if (!isNaN(num)) total += num;
-        }
-      });
-    });
-    return total;
-  }, [gridData]);
-
   const sortedIglesias = useMemo(() => {
     const list = iglesias.filter(
       (i) =>
@@ -2142,6 +2114,10 @@ export default function App() {
     });
     return totals;
   }, [gridData, sortedAndFilteredGridRows]);
+
+  const totalIngresosPeriodo = useMemo(() => {
+    return Object.values(columnTotals).reduce((sum, v) => sum + (Number(v) || 0), 0);
+  }, [columnTotals]);
 
   const chartData = useMemo(() => {
     if (!gridData?.filas || gridData.filas.length === 0) return null;

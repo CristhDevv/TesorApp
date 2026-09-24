@@ -79,6 +79,13 @@ export class ReportesService {
 
     const activeChurches = await this.prisma.iglesia.findMany({
       where: { estado: 'activa' },
+      include: {
+        tabla: {
+          include: {
+            campos: true,
+          },
+        },
+      },
       orderBy: { nombre: 'asc' },
     });
 
@@ -92,7 +99,13 @@ export class ReportesService {
     const valuesMap = new Map(values.map((v) => [v.iglesia_id, v]));
 
     return activeChurches.map((c) => {
-      const valRec = valuesMap.get(c.id);
+      const churchTableCampos = c.tabla?.campos;
+      const churchAllowedFieldIds = Array.isArray(churchTableCampos) && churchTableCampos.length > 0
+        ? new Set(churchTableCampos.map((ct: any) => ct.campo_id))
+        : null;
+      const isFieldInChurchTable = !churchAllowedFieldIds || churchAllowedFieldIds.has(campoId);
+
+      const valRec = isFieldInChurchTable ? valuesMap.get(c.id) : null;
       return {
         iglesia_id: c.id,
         iglesia_nombre: c.nombre,
@@ -116,19 +129,42 @@ export class ReportesService {
     let churches: any[] = [];
     if (userRol === 'iglesia') {
       if (!userIglesiaId) throw new ForbiddenException('No tiene una iglesia asignada');
-      const iglesia = await this.prisma.iglesia.findUnique({ where: { id: userIglesiaId } });
+      const iglesia = await this.prisma.iglesia.findUnique({
+        where: { id: userIglesiaId },
+        include: {
+          tabla: {
+            include: {
+              campos: true,
+            },
+          },
+        },
+      });
       if (!iglesia) throw new NotFoundException('Iglesia no encontrada');
       churches = [iglesia];
     } else {
       if (!isAllTables) {
         churches = await this.prisma.iglesia.findMany({
           where: { estado: 'activa', tabla_id: tablaId },
+          include: {
+            tabla: {
+              include: {
+                campos: true,
+              },
+            },
+          },
           orderBy: { nombre: 'asc' },
         });
       }
       if (churches.length === 0) {
         churches = await this.prisma.iglesia.findMany({
           where: { estado: 'activa' },
+          include: {
+            tabla: {
+              include: {
+                campos: true,
+              },
+            },
+          },
           orderBy: { nombre: 'asc' },
         });
       }
@@ -246,9 +282,15 @@ export class ReportesService {
         row.getCell(1).value = i + 1;
         row.getCell(2).value = church.nombre;
 
+        const churchTableCampos = church.tabla?.campos;
+        const churchAllowedFieldIds = Array.isArray(churchTableCampos) && churchTableCampos.length > 0
+          ? new Set(churchTableCampos.map((ct: any) => ct.campo_id))
+          : null;
+
         for (let fIdx = 0; fIdx < displayFields.length; fIdx++) {
           const field = displayFields[fIdx];
-          const valRec = vMap.get(field.id);
+          const isFieldInChurchTable = !churchAllowedFieldIds || churchAllowedFieldIds.has(field.id);
+          const valRec = isFieldInChurchTable ? vMap.get(field.id) : null;
           const valNum = valRec ? Number(valRec.valor_manual ?? valRec.valor_calculado ?? 0) : 0;
           columnSums[fIdx] += valNum;
 
@@ -358,11 +400,18 @@ export class ReportesService {
       }
 
       const valuesMap = valuesMapByChurch.get(church.id) || new Map();
+      const churchTableCampos = church.tabla?.campos;
+      const churchAllowedFieldIds = Array.isArray(churchTableCampos) && churchTableCampos.length > 0
+        ? new Set(churchTableCampos.map((ct: any) => ct.campo_id))
+        : null;
 
       let currentRow = 8;
       for (const field of displayFields) {
         if (!field.aplica_a_todas_las_iglesias) {
           if (!relationsSet.has(`${field.id}_${church.id}`)) continue;
+        }
+        if (churchAllowedFieldIds && !churchAllowedFieldIds.has(field.id)) {
+          continue;
         }
 
         const valRec = valuesMap.get(field.id);

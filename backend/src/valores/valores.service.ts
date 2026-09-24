@@ -821,6 +821,13 @@ export class ValoresService {
     if (isAllTables) {
       activeChurches = await this.prisma.iglesia.findMany({
         where: { estado: 'activa' },
+        include: {
+          tabla: {
+            include: {
+              campos: true,
+            },
+          },
+        },
         orderBy: [{ orden: 'asc' }, { nombre: 'asc' }],
       });
       tabla = {
@@ -835,6 +842,13 @@ export class ValoresService {
         include: {
           iglesias: {
             orderBy: [{ orden: 'asc' }, { nombre: 'asc' }],
+            include: {
+              tabla: {
+                include: {
+                  campos: true,
+                },
+              },
+            },
           },
           campos: {
             orderBy: { orden: 'asc' },
@@ -856,6 +870,13 @@ export class ValoresService {
       if (activeChurches.length === 0 && userIglesiaId) {
         const myChurch = await this.prisma.iglesia.findUnique({
           where: { id: userIglesiaId },
+          include: {
+            tabla: {
+              include: {
+                campos: true,
+              },
+            },
+          },
         });
         if (myChurch) {
           activeChurches = [myChurch];
@@ -1006,15 +1027,23 @@ export class ValoresService {
       const inf = informeMap.get(church.id);
       const isReportLockedForChurch = userRol === 'iglesia' && inf && inf.estado !== EstadoInforme.borrador;
 
+      const churchTableCampos = church.tabla?.campos;
+      const churchAllowedFieldIds = Array.isArray(churchTableCampos) && churchTableCampos.length > 0
+        ? new Set(churchTableCampos.map((ct: any) => ct.campo_id))
+        : null;
+
       const rowValues = fields.map((f) => {
+        const isFieldInChurchTable = !churchAllowedFieldIds || churchAllowedFieldIds.has(f.id);
+
         const key = `${church.id}_${f.id}`;
-        const valRec = valuesMap.get(key);
+        const valRec = isFieldInChurchTable ? valuesMap.get(key) : null;
         const hasPerm = permissionsMap.has(key)
           ? permissionsMap.get(key)
           : (f.modo_calculo === ModoCalculo.manual && f.visible_para_iglesia !== false);
 
         const isPeriodOpen = periodo.estado === EstadoPeriodo.abierto;
         const isEditable =
+          isFieldInChurchTable &&
           f.modo_calculo === ModoCalculo.manual &&
           isPeriodOpen &&
           userRol !== 'presbitero' &&
@@ -1025,13 +1054,13 @@ export class ValoresService {
           campo_id: f.id,
           slug: f.slug,
           modo_calculo: f.modo_calculo,
-          valor_manual: valRec && valRec.valor_manual !== null && valRec.valor_manual !== undefined
+          valor_manual: isFieldInChurchTable && valRec && valRec.valor_manual !== null && valRec.valor_manual !== undefined
             ? Number(valRec.valor_manual)
-            : (f.modo_calculo === ModoCalculo.manual ? 0 : null),
-          valor_calculado: valRec ? Number(valRec.valor_calculado ?? 0) : 0,
-          valor_acumulado: valRec ? Number(valRec.valor_acumulado ?? 0) : 0,
-          actualizado_por: valRec ? valRec.actualizado_por : null,
-          actualizado_en: valRec ? valRec.actualizado_en : null,
+            : (isFieldInChurchTable && f.modo_calculo === ModoCalculo.manual ? 0 : null),
+          valor_calculado: isFieldInChurchTable && valRec ? Number(valRec.valor_calculado ?? 0) : 0,
+          valor_acumulado: isFieldInChurchTable && valRec ? Number(valRec.valor_acumulado ?? 0) : 0,
+          actualizado_por: isFieldInChurchTable && valRec ? valRec.actualizado_por : null,
+          actualizado_en: isFieldInChurchTable && valRec ? valRec.actualizado_en : null,
           editable: isEditable,
         };
       });
