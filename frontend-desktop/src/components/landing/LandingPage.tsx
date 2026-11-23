@@ -232,7 +232,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
               type="button"
               onClick={() => setMobileMenuOpen((prev) => !prev)}
               className="md:hidden p-2 rounded-xl border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-200 cursor-pointer"
-              aria-label="Abrir menú"
+              aria-label={mobileMenuOpen ? 'Cerrar menú' : 'Abrir menú'}
             >
               {mobileMenuOpen ? <X className="w-4 h-4" /> : <Menu className="w-4 h-4" />}
             </button>
@@ -384,7 +384,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                 {/* Mockup Content */}
                 <div className="p-5 space-y-4">
                   {/* KPI Cards */}
-                  <div className="grid grid-cols-3 gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 sm:gap-3">
                     <div className="p-3 rounded-xl bg-emerald-50/80 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/70">
                       <span className="text-[10px] font-bold uppercase text-emerald-700 dark:text-emerald-400 block">
                         Ingresos Período
@@ -808,6 +808,8 @@ export const LandingPage: React.FC<LandingPageProps> = ({
           onClick={() => setShowLoginModal(false)}
         >
           <div
+            role="dialog"
+            aria-modal="true"
             className="max-w-sm w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-2xl space-y-5 relative"
             onClick={(e) => e.stopPropagation()}
           >
