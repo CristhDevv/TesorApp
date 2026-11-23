@@ -2,6 +2,7 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { ValidationPipe, Logger } from '@nestjs/common';
 import { AllExceptionsFilter } from './common/all-exceptions.filter';
+import { applySecurityMiddleware } from './common/security.config';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -9,17 +10,8 @@ async function bootstrap() {
   // Global Exception Filter for user-friendly Spanish errors
   app.useGlobalFilters(new AllExceptionsFilter());
 
-  // Enable CORS for desktop and mobile frontends
-  app.enableCors({
-    origin: (origin, callback) => {
-      // Allow requests with no origin (like mobile apps, curl, or same-origin)
-      if (!origin) return callback(null, true);
-      // Allow localhost, 127.0.0.1, or any local network / production domains
-      return callback(null, true);
-    },
-    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
-    credentials: true,
-  });
+  // Security headers, body limits, and strict CORS allowlist
+  applySecurityMiddleware(app);
 
   // Global validation pipes
   app.useGlobalPipes(

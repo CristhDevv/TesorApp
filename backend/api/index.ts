@@ -17,18 +17,21 @@ try {
   AllExceptionsFilter = require('../common/all-exceptions.filter').AllExceptionsFilter;
 }
 
+let applySecurityMiddleware: any;
+try {
+  applySecurityMiddleware = require('../src/common/security.config').applySecurityMiddleware;
+} catch {
+  applySecurityMiddleware = require('../common/security.config').applySecurityMiddleware;
+}
+
 const server = express();
 let isInitialized = false;
 
 async function bootstrapServer(): Promise<void> {
   const app = await NestFactory.create(AppModule, new ExpressAdapter(server));
-  
-  app.enableCors({
-    origin: true,
-    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
-    credentials: true,
-  });
-  
+
+  applySecurityMiddleware(app, server);
+
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,
@@ -36,7 +39,7 @@ async function bootstrapServer(): Promise<void> {
       forbidNonWhitelisted: false,
     }),
   );
-  
+
   app.useGlobalFilters(new AllExceptionsFilter());
   await app.init();
 }
@@ -51,8 +54,8 @@ export default async function handler(req: Request, res: Response) {
   } catch (err: any) {
     console.error('SERVER BOOTSTRAP ERROR:', err);
     res.status(500).json({
-      error: err?.message || String(err),
-      stack: err?.stack,
+      statusCode: 500,
+      message: 'Error interno al inicializar el servidor.',
     });
   }
 }

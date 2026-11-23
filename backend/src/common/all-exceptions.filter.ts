@@ -53,21 +53,25 @@ export class AllExceptionsFilter implements ExceptionFilter {
           break;
         default:
           status = HttpStatus.BAD_REQUEST;
-          message = `Error en base de datos (${exception.code}): ${exception.message.split('\n').pop()}`;
+          message = `Error en la operación de base de datos (${exception.code}).`;
       }
       this.logger.warn(`Prisma error [${exception.code}] on ${request.method} ${request.url}: ${exception.message}`);
     } else if (exception instanceof Prisma.PrismaClientInitializationError) {
       status = HttpStatus.SERVICE_UNAVAILABLE;
-      message = 'No se pudo establecer conexión con la base de datos. Verifique la conexión a internet o el servicio Supabase.';
+      message = 'No se pudo establecer conexión con la base de datos. Verifique el servicio.';
       this.logger.error(`Prisma init error on ${request.method} ${request.url}`, exception);
     } else if (exception instanceof Error) {
       this.logger.error(`Unhandled error on ${request.method} ${request.url}`, exception.stack);
-      message = exception.message || message;
       if (exception.message.includes('Timed out') || exception.message.includes('timeout')) {
         status = HttpStatus.GATEWAY_TIMEOUT;
         message = 'La operación tardó demasiado en responder. Los cambios pueden haberse guardado parcialmente; por favor actualice la vista.';
+      } else if (exception.message.includes('CORS')) {
+        status = HttpStatus.FORBIDDEN;
+        message = 'Origen no permitido por política de seguridad.';
       }
     }
+
+    const isProd = process.env.NODE_ENV === 'production' || Boolean(process.env.VERCEL);
 
     response.status(status).json({
       statusCode: status,
@@ -75,7 +79,7 @@ export class AllExceptionsFilter implements ExceptionFilter {
       path: request.url,
       method: request.method,
       message,
-      errorDetails: exception instanceof Error ? exception.message : String(exception),
+      ...(isProd ? {} : { errorDetails: exception instanceof Error ? exception.message : String(exception) }),
     });
   }
 }

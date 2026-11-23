@@ -88,8 +88,8 @@ export class ValoresController {
     if (req.user.rol === 'iglesia' && req.user.iglesiaId !== iglesiaId) {
       throw new ForbiddenException('No tiene permisos para modificar esta iglesia.');
     }
-    if (body.valor_manual === undefined) {
-      throw new BadRequestException('Se requiere valor_manual.');
+    if (body.valor_manual === undefined || typeof body.valor_manual !== 'number' || !Number.isFinite(body.valor_manual)) {
+      throw new BadRequestException('Se requiere valor_manual numérico válido.');
     }
     return this.valoresService.updateValue(
       iglesiaId,

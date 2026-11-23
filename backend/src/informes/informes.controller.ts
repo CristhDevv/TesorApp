@@ -11,10 +11,12 @@
 } from "@nestjs/common";
 import { InformesService } from "./informes.service";
 import { JwtAuthGuard } from "../auth/jwt-auth.guard";
+import { RolesGuard } from "../auth/roles.guard";
+import { Roles } from "../auth/roles.decorator";
 import { EstadoInforme } from "@prisma/client";
 
 @Controller("informes")
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, RolesGuard)
 export class InformesController {
   constructor(private informesService: InformesService) {}
 
@@ -30,6 +32,7 @@ export class InformesController {
   }
 
   @Get("periodo")
+  @Roles("tesorero", "secretario", "presbitero")
   async getInformesByPeriodo(
     @Query("periodo_id") periodoId: string,
   ) {
@@ -55,6 +58,7 @@ export class InformesController {
   }
 
   @Put("estado")
+  @Roles("tesorero")
   async cambiarEstado(
     @Body() body: { iglesia_id: string; periodo_id: string; estado: EstadoInforme; observaciones?: string },
     @Request() req: any,
@@ -72,6 +76,7 @@ export class InformesController {
   }
 
   @Post("consolidar-todos")
+  @Roles("tesorero")
   async consolidarTodos(
     @Body() body: { periodo_id: string },
     @Request() req: any,

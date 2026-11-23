@@ -1,0 +1,34 @@
+name: Security & Dependency Audit
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  schedule:
+    - cron: '0 8 * * 1' # Lunes 08:00 UTC
+
+jobs:
+  dependency-audit:
+    name: NPM Dependency Security Audit
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Audit backend dependencies
+        working-directory: backend
+        run: npm audit --audit-level=high || true
+
+      - name: Audit frontend-desktop dependencies
+        working-directory: frontend-desktop
+        run: npm audit --audit-level=high || true
+
+      - name: Audit frontend-mobile dependencies
+        working-directory: frontend-mobile
+        run: npm audit --audit-level=high || true

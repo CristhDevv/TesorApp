@@ -3,7 +3,7 @@ import { Parser } from 'expr-eval';
 
 @Injectable()
 export class FormulasService {
-  private parser = new Parser();
+  private parser = new Parser({ allowMemberAccess: false });
 
   constructor() {
     // Register standard and custom rounding functions in expr-eval
@@ -61,6 +61,9 @@ export class FormulasService {
     allFields?: { id?: string; nombre?: string; slug: string }[],
   ): string {
     if (!formula) return '';
+    if (formula.length > 500) {
+      throw new BadRequestException('La fórmula excede la longitud máxima permitida (500 caracteres).');
+    }
     let sanitized = formula.trim();
 
     // 1. If allFields list is available, map any field names or old slugs (longest names first)

@@ -3,6 +3,7 @@ import { ReportesService } from './reportes.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { RolesGuard } from '../auth/roles.guard';
 import { Roles } from '../auth/roles.decorator';
+import { RateLimitGuard } from '../common/rate-limit.guard';
 import { Response } from 'express';
 
 @Controller('reportes')
@@ -41,6 +42,7 @@ export class ReportesController {
   }
 
   @Get('exportar')
+  @UseGuards(new RateLimitGuard(20, 60 * 1000, 'reportes_export'))
   async exportarExcel(
     @Query('periodo_id') periodoId: string,
     @Query('tabla_id') tablaId: string,
@@ -55,6 +57,7 @@ export class ReportesController {
     );
 
     const buffer = await workbook.xlsx.writeBuffer();
+    const safePeriodoId = (periodoId || 'reporte').replace(/[^a-zA-Z0-9_-]/g, '');
 
     res.setHeader(
       'Content-Type',
@@ -62,7 +65,7 @@ export class ReportesController {
     );
     res.setHeader(
       'Content-Disposition',
-      `attachment; filename=Reporte_Financiero_${periodoId}.xlsx`,
+      `attachment; filename="Reporte_Financiero_${safePeriodoId}.xlsx"`,
     );
     res.setHeader('Content-Length', (buffer as any).byteLength || (buffer as any).length);
     res.send(Buffer.from(buffer));
