@@ -107,6 +107,9 @@ import { ReportsPanel } from './components/reports/ReportsPanel';
 // Presbítero Feature
 import { PresbiteroDashboard } from './components/presbitero/PresbiteroDashboard';
 
+// Landing Page
+import { LandingPage } from './components/landing/LandingPage';
+
 
 const API_BASE = window.location.origin;
 axios.defaults.timeout = 60000;
@@ -2179,53 +2182,20 @@ export default function App() {
     isPeriodOpen: isPeriodOpen ?? false,
   });
 
-  // ─── LOGIN VIEW (Light Theme) ──────────────────────────────────────────
+  // ─── LANDING PAGE & LOGIN VIEW ─────────────────────────────────────────
   if (!token) {
     return (
-      <div className="h-screen w-screen flex items-center justify-center bg-slate-100 text-slate-900 p-4">
-        <div className="max-w-sm w-full bg-white border border-slate-200 rounded-xl p-6 shadow-xl space-y-5">
-          <div className="flex items-center gap-2.5 border-b border-slate-100 pb-4">
-            <div className="p-2 bg-indigo-50 text-indigo-600 rounded-lg border border-indigo-100 shadow-2xs">
-              <Building2 className="w-5 h-5" />
-            </div>
-            <div>
-              <h1 className="text-base font-extrabold text-slate-900 tracking-tight">TESORAPP</h1>
-              <p className="text-[11px] text-slate-500">Plataforma Contable de Tesorería</p>
-            </div>
-          </div>
-          <form onSubmit={handleLogin} className="space-y-4 text-xs">
-            <div>
-              <label className="block text-[11px] font-bold text-slate-700 mb-1">Correo Electrónico</label>
-              <input
-                type="email"
-                required
-                className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded text-slate-900 focus:outline-none focus:border-indigo-600 focus:bg-white font-mono text-xs font-semibold"
-                placeholder="usuario@tesorapp.com"
-                value={loginEmail}
-                onChange={(e) => setLoginEmail(e.target.value)}
-              />
-            </div>
-            <div>
-              <label className="block text-[11px] font-bold text-slate-700 mb-1">Contraseña</label>
-              <input
-                type="password"
-                required
-                className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded text-slate-900 focus:outline-none focus:border-indigo-600 focus:bg-white text-xs"
-                placeholder="••••••••"
-                value={loginPass}
-                onChange={(e) => setLoginPass(e.target.value)}
-              />
-            </div>
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-lg transition text-xs shadow-sm disabled:opacity-50 cursor-pointer"
-            >
-              {loading ? 'Accediendo...' : 'Iniciar Sesión'}
-            </button>
-          </form>
-        </div>
-      </div>
+      <LandingPage
+        loginEmail={loginEmail}
+        setLoginEmail={setLoginEmail}
+        loginPass={loginPass}
+        setLoginPass={setLoginPass}
+        onLogin={handleLogin}
+        loading={loading}
+        theme={theme}
+        onToggleTheme={toggleTheme}
+        toast={toast}
+      />
     );
   }
 
