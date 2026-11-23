@@ -1,0 +1,18 @@
+# 03 — Registro de Remediaciones Implementadas
+
+Todas las correcciones fueron implementadas manteniendo compatibilidad total con la arquitectura NestJS / React / Vercel / Supabase.
+
+| ID | Archivo(s) Modificado(s) / Creado(s) | Cambio Técnico Implementado | Estado |
+| :--- | :--- | :--- | :--- |
+| **SEC-01** | `backend/src/auth/auth.config.ts`, `auth.module.ts`, `jwt.strategy.ts` | Eliminado secreto JWT hardcodeado; en producción falla cerrado si falta `JWT_SECRET`. `JwtStrategy.validate` consulta a Prisma para verificar en tiempo real que el usuario existe y `activo === true`, actualizando `rol` e `iglesia_id`. Expiración ajustada a `12h`. | **CORREGIDO Y VERIFICADO** |
+| **SEC-02** | `backend/src/ai/ai.controller.ts` | Agregado `RolesGuard` con `@Roles('tesorero', 'secretario', 'presbitero')` y `RateLimitGuard(30, 60s)`. | **CORREGIDO Y VERIFICADO** |
+| **SEC-03** | `backend/src/gastos/gastos.controller.ts` | Agregado `RolesGuard`, `@Roles('tesorero', 'secretario', 'presbitero')` en endpoints `GET` y `@Roles('tesorero')` en todos los endpoints de escritura (`POST`/`PUT`/`DELETE`). | **CORREGIDO Y VERIFICADO** |
+| **SEC-04** | `backend/src/common/security.config.ts`, `main.ts`, `api/index.ts` | Implementada lista blanca explícita de orígenes (`isAllowedOrigin`) para producción, subdominios del proyecto en Vercel y `ALLOWED_ORIGINS`, bloqueando orígenes externos no autorizados. | **CORREGIDO Y VERIFICADO** |
+| **SEC-05** | `backend/api/index.ts`, `backend/src/common/all-exceptions.filter.ts` | Eliminado el retorno de `stack` en errores 500 de bootstrap. En producción (`NODE_ENV === 'production'` o `VERCEL`), omitido `errorDetails` y sanitizados los mensajes de errores de Prisma. | **CORREGIDO Y VERIFICADO** |
+| **SEC-06** | `backend/src/common/rate-limit.guard.ts`, `auth.controller.ts`, `auth.service.ts` | Implementado `RateLimitGuard` (máx. 10 intentos / 15 min por IP + correo en `/auth/login`, HTTP 429 + `Retry-After`). Unificado el mensaje de error a `'Credenciales inválidas'`, normalizado el correo y agregado logging de intentos fallidos/exitosos sin credenciales. | **CORREGIDO Y VERIFICADO** |
+| **SEC-07** | `backend/src/informes/informes.controller.ts` | Agregado `RolesGuard`, `@Roles('tesorero', 'secretario', 'presbitero')` en `GET /informes/periodo` y `@Roles('tesorero')` en `PUT /informes/estado` y `POST /informes/consolidar-todos`. | **CORREGIDO Y VERIFICADO** |
+| **SEC-08** | `security.config.ts`, `vercel.json`, `frontend-desktop/vercel.json`, `frontend-mobile/vercel.json` | Deshabilitado `X-Powered-By`, añadido límite de cuerpo `2mb`, cabeceras `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy`, `Permissions-Policy` y `Content-Security-Policy` sin `'unsafe-eval'`. | **CORREGIDO Y VERIFICADO** |
+| **SEC-09** | `backend/src/reportes/reportes.controller.ts` | Sanitizado `periodoId` (`[^a-zA-Z0-9_-]`) en `Content-Disposition` y añadido `RateLimitGuard(20, 60s)` en `GET /reportes/exportar`. | **CORREGIDO Y VERIFICADO** |
+| **SEC-10** | `backend/src/formulas/formulas.service.ts`, `valores.controller.ts` | Configurado `new Parser({ allowMemberAccess: false })`, límite de 500 caracteres en fórmulas y validación `Number.isFinite` en `valor_manual`. | **CORREGIDO Y VERIFICADO** |
+| **SEC-11** | `supabase/keepalive_pg_cron.sql`, `frontend-mobile/vercel.json` | Añadido `SET search_path = public, pg_temp` en `supabase_keepalive()` y corregido el orden de rewrites en `frontend-mobile/vercel.json`. | **CORREGIDO (SQL pendiente de ejecución en Supabase)** |
+| **CI/CD** | `.github/workflows/security-audit.yml` | Añadido flujo semanal y por push de auditoría `npm audit` en los tres paquetes. | **IMPLEMENTADO, PENDIENTE DE VERIFICACIÓN EN GITHUB ACTIONS** |

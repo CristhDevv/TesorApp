@@ -1,0 +1,9 @@
+# 06 — Riesgos Residuales y Acciones Recomendadas
+
+| Riesgo Residual | Estado | Impacto Potencial | Mitigación Recomendada |
+| :--- | :--- | :--- | :--- |
+| **Almacenamiento de JWT en `localStorage`** | **IDENTIFICADO, PENDIENTE DE CORRECCIÓN** | Si existiera una vulnerabilidad XSS en el futuro, un script podría leer el token de sesión. | Migrar la sesión a cookies `HttpOnly`, `Secure` y `SameSite=Lax/Strict` emitidas por el backend. La CSP sin `'unsafe-eval'` mitiga parcialmente el riesgo actual. |
+| **Rate Limiting en Memoria (Serverless)** | **MITIGADO PARCIALMENTE** | En Vercel Serverless, múltiples instancias concurrentes no comparten memoria de `RateLimitGuard`. | Integrar un almacén distribuido (ej. Upstash Redis) o reglas de Vercel WAF para rate limiting global entre réplicas. |
+| **Auditoría de RLS en Supabase** | **NO VERIFICABLE CON EL ACCESO ACTUAL** | Aunque el frontend no se conecta directamente a Supabase PostgREST, si alguna tabla en `public` tiene acceso `anon`/`authenticated` sin RLS, podría consultarse con la clave pública del proyecto si existiera. | Ejecutar en Supabase SQL Editor la verificación de `rowsecurity = true` en todas las tablas de `public` y restringir permisos del rol `anon`. |
+| **Rotación de Credenciales Compartidas** | **IDENTIFICADO, PENDIENTE DE CORRECCIÓN** | Tokens de despliegue, GitHub PAT o secretos de JWT anteriores al hardening deben rotarse periódicamente. | Rotar `JWT_SECRET`, contraseña de BD, tokens de Vercel y PAT de GitHub desde los paneles oficiales tras finalizar la auditoría. |
+| **Comprobantes en `localStorage` (`receiptsList`)** | **IDENTIFICADO, PENDIENTE DE CORRECCIÓN** | En `App.tsx`, la bóveda de recibos local persiste metadatos en el navegador. | Migrar almacenamiento de soportes a Supabase Storage con URLs firmadas y validación de MIME/tamaño en servidor. |
